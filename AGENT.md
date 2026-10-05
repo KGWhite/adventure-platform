@@ -148,112 +148,103 @@ Before finalizing any task, check off the following:
 
 ## 13. Commit Message Generation
 
-# Commit message rules
+# Commit message format
 
-Use Conventional Commits format:
+Use:
 
 ```text
 <type>(<scope>): <summary>
 ```
 
-Examples:
+Example:
 
 ```text
 feat(web): add adventurer dashboard
-feat(api): add rank query endpoint
-fix(api): prevent duplicate merit records
-chore(repo): configure pnpm workspace
-docs(readme): update local development instructions
-refactor(web): extract shared feedback overlay
-test(api): add rank service tests
 ```
 
-## Allowed commit types
+## Line length
 
-Prefer the following types:
+Follow common Git commit message conventions.
+
+### Subject line
+
+The first line must:
+
+- be no longer than 72 characters
+- preferably stay around 50-60 characters when practical
+- remain concise and descriptive
+- not end with a period
+
+Example:
 
 ```text
-feat
-fix
-refactor
-docs
-test
-chore
-build
-ci
-perf
-style
+feat(web): add local quest completion feedback
 ```
 
-Use them according to their meaning:
+Avoid:
 
 ```text
-feat
+feat(web): add a new local quest completion feedback animation system for mobile users
 ```
 
-New user-facing or system functionality.
+If the subject becomes too long, shorten it and move details into the body.
+
+### Commit body
+
+Separate the body from the subject with one blank line.
+
+Each body line should be no longer than 72 characters where practical.
+
+Prefer concise bullet points.
+
+Example:
 
 ```text
-fix
+feat(web): add local quest completion feedback
+
+- add reusable game feedback overlay
+- trigger animation after successful API response
+- support reduced-motion presentation
 ```
 
-Bug fix.
+Do not write unnecessarily long paragraphs in commit messages.
 
-```text
-refactor
-```
-
-Code restructuring without changing expected behavior.
-
-```text
-docs
-```
-
-Documentation-only changes.
-
-```text
-test
-```
-
-Adding or updating tests.
-
-```text
-chore
-```
-
-Repository maintenance or non-feature work.
-
-```text
-build
-```
-
-Build system, package, Docker, or dependency-related changes.
-
-```text
-ci
-```
-
-CI/CD configuration changes.
-
-```text
-perf
-```
-
-Performance improvement.
-
-```text
-style
-```
-
-Formatting-only changes that do not affect behavior.
-
-Do not use `style` for UI design or visual feature work. UI feature changes should normally use `feat`.
+If more explanation is needed, wrap text to keep line length readable.
 
 ---
 
-## Scope
+# Allowed commit types
 
-Use a short scope that identifies the main affected area.
+Prefer:
+
+```text
+feat
+fix
+refactor
+docs
+test
+chore
+build
+ci
+perf
+style
+```
+
+Use them according to standard Conventional Commit meaning.
+
+Do not use `style` for visual UI features.
+
+UI functionality or visual feature work should normally use:
+
+```text
+feat
+```
+
+---
+
+# Scope
+
+Use a short scope representing the main affected area.
 
 Preferred scopes may include:
 
@@ -273,51 +264,34 @@ repo
 docs
 ```
 
-Choose the smallest meaningful scope.
+Keep scopes short and stable.
 
-Do not create unnecessary or overly specific scopes.
-
-Examples:
-
-```text
-feat(quest): add quest completion flow
-fix(auth): reject expired access tokens
-chore(repo): add pnpm workspace configuration
-build(docker): add api container health check
-```
-
-If a change genuinely affects the entire repository and no specific scope fits, a scope may be omitted.
-
-Example:
-
-```text
-chore: normalize line endings
-```
+Do not create highly specific scopes unless clearly necessary.
 
 ---
 
-## Summary
+# Summary rules
 
 The summary must:
 
 - be written in English
-- be concise
-- describe the actual change
 - use imperative/present-tense style
 - start with a lowercase letter
 - not end with a period
-- avoid vague text such as `update files`, `changes`, or `misc fixes`
+- describe the actual change
+- remain within 72 characters
+- avoid vague wording
 
 Good:
 
 ```text
-feat(web): add mobile adventurer navigation
+fix(auth): reject expired access tokens
 ```
 
 Bad:
 
 ```text
-feat(web): Updated some UI.
+fix(auth): Updated some authentication related files.
 ```
 
 Bad:
@@ -328,9 +302,9 @@ chore: changes
 
 ---
 
-## Commit body
+# Commit body
 
-Use a commit body when the change contains multiple meaningful parts or when additional context improves clarity.
+Add a body when the change contains multiple meaningful parts.
 
 Format:
 
@@ -342,59 +316,57 @@ Format:
 - third meaningful change
 ```
 
+Keep each line within 72 characters where practical.
+
+Body bullets must describe only actual changes.
+
+Do not invent implementation details.
+
+---
+
+# Breaking changes
+
+If a change is actually incompatible with existing behavior, API,
+configuration, or usage, mark it clearly.
+
 Example:
 
 ```text
-feat(web): add local quest completion feedback
-
-- add reusable game feedback overlay
-- trigger feedback after successful API response
-- support reduced-motion presentation
+feat(api)!: change credential response format
 ```
 
-Keep body bullets concise and based only on actual changes.
+or:
 
-Do not invent implementation details that were not changed.
+```text
+BREAKING CHANGE: credential responses now use a normalized format
+```
+
+Do not mark non-breaking changes as breaking.
 
 ---
 
-## Breaking changes
+# Commit generation behavior
 
-If a change introduces a breaking change, clearly indicate it.
+Generate the recommended commit message only after implementation is
+complete.
 
-Use either:
-
-```text
-feat(api)!: change credential response structure
-```
-
-or a footer:
+Base the message on:
 
 ```text
-BREAKING CHANGE: credential responses now use the new normalized format
+actual diff
+actual files changed
+final implementation state
 ```
 
-Do not mark a change as breaking unless existing behavior, API contracts, configuration, or usage is actually incompatible.
+Do not base it only on the original task description.
 
----
-
-## Commit generation behavior
-
-After completing a task, generate a recommended commit message based on the actual diff or actual files changed.
-
-Do not generate the commit message before the implementation is complete.
-
-The generated message must reflect the final state of the change, not the original request.
-
-If the task contains unrelated changes, recommend splitting them into separate commits when practical.
-
-Do not combine unrelated work into one vague commit message.
+If unrelated changes exist, recommend splitting them into separate commits.
 
 Prefer one focused commit per logical change.
 
 ---
 
-## Do not commit automatically
+# Do not commit automatically
 
 Do not run:
 
@@ -402,24 +374,22 @@ Do not run:
 git commit
 ```
 
-unless the user explicitly asks to create the commit.
+unless the user explicitly asks for the commit to be created.
 
 By default, only provide the recommended commit message.
 
-If the user explicitly asks to commit the changes:
+If the user asks to commit:
 
-1. inspect the actual staged or unstaged diff
-2. generate a commit message based on the real changes
-3. use that message for the commit
-4. do not include unrelated files
+1. inspect the actual diff
+2. generate the message from the real changes
+3. commit only related files
+4. avoid including unrelated modifications
 
 ---
 
-## Final task summary
+# Final task summary
 
-At the end of each completed coding task, include a recommended commit message.
-
-Use this format:
+At the end of each completed coding task, include:
 
 ```text
 Recommended commit message:
@@ -439,4 +409,5 @@ feat(web): add adventurer dashboard
 - add mobile navigation
 ```
 
-Do not provide multiple commit message options unless the changes clearly should be split into multiple commits.
+Do not provide multiple alternatives unless the changes should genuinely
+be split into separate commits.

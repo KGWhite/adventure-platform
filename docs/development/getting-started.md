@@ -13,29 +13,65 @@ This guide describes how to run and develop the Adventure Platform locally.
 
 ## Quickstart (Integrated Docker Compose Stack)
 
-The fastest and primary way to run the entire integrated stack is Docker Compose.
+The fastest and primary way to run the entire integrated stack is Docker Compose with Nginx acting as the single HTTPS entry point.
 
-1. **Clone and setup environment variables**:
+### 1. Setup Environment Variables
+```bash
+cp .env.example .env
+```
+
+### 2. Generate Development TLS Certificate
+Generate a local self-signed certificate for HTTPS before launching the stack:
+```bash
+# For localhost testing:
+./infrastructure/nginx/generate-cert.sh
+
+# Or for local network (LAN) testing from mobile devices:
+./infrastructure/nginx/generate-cert.sh 192.168.1.100
+```
+> Alternatively, you can run the underlying OpenSSL command directly:
+> ```bash
+> openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+>   -keyout infrastructure/nginx/certs/server.key \
+>   -out infrastructure/nginx/certs/server.crt \
+>   -subj "/CN=localhost" \
+>   -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+> ```
+
+### 3. Start the Complete Stack
+```bash
+docker compose up --build
+```
+
+When starting, Docker Compose will launch four services:
+1. `postgres`: PostgreSQL 16 database with health check.
+2. `api`: NestJS modular monolith (automatically executes Prisma migrations and seeds default test data).
+3. `web`: React Vite PWA frontend build served internally.
+4. `nginx`: Reverse proxy gateway terminating TLS and routing requests:
+   - `https://<host>/` ──► `http://web:5173`
+   - `https://<host>/api/` ──► `http://api:3000`
+
+### 4. Verify Running Services via HTTPS
+- Web application (PWA): [https://localhost](https://localhost) (redirects to `/login`)
+- Health check: [https://localhost/api/v1/health](https://localhost/api/v1/health) (returns `{"status":"ok"}`)
+- PostgreSQL (database port for dev tools): `localhost:5432`
+
+> **Note on Browser Certificate Warning**: Because the certificate is self-signed for local development, browsers will display a security warning. Click **Advanced** ──► **Proceed to localhost (unsafe)** to open the application.
+
+## Mobile Device & Local Network Testing
+To test the PWA from a mobile device or other computer on the same Wi-Fi/LAN:
+1. Determine your computer's local IP address (e.g. `192.168.1.100`).
+2. Generate the certificate including your LAN IP:
    ```bash
-   cp .env.example .env
+   ./infrastructure/nginx/generate-cert.sh 192.168.1.100
    ```
-
-2. **Start the complete stack**:
+3. Restart or start the stack:
    ```bash
-   docker compose up --build
+   docker compose up -d
    ```
-
-   When starting, Docker Compose will:
-   - Start and verify healthy `postgres`
-   - Automatically run Prisma migrations (`prisma migrate deploy`) and seed default ranks & test data (`prisma db seed`)
-   - Start the NestJS API on `http://localhost:3000`
-   - Start the React PWA frontend on `http://localhost:5173`
-
-3. **Verify running services**:
-   - Web application: [http://localhost:5173](http://localhost:5173) (redirects to `/login`)
-   - API application: [http://localhost:3000](http://localhost:3000)
-   - Health check: [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health) (returns `{"status":"ok"}`)
-   - PostgreSQL: `localhost:5432`
+4. On your mobile browser, open `https://192.168.1.100`.
+5. Accept the browser's certificate warning to enter the secure context.
+6. Verify that the **Web App Manifest** loads and the **Service Worker** registers without mixed-content errors.
 
 ## Local Source-Level Development
 
@@ -108,6 +144,7 @@ You can run services individually using pnpm workspace filtering:
   ```
 
 ### 7. Exploring Authentication & Protected API Endpoints
+When developing directly at the source level (`pnpm dev:api`), endpoints are reachable directly on `http://localhost:3000`:
 ```bash
 # 1. Login as Adventurer (USER)
 USER_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
@@ -128,3 +165,5 @@ ADMIN_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
 # 5. Access Admin Protected API as ADMIN (Returns 200 OK with metrics)
 curl http://localhost:3000/api/v1/admin/summary -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+> In the integrated Docker Compose environment, replace `http://localhost:3000` with `https://localhost` (add `-k` for self-signed certificate, e.g. `curl -k https://localhost/api/v1/auth/me -H "Authorization: Bearer $USER_TOKEN"`).

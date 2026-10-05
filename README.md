@@ -24,13 +24,14 @@ Adventure Platform (`adventure-platform`) 是一個可擴充的實體／數位�
 
 | 層級 | 技術選型 | 說明 |
 | :--- | :--- | :--- |
+| **Gateway / Proxy**| Nginx 1.27 (Alpine) | 單一 HTTPS 入口（Port 443），終止 TLS 並分流 `/` (Web) 與 `/api` (API)，提供 PWA Secure Context |
 | **Frontend** | React 19, TypeScript, Vite, MUI, PWA | 單一前端應用程式，採用 MUI 作為唯一元件庫，支援行動優先響應式設計、桌面瀏覽器與 PWA 安裝 |
 | **Backend** | NestJS, TypeScript | Modular Monolith 架構，提供 `/api/v1` REST API |
 | **Database** | PostgreSQL 16 | 執行於 Docker Compose，單一資料庫實例 |
 | **ORM** | Prisma | 內建於 API 應用程式內 (`apps/api/prisma`)，非獨立容器 |
 | **Auth** | JWT & Passport & bcryptjs | 輕量化 Token 認證與角色權限守衛（RolesGuard） |
 | **Package Manager** | `pnpm` Workspaces | 依賴管理使用 `pnpm`，依賴鎖定檔僅使用 `pnpm-lock.yaml` |
-| **Runtime & Compose**| Docker & Docker Compose | 本地整合環境運行基準，單一命令即可完整啟動 |
+| **Runtime & Compose**| Docker & Docker Compose | 本地整合環境運行基準，以 Nginx 為外部入口統一編排 |
 
 ---
 
@@ -42,28 +43,37 @@ Adventure Platform (`adventure-platform`) 是一個可擴充的實體／數位�
 │        (Mobile / Desktop / PWA Standalone Mode)        │
 │          /login  ──►  /user (USER) | /admin (ADMIN)    │
 └───────────────────────────┬────────────────────────────┘
-                            │ HTTP / REST (JWT Bearer Auth)
+                            │ HTTPS (Port 443, TLS)
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                     NestJS API                         │
-│                 (Modular Monolith)                     │
-│  ├── HealthModule      (/api/v1/health)                │
-│  ├── AuthModule        (/api/v1/auth)                  │
-│  ├── AdminModule       (/api/v1/admin) (ADMIN only)    │
-│  ├── UsersModule       (/api/v1/users)                 │
-│  ├── AdventurersModule (/api/v1/adventurers)           │
-│  ├── RanksModule       (/api/v1/ranks)                 │
-│  ├── CredentialsModule (/api/v1/credentials)           │
-│  └── PrismaModule      (PrismaService)                 │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │                     Prisma                       │  │
-│  └────────────────────────┬─────────────────────────┘  │
-└───────────────────────────┼────────────────────────────┘
-                            │ SQL (PostgreSQL protocol)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                   PostgreSQL 16                        │
-└────────────────────────────────────────────────────────┘
+│                  Nginx Reverse Proxy                   │
+│               (infrastructure/nginx)                   │
+│   ├── /api/  ──►  http://api:3000 (NestJS API)         │
+│   └── /      ──►  http://web:5173 (React PWA)          │
+└──────────────┬─────────────────────────┬───────────────┘
+               │                         │
+               ▼                         ▼
+┌────────────────────────────┐ ┌─────────────────────────┐
+│         React Web          │ │       NestJS API        │
+│        (apps/web)          │ │       (apps/api)        │
+│  (Vite PWA, MUI, Theme)    │ │  ├── HealthModule       │
+└────────────────────────────┘ │  ├── AuthModule         │
+                               │  ├── AdminModule        │
+                               │  ├── UsersModule        │
+                               │  ├── AdventurersModule  │
+                               │  ├── RanksModule        │
+                               │  ├── CredentialsModule  │
+                               │  ├── QuestsModule       │
+                               │  └── PrismaModule       │
+                               │  ┌───────────────────┐  │
+                               │  │      Prisma       │  │
+                               │  └─────────┬─────────┘  │
+                               └────────────┼────────────┘
+                                            │ SQL (PostgreSQL protocol)
+                                            ▼
+                               ┌─────────────────────────┐
+                               │      PostgreSQL 16      │
+                               └─────────────────────────┘
 ```
 
 ### 1. 角色定義與映射 (Role Mapping)
@@ -241,7 +251,11 @@ adventure-platform/
 ├── games/
 │   └── kids-adventure/           # 遊戲專案配置
 ├── infrastructure/
-│   └── database/migrations/      # 資料庫歷史腳本
+│   ├── database/migrations/      # 資料庫歷史腳本
+│   └── nginx/                    # Nginx 反向代理配置與 TLS 憑證目錄
+│       ├── nginx.conf            # Nginx 設定檔 (HTTPS 443, / 與 /api 路由)
+│       ├── certs/                # TLS 憑證與金鑰目錄 (.gitkeep，不提交金鑰)
+│       └── generate-cert.sh      # 開發用自簽 TLS 憑證產生腳本 (支援 SAN)
 └── docs/
     ├── architecture/             # 架構與領域模型技術文件
     │   ├── domain-model.md
@@ -254,7 +268,7 @@ adventure-platform/
 
 ## Quickstart (Docker Compose)
 
-Docker Compose 是本專案 MVP 的整合運行與環境標準。
+Docker Compose 是本專案 MVP 的整合運行與環境標準，以 Nginx 作為單一 HTTPS 對外入口。
 
 ### 1. 環境變數設定
 
@@ -262,7 +276,28 @@ Docker Compose 是本專案 MVP 的整合運行與環境標準。
 cp .env.example .env
 ```
 
-### 2. 啟動完整服務棧
+### 2. 產生開發用 TLS 憑證
+
+啟動前請先產生本機開發用自簽 TLS 憑證：
+
+```bash
+# 本地 localhost 測試：
+./infrastructure/nginx/generate-cert.sh
+
+# 或區域網路 (LAN) 行動裝置測試：
+./infrastructure/nginx/generate-cert.sh 192.168.1.100
+```
+
+> 亦可直接執行 OpenSSL 命令：
+> ```bash
+> openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+>   -keyout infrastructure/nginx/certs/server.key \
+>   -out infrastructure/nginx/certs/server.crt \
+>   -subj "/CN=localhost" \
+>   -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+> ```
+
+### 3. 啟動完整服務棧
 
 ```bash
 docker compose up --build
@@ -271,22 +306,37 @@ docker compose up --build
 Compose 會依序啟動：
 1. `postgres`（含 Healthcheck）
 2. `api`（等候 postgres ready 後自動執行 Prisma 遷移、資料庫 Seed 並啟動服務）
-3. `web`（等候 api 後啟動）
+3. `web`（等候 api 後啟動內部預覽服務）
+4. `nginx`（單一 HTTPS 入口，對外暴露 443 埠，將 `/` 導向 `web:5173`，將 `/api/` 導向 `api:3000`）
 
-### 3. 服務存取與主要 API 端點
+### 4. 服務存取與主要 API 端點
 
 | 服務 / API | 網址 | 說明 |
 | :--- | :--- | :--- |
-| **Web 前端** | [http://localhost:5173](http://localhost:5173) | 前端入口（未登入自動導向 `/login`） |
-| **Health API** | [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health) | 健康檢查，回傳 `{"status":"ok"}` |
-| **Auth API** | [http://localhost:3000/api/v1/auth/login](http://localhost:3000/api/v1/auth/login) | 登入端點（簽發 JWT） |
-| **Admin API** | [http://localhost:3000/api/v1/admin/summary](http://localhost:3000/api/v1/admin/summary) | 管理員保護端點（僅限 ADMIN，USER 存取回傳 403） |
-| **Ranks API** | [http://localhost:3000/api/v1/ranks](http://localhost:3000/api/v1/ranks) | 查詢所有冒險者階級（F 到 S） |
-| **Adventurers API** | [http://localhost:3000/api/v1/adventurers](http://localhost:3000/api/v1/adventurers) | 查詢與建立冒險者檔案 |
-| **Credentials API** | [http://localhost:3000/api/v1/credentials](http://localhost:3000/api/v1/credentials) | 登記與查詢冒險者憑證 |
-| **PostgreSQL** | `localhost:5432` | 資料庫連接埠 |
+| **Web 前端 (PWA)** | [https://localhost](https://localhost) | 前端入口（未登入自動導向 `/login`） |
+| **Health API** | [https://localhost/api/v1/health](https://localhost/api/v1/health) | 健康檢查，回傳 `{"status":"ok"}` |
+| **Auth API** | [https://localhost/api/v1/auth/login](https://localhost/api/v1/auth/login) | 登入端點（簽發 JWT） |
+| **Admin API** | [https://localhost/api/v1/admin/summary](https://localhost/api/v1/admin/summary) | 管理員保護端點（僅限 ADMIN，USER 存取回傳 403） |
+| **Ranks API** | [https://localhost/api/v1/ranks](https://localhost/api/v1/ranks) | 查詢所有冒險者階級（F 到 S） |
+| **Adventurers API** | [https://localhost/api/v1/adventurers](https://localhost/api/v1/adventurers) | 查詢與建立冒險者檔案 |
+| **Credentials API** | [https://localhost/api/v1/credentials](https://localhost/api/v1/credentials) | 登記與查詢冒險者憑證 |
+| **PostgreSQL** | `localhost:5432` | 資料庫連接埠（供本機開發與遷移工具使用） |
 
----
+> **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。
+
+### 5. 行動裝置與區域網路 (LAN) PWA 測試
+
+PWA 功能（Web App Manifest 安裝、Service Worker 快取）嚴格要求在安全上下文（Secure Context, HTTPS 或 localhost）下執行。若欲於同 Wi-Fi 網段之手機或平板測試：
+1. 查詢開發主機區域網路 IP（例如 `192.168.1.100`）。
+2. 執行包含該 IP 之憑證產生腳本：
+   ```bash
+   ./infrastructure/nginx/generate-cert.sh 192.168.1.100
+   ```
+3. 啟動服務棧：`docker compose up -d`
+4. 於手機瀏覽器開啟 `https://192.168.1.100`，接受自簽憑證警告。
+5. 驗證 Web App Manifest 與 Service Worker 均於 HTTPS 下成功註冊，無 Mixed Content 錯誤。
+
+> **安全性注意事項**：此自簽憑證僅供本地開發與區域網路驗證使用，嚴禁於生產環境部署。產生的私鑰已加入 `.gitignore` 排除清單，不得提交至版本控制庫。
 
 ## Development Seed Data
 

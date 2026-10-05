@@ -14,3 +14,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# TLS certificates and private keys
+infrastructure/nginx/certs/*
+!infrastructure/nginx/certs/.gitkeep

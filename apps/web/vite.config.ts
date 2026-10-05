@@ -44,6 +44,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.BACKEND_URL || 'http://localhost:3000',
@@ -54,6 +55,7 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: 5173,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.BACKEND_URL || 'http://api:3000',
