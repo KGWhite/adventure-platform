@@ -1,0 +1,225 @@
+# Domain Model & Identity Architecture
+
+This document defines the core domain model established in Phase 2 and extended in Phase 3 with authentication, role authorization, and role-based frontend layouts.
+
+## 1. Domain Overview
+
+The system models an **Adventurer Guild**:
+- **USER** (`Role.USER`): An adventurer who registers credentials, accepts quests, and progresses through guild ranks.
+- **ADMIN** (`Role.ADMIN`): A guild administrator who creates and manages quests, approves promotions, and configures guild ranks and rewards.
+
+```text
+┌──────────────┐          1:1          ┌───────────────────┐
+│     User     ├───────────────────────┤ AdventurerProfile │
+└──────┬───────┘                       └───────┬─────┬─────┘
+       │                                       │     │
+       │ (reviews / approves)             N:1  │     │ 1:N
+       ├─────────────────┐                     │     ├───► Credential
+       │                 │                     │     ├───► QuestCompletion ◄─── Quest
+       ▼                 ▼                     ▼     ├───► MeritLedger
+┌──────────────┐  ┌──────────────┐     ┌──────────────┐  └───► PromotionRequest
+│QuestApproval │  │PromotionRev. │     │     Rank     │
+└──────────────┘  └──────────────┘     └──────────────┘
+                                         ▲          ▲
+                                         │(from/to) │(requiredRank)
+                                         │          │
+                              PromotionRequest     Quest
+
+┌──────────────────┐
+│      Reward      │ (Extensible skeleton: virtual_item, physical_reward, device_action, etc.)
+└──────────────────┘
+```
+
+### Intended MVP Gameplay & Progression Loop
+The end-to-end progression loop designed for the MVP is:
+```text
+Adventurer (User)
+  └─► Credential (QR / RFID / NFC token identification)
+        └─► Quest (Rank-qualified adventure task)
+              └─► Quest Completion (Submission for verification)
+                    └─► Guild Merit (Ledger event recorded in MeritLedger)
+                          └─► Promotion Eligibility (Merit threshold met)
+                                └─► Promotion Request (Adventurer or system submits request)
+                                      └─► Admin Review (Guild Administrator evaluates)
+                                            └─► Rank Up (Upgraded to next Rank)
+```
+> [!NOTE]
+> In Phase 4, the **database and domain skeleton** for this loop is established. Complete workflow execution (automatic eligibility calculation, submission forms, admin approval buttons, and reward execution) will be implemented in subsequent phases.
+
+---
+
+## 2. Core Entities
+
+### User (`users` table)
+Represents identity, credentials, and access control.
+- `id`: Unique identifier (CUID)
+- `username`: Unique login handle
+- `passwordHash`: Bcrypt-hashed password (never stored in plain text and never exposed through API responses)
+- `role`: Enum `USER` or `ADMIN`
+- `createdAt`, `updatedAt`: Audit timestamps
+
+### Rank (`ranks` table)
+Represents adventurer rank progression.
+- `id`: Unique identifier (CUID)
+- `code`: Rank code (`F`, `E`, `D`, `C`, `B`, `A`, `S`)
+- `name`: Display name (e.g., "Rank F", "Rank S")
+- `order`: Numeric sort order (1 for F, 7 for S)
+- `promotionThreshold`: Merit threshold required for promotion eligibility
+- **Design Principle**: Rank behavior and progression rules are strictly **database-driven** rather than hard-coded in application logic. This ensures future game templates can configure custom rank tiers without code modifications.
+
+### AdventurerProfile (`adventurer_profiles` table)
+Represents the guild adventurer persona linked to a user account.
+- `id`: Unique identifier (CUID)
+- `userId`: Foreign key to `User` (1-to-1 relationship, cascade delete)
+- `displayName`: Character / adventurer name
+- `currentRankId`: Foreign key to `Rank` (initial default is Rank F)
+- `createdAt`, `updatedAt`: Timestamps
+
+### Credential (`credentials` table)
+Represents physical or digital identification tokens assigned to adventurers.
+- `id`: Unique identifier (CUID)
+- `adventurerId`: Foreign key to `AdventurerProfile` (1-to-many relationship, cascade delete)
+- `type`: Enum `CredentialType` (`QRCODE`, `RFID`, `NFC`)
+- `value`: Unique token identifier / tag serial / QR payload
+- `enabled`: Boolean flag indicating if token is active
+- **Hardware Abstraction Rule**: Core domain abstractions are decoupled from physical hardware scanning devices. `QRCODE`, `RFID`, and `NFC` are database model types for future flexibility; **physical hardware and scanner integrations are not yet implemented**.
+
+### Quest (`quests` table)
+Represents a task or mission available to adventurers who hold the prerequisite rank.
+- `id`: Unique identifier (CUID)
+- `title`: Short task title
+- `description`: Quest instructions or objectives
+- `requiredRankId`: Foreign key to `Rank` (specifies minimum rank requirement)
+- `meritReward`: Non-negative merit awarded upon completion (default: `0`)
+- `enabled`: Active/inactive toggle
+- `createdAt`, `updatedAt`: Timestamps
+- **Design Principle**: Scope is deliberately minimal. Does not support complex quest types, recurrence, multi-stage dependencies, timers, maps, or multiplayer mechanics.
+
+### QuestCompletion (`quest_completions` table)
+Records an adventurer's attempt or completion of a quest.
+- `id`: Unique identifier (CUID)
+- `questId`: Foreign key to `Quest` (cascade delete)
+- `adventurerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `status`: Enum `QuestCompletionStatus` (`PENDING`, `APPROVED`, `REJECTED`)
+- `completedAt`: Timestamp of completion attempt
+- `approvedAt`: Timestamp of administrator review
+- `approvedBy`: Foreign key to `User` (the administrator who reviewed the submission)
+- **Workflow State**: Designed to support future review and verification workflows. Full verification/approval execution logic is deferred to subsequent phases.
+
+### MeritLedger (`merit_ledgers` table)
+Immutable ledger recording all credit and debit changes to an adventurer's Guild Merit.
+- `id`: Unique identifier (CUID)
+- `adventurerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `amount`: Signed integer reflecting the merit delta (e.g. `+50` for quest completion)
+- `reason`: Descriptive explanation for the adjustment
+- `sourceType`: Source classification (e.g. `QUEST_COMPLETION`, `ADMIN_ADJUSTMENT`, `BONUS`)
+- `sourceId`: Optional reference to the initiating entity (such as `questCompletionId`)
+- `createdAt`: Ledger timestamp
+- **Design Principle (Ledger Pattern)**: Progression is **never** stored solely as a mutable counter column on the adventurer profile. Every merit change must be traced through an immutable ledger entry, enabling full auditability and balance reconstruction.
+
+### PromotionRequest (`promotion_requests` table)
+Explicit record capturing an adventurer's request to advance to a higher rank.
+- `id`: Unique identifier (CUID)
+- `adventurerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `fromRankId`: Foreign key to current `Rank`
+- `toRankId`: Foreign key to target `Rank`
+- `status`: Enum `PromotionRequestStatus` (`PENDING`, `APPROVED`, `REJECTED`)
+- `reviewedBy`: Foreign key to `User` (administrator reviewer)
+- `reviewedAt`: Timestamp of administrator decision
+- `createdAt`: Submission timestamp
+- **Design Principle (No Automatic Rank-Up)**: Reaching a merit threshold does **not** automatically mutate the adventurer's rank. It establishes *eligibility*, which leads to a `PromotionRequest` subject to administrative review.
+
+### Reward (`rewards` table)
+Extensible reward catalog skeleton.
+- `id`: Unique identifier (CUID)
+- `name`: Display name of the reward
+- `description`: Optional descriptive text
+- `type`: String classifier accommodating future reward mechanisms (`virtual_item`, `physical_reward`, `animation`, `device_action`, `custom`)
+- `config`: Optional JSONB structure containing type-specific parameters (e.g., sound/animation assets, peripheral control flags)
+- `enabled`: Availability toggle
+- `createdAt`, `updatedAt`: Timestamps
+- **Extension Point Notice**: In Phase 4, `Reward` serves solely as a schema extension point. **Reward execution, hardware activation, and animation playback are not implemented in this phase.**
+
+---
+
+### Story Independence & Generic Platform Design
+While the current UI theme is styled as an **Adventurer Guild**, all backend data models and domain abstractions remain story-independent:
+- `Credential`, `Rank`, `Quest`, `QuestCompletion`, `MeritLedger`, `PromotionRequest`, and `Reward` are generic platform primitives.
+- Story-specific flavor (e.g., "公會任務", "冒險者公會", "S 級冒險者") belongs strictly in the frontend display and localized presentation layers.
+- Core business logic and database tables remain reusable for future alternative game templates (e.g. sci-fi, corporate onboarding, school treasure hunts).
+
+---
+
+## 3. Authentication & Authorization Flow (Phase 3)
+
+The platform implements a lightweight token-based authentication mechanism designed specifically for the MVP.
+
+```text
+1. Client POST /api/v1/auth/login { username, password }
+   └─► API validates with bcryptjs against User.passwordHash
+   └─► Returns { accessToken (JWT), user }
+
+2. Client requests protected endpoints with header:
+   Authorization: Bearer <accessToken>
+   └─► JwtAuthGuard verifies JWT signature and resolves current user
+   └─► RolesGuard enforces role permissions (USER vs ADMIN)
+
+3. Client GET /api/v1/auth/me
+   └─► Returns current User with AdventurerProfile, Rank, and Credentials
+```
+
+### Role Enforcement (Backend vs Frontend)
+- Security is strictly enforced on the API layer via `RolesGuard` and `@Roles(...)`.
+- `USER` accounts cannot access protected `ADMIN` endpoints (e.g., `GET /api/v1/admin/summary` returns `403 Forbidden`).
+- Frontend route hiding provides user experience separation, but is backed by server-side authorization.
+
+---
+
+## 4. API Endpoints
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/login` | Public | Authenticate with username and password |
+| `GET` | `/api/v1/auth/me` | Authenticated | Retrieve current user profile, rank, and credentials |
+| `POST` | `/api/v1/auth/logout` | Authenticated | Terminate session / logout |
+| `GET` | `/api/v1/admin/summary` | **ADMIN only** | Retrieve administrative overview metrics |
+| `GET` | `/api/v1/ranks` | Public / Auth | List all ranks sorted by order |
+| `GET` | `/api/v1/ranks/:id` | Public / Auth | Get rank details |
+| `GET` | `/api/v1/adventurers` | Authenticated | List adventurers (with rank, sanitized user, credentials) |
+| `POST` | `/api/v1/adventurers` | Authenticated | Create an adventurer profile |
+| `GET` | `/api/v1/adventurers/:id` | Authenticated | Get adventurer by ID |
+| `GET` | `/api/v1/adventurers/:id/credentials` | Authenticated | List credentials for a specific adventurer |
+| `POST` | `/api/v1/credentials` | Authenticated | Register a credential (`QRCODE`, `RFID`, or `NFC`) |
+| `GET` | `/api/v1/credentials` | Authenticated | List all credentials |
+
+> [!IMPORTANT]
+> **Data Exposure Policy**: Password hashes (`passwordHash`) are strictly excluded from all public API outputs via `select` projections and `sanitizeUser` utilities.
+
+---
+
+## 5. Web Routes & Protected Layouts
+
+- `/login`: Public login form with quick demo autofill buttons.
+- `/user`: Mobile-first Adventurer Dashboard. Displays display name, rank, guild merit (0), and credential status.
+- `/admin`: Guild Administration Console with sidebar navigation for Dashboard, Adventurers, Ranks, Credentials, Quests (Coming soon), and Promotions (Coming soon).
+
+### Routing Guard Logic
+- Unauthenticated users accessing `/user` or `/admin` are automatically redirected to `/login`.
+- Authenticated `USER` users accessing `/admin` are forbidden and redirected to `/user`.
+- Authenticated users accessing `/login` or `/` are routed to their respective role home (`/user` or `/admin`).
+
+---
+
+## 6. Current PWA Capabilities & Known Limitations
+
+### PWA Capabilities
+- Valid web app manifest (`manifest.webmanifest`) generated by `vite-plugin-pwa`.
+- Automatic service worker caching of application shell assets.
+- Installable as a standalone app on supported mobile and desktop browsers.
+
+### Known Limitations & Scope Discipline (Phase 4)
+- **Quest Workflow**: Database models (`Quest`, `QuestCompletion`) exist; quest acceptance, submission endpoints, and admin verification UI are scheduled for subsequent phases.
+- **Guild Merit Ledger**: `MeritLedger` model exists; merit calculation currently returns `0` until quest completion and balance aggregation services are connected.
+- **Promotions**: `PromotionRequest` model exists; promotion eligibility checking and admin review approval workflows are scheduled for future phases. **No automatic rank-up logic exists.**
+- **Rewards**: `Reward` model exists as an extensible schema skeleton; reward fulfillment, physical dispenser triggers, and animation playback are deliberately not implemented in this phase.
+- **Hardware Integration**: No physical QR scanning, RFID readers, or NFC hardware drivers exist yet.

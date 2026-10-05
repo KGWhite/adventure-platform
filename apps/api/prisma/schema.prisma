@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CredentialType {
+  QRCODE
+  RFID
+  NFC
+}
+
+enum QuestCompletionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PromotionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                String             @id @default(cuid())
+  username          String             @unique
+  passwordHash      String
+  role              Role               @default(USER)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  adventurerProfile AdventurerProfile?
+  questApprovals    QuestCompletion[]  @relation("QuestApprover")
+  promotionReviews  PromotionRequest[] @relation("PromotionReviewer")
+
+  @@map("users")
+}
+
+model Rank {
+  id                 String              @id @default(cuid())
+  code               String              @unique
+  name               String
+  order              Int                 @unique
+  promotionThreshold Int
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  adventurerProfiles AdventurerProfile[]
+  quests             Quest[]
+  promotionsFrom     PromotionRequest[]  @relation("PromotionFrom")
+  promotionsTo       PromotionRequest[]  @relation("PromotionTo")
+
+  @@map("ranks")
+}
+
+model AdventurerProfile {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  displayName       String
+  currentRankId     String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRank       Rank               @relation(fields: [currentRankId], references: [id])
+  credentials       Credential[]
+  questCompletions  QuestCompletion[]
+  meritLedgerEntries MeritLedger[]
+  promotionRequests PromotionRequest[]
+
+  @@map("adventurer_profiles")
+}
+
+model Credential {
+  id           String            @id @default(cuid())
+  adventurerId String
+  type         CredentialType
+  value        String            @unique
+  enabled      Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  adventurer   AdventurerProfile @relation(fields: [adventurerId], references: [id], onDelete: Cascade)
+
+  @@map("credentials")
+}
+
+model Quest {
+  id             String            @id @default(cuid())
+  title          String
+  description    String
+  requiredRankId String
+  meritReward    Int               @default(0)
+  enabled        Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  requiredRank   Rank              @relation(fields: [requiredRankId], references: [id])
+  completions    QuestCompletion[]
+
+  @@map("quests")
+}
+
+model QuestCompletion {
+  id           String                @id @default(cuid())
+  questId      String
+  adventurerId String
+  status       QuestCompletionStatus @default(PENDING)
+  completedAt  DateTime              @default(now())
+  approvedAt   DateTime?
+  approvedBy   String?
+  quest        Quest                 @relation(fields: [questId], references: [id], onDelete: Cascade)
+  adventurer   AdventurerProfile     @relation(fields: [adventurerId], references: [id], onDelete: Cascade)
+  approver     User?                 @relation("QuestApprover", fields: [approvedBy], references: [id])
+
+  @@map("quest_completions")
+}
+
+model MeritLedger {
+  id           String            @id @default(cuid())
+  adventurerId String
+  amount       Int
+  reason       String
+  sourceType   String
+  sourceId     String?
+  createdAt    DateTime          @default(now())
+  adventurer   AdventurerProfile @relation(fields: [adventurerId], references: [id], onDelete: Cascade)
+
+  @@map("merit_ledgers")
+}
+
+model PromotionRequest {
+  id           String                 @id @default(cuid())
+  adventurerId String
+  fromRankId   String
+  toRankId     String
+  status       PromotionRequestStatus @default(PENDING)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime               @default(now())
+  adventurer   AdventurerProfile      @relation(fields: [adventurerId], references: [id], onDelete: Cascade)
+  fromRank     Rank                   @relation("PromotionFrom", fields: [fromRankId], references: [id])
+  toRank       Rank                   @relation("PromotionTo", fields: [toRankId], references: [id])
+  reviewer     User?                  @relation("PromotionReviewer", fields: [reviewedBy], references: [id])
+
+  @@map("promotion_requests")
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  config      Json?
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("rewards")
+}

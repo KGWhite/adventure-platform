@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: adventure-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-adventure_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-adventure_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adventure_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-adventure_user} -d $${POSTGRES_DB:-adventure_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: adventure-api
+    restart: unless-stopped
+    environment:
+      PORT: ${PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-adventure_user}:${POSTGRES_PASSWORD:-adventure_password}@postgres:5432/${POSTGRES_DB:-adventure_platform}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-adventure-platform-jwt-secret-mvp-key-2026}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: adventure-web
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://api:3000}
+      VITE_API_URL: ${VITE_API_URL:-}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

@@ -1,0 +1,16 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies and build artifacts
+node_modules/
+dist/
+build/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

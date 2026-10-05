@@ -1,0 +1,24 @@
+{
+  "name": "adventure-platform",
+  "private": true,
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": "12.8.1"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @adventure-platform/web dev",
+    "dev:api": "pnpm --filter @adventure-platform/api start:dev",
+    "build": "pnpm --filter @adventure-platform/api build && pnpm --filter @adventure-platform/web build",
+    "test": "pnpm --filter @adventure-platform/api test",
+    "prisma:generate": "pnpm --filter @adventure-platform/api prisma:generate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild"
+    ]
+  }
+}
