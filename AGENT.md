@@ -145,3 +145,298 @@ Before finalizing any task, check off the following:
 7. [README.md](file:///home/abUC/adventure-platform/README.md) is still accurate.
 8. Relevant files under `docs/` are still accurate.
 9. Documentation was updated if architecture, behavior, or configuration changed.
+
+## 13. Commit Message Generation
+
+# Commit message rules
+
+Use Conventional Commits format:
+
+```text
+<type>(<scope>): <summary>
+```
+
+Examples:
+
+```text
+feat(web): add adventurer dashboard
+feat(api): add rank query endpoint
+fix(api): prevent duplicate merit records
+chore(repo): configure pnpm workspace
+docs(readme): update local development instructions
+refactor(web): extract shared feedback overlay
+test(api): add rank service tests
+```
+
+## Allowed commit types
+
+Prefer the following types:
+
+```text
+feat
+fix
+refactor
+docs
+test
+chore
+build
+ci
+perf
+style
+```
+
+Use them according to their meaning:
+
+```text
+feat
+```
+
+New user-facing or system functionality.
+
+```text
+fix
+```
+
+Bug fix.
+
+```text
+refactor
+```
+
+Code restructuring without changing expected behavior.
+
+```text
+docs
+```
+
+Documentation-only changes.
+
+```text
+test
+```
+
+Adding or updating tests.
+
+```text
+chore
+```
+
+Repository maintenance or non-feature work.
+
+```text
+build
+```
+
+Build system, package, Docker, or dependency-related changes.
+
+```text
+ci
+```
+
+CI/CD configuration changes.
+
+```text
+perf
+```
+
+Performance improvement.
+
+```text
+style
+```
+
+Formatting-only changes that do not affect behavior.
+
+Do not use `style` for UI design or visual feature work. UI feature changes should normally use `feat`.
+
+---
+
+## Scope
+
+Use a short scope that identifies the main affected area.
+
+Preferred scopes may include:
+
+```text
+web
+api
+db
+auth
+adventurer
+quest
+rank
+credential
+reward
+promotion
+docker
+repo
+docs
+```
+
+Choose the smallest meaningful scope.
+
+Do not create unnecessary or overly specific scopes.
+
+Examples:
+
+```text
+feat(quest): add quest completion flow
+fix(auth): reject expired access tokens
+chore(repo): add pnpm workspace configuration
+build(docker): add api container health check
+```
+
+If a change genuinely affects the entire repository and no specific scope fits, a scope may be omitted.
+
+Example:
+
+```text
+chore: normalize line endings
+```
+
+---
+
+## Summary
+
+The summary must:
+
+- be written in English
+- be concise
+- describe the actual change
+- use imperative/present-tense style
+- start with a lowercase letter
+- not end with a period
+- avoid vague text such as `update files`, `changes`, or `misc fixes`
+
+Good:
+
+```text
+feat(web): add mobile adventurer navigation
+```
+
+Bad:
+
+```text
+feat(web): Updated some UI.
+```
+
+Bad:
+
+```text
+chore: changes
+```
+
+---
+
+## Commit body
+
+Use a commit body when the change contains multiple meaningful parts or when additional context improves clarity.
+
+Format:
+
+```text
+<type>(<scope>): <summary>
+
+- first meaningful change
+- second meaningful change
+- third meaningful change
+```
+
+Example:
+
+```text
+feat(web): add local quest completion feedback
+
+- add reusable game feedback overlay
+- trigger feedback after successful API response
+- support reduced-motion presentation
+```
+
+Keep body bullets concise and based only on actual changes.
+
+Do not invent implementation details that were not changed.
+
+---
+
+## Breaking changes
+
+If a change introduces a breaking change, clearly indicate it.
+
+Use either:
+
+```text
+feat(api)!: change credential response structure
+```
+
+or a footer:
+
+```text
+BREAKING CHANGE: credential responses now use the new normalized format
+```
+
+Do not mark a change as breaking unless existing behavior, API contracts, configuration, or usage is actually incompatible.
+
+---
+
+## Commit generation behavior
+
+After completing a task, generate a recommended commit message based on the actual diff or actual files changed.
+
+Do not generate the commit message before the implementation is complete.
+
+The generated message must reflect the final state of the change, not the original request.
+
+If the task contains unrelated changes, recommend splitting them into separate commits when practical.
+
+Do not combine unrelated work into one vague commit message.
+
+Prefer one focused commit per logical change.
+
+---
+
+## Do not commit automatically
+
+Do not run:
+
+```bash
+git commit
+```
+
+unless the user explicitly asks to create the commit.
+
+By default, only provide the recommended commit message.
+
+If the user explicitly asks to commit the changes:
+
+1. inspect the actual staged or unstaged diff
+2. generate a commit message based on the real changes
+3. use that message for the commit
+4. do not include unrelated files
+
+---
+
+## Final task summary
+
+At the end of each completed coding task, include a recommended commit message.
+
+Use this format:
+
+```text
+Recommended commit message:
+
+feat(web): add adventurer dashboard
+```
+
+If a body is useful:
+
+```text
+Recommended commit message:
+
+feat(web): add adventurer dashboard
+
+- add responsive adventurer profile summary
+- show current rank and credential status
+- add mobile navigation
+```
+
+Do not provide multiple commit message options unless the changes clearly should be split into multiple commits.

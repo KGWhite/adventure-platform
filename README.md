@@ -13,6 +13,10 @@ Adventure Platform (`adventure-platform`) 是一個可擴充的實體／數位�
 - **Phase 2**：核心身分與冒險者領域模型完成（User、AdventurerProfile、Rank、Credential，包含資料庫遷移與開發 Seed 資料）。
 - **Phase 3**：身分驗證與角色化前端版面完成（JWT Token 認證、角色權限守衛、/login、/user 冒險者儀表板、/admin 公會管理控制台）。
 - **Phase 4**：MVP 遊戲領域骨架完成（Quest、QuestCompletion、MeritLedger、PromotionRequest、Reward，建立資料庫遷移與完整驗證）。
+- **Local Feedback (Phase 1)**：前端通用即時視覺回饋模型建立完成（`FeedbackEvent`），提供操作完成後之本機即時反饋基礎模型。
+- **Local Feedback (Phase 2)**：遊戲回饋覆蓋層元件完成（`GameFeedbackOverlay`），提供兼具行動優先、PWA 與桌面端之慶祝動畫、標題、副標題與功績/獎勵視覺高亮效果。
+- **Local Feedback (Phase 3)**：實作首個輕量級任務完成動效（`quest-complete`），建立彈窗出現、徽章彈跳放大、標題淡入、功績數值彈出與自動/手動關閉之階段式動畫時序。
+- **Local Feedback (Phase 4)**：完成後端 API 與本機回饋串接（Quests API + 領域回應轉換器 `questCompletionToFeedbackEvent`），落實僅於後端確認成功後觸發動效、失敗僅顯示錯誤 UI 之規範，支援 `prefers-reduced-motion` 無障礙設計，並預留未來跨裝置事件接入點。
 
 ---
 
@@ -122,6 +126,27 @@ Adventure Platform (`adventure-platform`) 是一個可擴充的實體／數位�
    - `UserLayout`：專屬冒險者消費端遊戲化體驗，支援行動優先觸控與底部導覽。
    - `AdminLayout`：專屬公會管理員管理效率體驗，具備側邊抽屜導覽與管理表格。
    - 兩者完全共用同一套 MUI Theme 基礎（Tokens、Palette、Typography、Breakpoints），確保系統一致且不引入第二套 UI 框架。
+7. **本機通用即時視覺回饋架構 (`src/types/feedback.ts` & `src/components/feedback/`)**：
+   - **回饋資料模型 (`FeedbackEvent`)**：建立極簡泛用之介面與常數，供操作發起裝置在 API 成功後立即呈現視覺動畫反饋。
+   - **遊戲化覆蓋層元件 (`GameFeedbackOverlay`)**：提供置中／全螢幕遊戲式彈窗（非傳統純 Snackbar），針對行動優先與 PWA 觸控體驗特別強化。
+   - **首發任務完成動效 (`quest-complete`)**：以純 CSS Keyframes 與原生瀏覽器轉場打造輕量級階段式時序（遮罩與卡片淡入 -> 核心徽章彈跳放大 -> 標題滑入 -> 訊息淡入 -> 功績獎勵數值彈出 -> 操作按鈕就緒），支援手動按鈕/點擊遮罩關閉及預設 4.5 秒自動關閉。
+   - **API 成功確認與回饋觸發流程 (Phase 4)**：
+     - 使用者操作 ──► API 請求 ──► 後端驗證 ──► 資料庫交易更新 ──► API 成功回應 ──► 前端轉換為 `FeedbackEvent` ──► 播放動畫。
+     - **失敗處置**：若 API 回應失敗（4xx/5xx）或網路中斷，**嚴格禁止播放成功動畫**，直接於介面呈現標準錯誤警示（Error Alert UI）。
+     - **前後端領域邊界隔離**：後端僅回傳客觀領域事實（`success`, `quest`, `questCompletion`, `meritGranted`），嚴格禁止後端深度耦合 CSS 類別名、動畫名稱或前端元件名稱；前端透過 `questCompletionToFeedbackEvent` 轉換器決定視覺呈現。
+   - **無障礙性支援 (`prefers-reduced-motion`)**：
+     - 完整支援系統減弱動效設定，當使用者偏好 reduced motion 時，停用強烈縮放與彈跳位移，改以平緩淡入淡出呈現，避免眩暈不適。
+     - 不單純依賴顏色傳遞成功狀態，結合語意圖示、清楚標題與「+50 公會功績」數值標籤確保資訊可讀性。
+   - **獎勵領域概念可擴充性 (Reward Extensibility)**：
+     - `Reward` 模型保持通用領域物件（包含虛擬道具、實體獎勵、裝置動作等），不將獎勵直接等同於動畫；動畫僅為視覺呈現手法之一。
+   - **未來跨裝置即時事件擴充點 (Future Event Architecture)**：
+     - 前端視覺回饋層僅依賴 `FeedbackEvent` 資料合約，與事件發起來源解耦。未來新增 WebSocket 或 SSE 等即時通訊管線時，只需將即時事件同樣轉換為 `FeedbackEvent` 即可直接驅動元件，無需重寫遊戲領域邏輯。
+     - **當前階段明確未引入且未實作之技術**：
+       - ❌ WebSocket
+       - ❌ 跨裝置即時動畫同步 (Cross-device real-time animation)
+       - ❌ 大螢幕/投影看板事件展示 (Large-screen display)
+       - ❌ Redis / MQTT / SSE / Event Broker
+       - ❌ 微服務拆分
 
 ---
 
@@ -185,6 +210,7 @@ adventure-platform/
 │   │       ├── credentials/      # 冒險者憑證模組 (QRCODE, RFID, NFC)
 │   │       ├── health/           # 健康檢查端點 GET /api/v1/health
 │   │       ├── prisma/           # PrismaService / PrismaModule
+│   │       ├── quests/           # 任務查詢與完成回報模組
 │   │       ├── ranks/            # 階級模組 (F..S)
 │   │       ├── users/            # 使用者與身分模組 (USER, ADMIN)
 │   │       ├── app.module.ts
@@ -194,6 +220,7 @@ adventure-platform/
 │       ├── public/               # PWA Icons 與靜態資產
 │       ├── src/
 │       │   ├── components/
+│       │   │   ├── feedback/            # 遊戲即時回饋覆蓋層 (GameFeedbackOverlay)
 │       │   │   ├── AdminView.tsx        # 公會管理員控制台版面
 │       │   │   ├── AdventurerView.tsx   # 行動優先冒險者個人儀表板
 │       │   │   └── LoginView.tsx        # 公會身分驗證登入介面
@@ -202,7 +229,9 @@ adventure-platform/
 │       │   ├── router/
 │       │   │   └── Router.tsx           # 路由提供者與權限跳轉守衛
 │       │   ├── types/
-│       │   │   └── auth.ts              # 前端共用型別定義
+│       │   │   ├── auth.ts              # 前端身分驗證與冒險者共用型別
+│       │   │   ├── feedback.ts          # 前端通用即時視覺回饋模型 (FeedbackEvent)
+│       │   │   └── index.ts             # 型別匯出入口
 │       │   ├── App.tsx                  # 應用程式進入點與路由分發
 │       │   ├── App.css
 │       │   └── index.css

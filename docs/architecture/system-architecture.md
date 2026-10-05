@@ -28,6 +28,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
 │  ├── AdventurersModule (/api/v1/adventurers)           │
 │  ├── RanksModule       (/api/v1/ranks)                 │
 │  ├── CredentialsModule (/api/v1/credentials)           │
+│  ├── QuestsModule      (/api/v1/quests)                │
 │  └── PrismaModule      (PrismaService)                 │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │                     Prisma                       │  │
@@ -55,9 +56,17 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `/login`: Public authentication page with quick demo account buttons.
      - `/user`: Mobile-first Adventurer Dashboard (Rank badge, Merit progress, Credential status).
      - `/user/profile`: Adventurer detailed profile and credential management.
-     - `/user/quests`: Guild quest notices (Coming soon placeholder).
+     - `/user/quests`: Guild quest notices with API completion reporting and feedback animation.
      - `/user/rewards`: Guild merit rewards exchange (Coming soon placeholder).
      - `/admin`: Guild Administration Console (`dashboard`, `adventurers`, `ranks`, `credentials`, and Coming soon tabs).
+   - **Local Visual Feedback Architecture**:
+     - `src/types/feedback.ts` (`FeedbackEvent`) and `src/components/feedback/` (`GameFeedbackOverlay`, `questCompletionToFeedbackEvent`).
+     - **API Flow**: User action ──► API request ──► Backend validation & DB update ──► API success ──► Frontend `FeedbackEvent` ──► Staged animation sequence.
+     - **Failure Handling**: On API failure or network fault, the success animation is strictly suppressed, and a standard error Alert UI is presented.
+     - **Domain Separation**: Backend provides domain data only (`success`, `quest`, `questCompletion`, `meritGranted`) without UI/CSS coupling.
+     - **Accessibility**: `@media (prefers-reduced-motion: reduce)` removes bouncy transforms and provides gentle fades. Clear semantic icons and text headings communicate success without relying solely on color.
+     - **Future Event Extension Point**: The UI component only requires `FeedbackEvent`. Future real-time sources (WebSocket / SSE) can plug into this same pipeline without altering domain logic.
+     - *Not yet implemented*: WebSocket, SSE, Redis, MQTT, cross-device real-time sync, large-screen event display.
    - **PWA**: Integrated via `vite-plugin-pwa` with web manifest and service worker generation.
    - **Design**: Mobile-first responsive layout supporting mobile browsers, desktop displays, and PWA standalone installation.
    - **Scope**: Single unified frontend application.
@@ -75,6 +84,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `AdventurersModule`: Adventurer profile management and rank assignment.
      - `RanksModule`: Database-driven rank tiers (F through S).
      - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC).
+     - `QuestsModule`: Quest listings (`GET /quests`, `GET /quests/:id`) and quest completion reporting with atomic merit ledger write (`POST /quests/:id/complete`).
      - `PrismaModule`: Global Prisma database connection service.
    - **ORM**: Prisma embedded directly within the API service.
 

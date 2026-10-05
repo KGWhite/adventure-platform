@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CredentialsModule } from './credentials/credentials.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { QuestsModule } from './quests/quests.module.js';
 import { RanksModule } from './ranks/ranks.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -20,6 +21,7 @@ import { UsersModule } from './users/users.module.js';
     AdventurersModule,
     RanksModule,
     CredentialsModule,
+    QuestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
