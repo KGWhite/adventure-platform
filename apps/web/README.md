@@ -15,10 +15,10 @@ Adventure Platform 的單一前端應用程式，支援行動瀏覽器、桌面�
 
 ```text
 src/
-├── theme/                        # MUI 主題系統
-│   ├── index.ts                  # 主題工廠 (createAppTheme) 與預設 theme
-│   ├── palette.ts                # 冒險者公會調色盤 (Dark mode)
-│   └── typography.ts             # 字型排版定義
+├── theme/                        # MUI 主題系統 (公會羊皮紙明亮淺色主題、放大排版字級)
+│   ├── index.ts                  # 主題工廠 (createAppTheme)、羊皮紙元件預設值與陰影/邊框覆寫
+│   ├── palette.ts                # 公會羊皮紙調色盤 (象牙底 #f8f4eb、赤紅 #be123c、金 #b45309、暖木炭字 #2d241e)
+│   └── typography.ts             # 放大版排版系統 (h1 2.5rem, body1 1.0625rem, 強化手持與桌面可讀性)
 ├── layouts/                      # 體驗版面骨架
 │   ├── index.ts                  # 版面匯出
 │   ├── UserLayout.tsx            # 冒險者行動優先版面 (AppBar + BottomNavigation)

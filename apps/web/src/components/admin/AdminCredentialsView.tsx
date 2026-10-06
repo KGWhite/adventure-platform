@@ -147,13 +147,13 @@ export function AdminCredentialsView({
           }}
         >
           <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
+            <TableHead sx={{ bgcolor: 'rgba(240, 233, 218, 0.6)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>所屬冒險者</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>憑證載體類型</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>識別碼 (Credential Value)</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>啟用狀態</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>登記時間</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>所屬冒險者</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>憑證載體類型</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>識別碼 (Credential Value)</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>啟用狀態</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>登記時間</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -166,20 +166,20 @@ export function AdminCredentialsView({
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                         {advName}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.85rem' }}>
                         ID: {cred.adventurerId.slice(-8)}
                       </Typography>
                     </TableCell>
 
                     <TableCell>
-                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                        <Box sx={{ color: 'primary.light', display: 'flex' }}>
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ color: 'primary.main', display: 'flex' }}>
                           {getCredentialIcon(cred.type)}
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>
                           {cred.type}
                         </Typography>
                       </Box>
@@ -190,10 +190,14 @@ export function AdminCredentialsView({
                         variant="body2"
                         sx={{
                           fontFamily: 'monospace',
-                          bgcolor: 'rgba(255, 255, 255, 0.04)',
-                          px: 1,
-                          py: 0.25,
-                          borderRadius: 1,
+                          fontSize: '0.9375rem',
+                          fontWeight: 700,
+                          color: 'secondary.main',
+                          bgcolor: '#f7f3e8',
+                          border: '1px solid #e5dac4',
+                          px: 1.25,
+                          py: 0.5,
+                          borderRadius: 1.5,
                           display: 'inline-block',
                         }}
                       >
@@ -206,12 +210,12 @@ export function AdminCredentialsView({
                         label={cred.enabled ? '已啟用 (Active)' : '已停用'}
                         color={cred.enabled ? 'success' : 'default'}
                         size="small"
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 700, fontSize: '0.8125rem' }}
                       />
                     </TableCell>
 
                     <TableCell>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
                         {cred.createdAt ? new Date(cred.createdAt).toLocaleDateString() : '—'}
                       </Typography>
                     </TableCell>
@@ -230,7 +234,7 @@ export function AdminCredentialsView({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>登記新憑證載體</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.25rem' }}>登記新憑證載體</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             {createError && <ErrorState message={createError} />}

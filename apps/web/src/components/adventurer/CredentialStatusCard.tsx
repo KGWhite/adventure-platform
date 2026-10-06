@@ -44,25 +44,25 @@ export function CredentialStatusCard({ credentials = [] }: CredentialStatusCardP
           sx={{
             justifyContent: 'space-between',
             alignItems: 'center',
-            mb: 1.5,
+            mb: 2,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BadgeOutlinedIcon sx={{ color: 'secondary.main' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-              冒險者資格證 (Adventure License)
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            <BadgeOutlinedIcon sx={{ color: 'secondary.main', fontSize: 26 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              冒險者資格證 (Adventurer License)
             </Typography>
           </Box>
           <Chip
             label={hasCredentials ? '已綁定' : '尚未綁定'}
             color={hasCredentials ? 'success' : 'default'}
             size="small"
-            sx={{ fontWeight: 600 }}
+            sx={{ fontWeight: 700, fontSize: '0.8125rem', px: 0.5 }}
           />
         </Stack>
 
         {hasCredentials ? (
-          <Stack spacing={1} sx={{ mt: 1 }}>
+          <Stack spacing={1.25} sx={{ mt: 1 }}>
             {credentials.map((cred) => (
               <Box
                 key={cred.id}
@@ -70,25 +70,27 @@ export function CredentialStatusCard({ credentials = [] }: CredentialStatusCardP
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  p: 1.25,
-                  borderRadius: 2,
-                  bgcolor: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid',
-                  borderColor: 'divider',
+                  p: 1.5,
+                  borderRadius: 2.5,
+                  bgcolor: '#f7f3e8',
+                  border: '1px solid #e5dac4',
+                  boxShadow: '0 1px 4px rgba(90, 68, 40, 0.04)',
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ color: 'primary.light', display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
                     {getCredentialIcon(cred.type)}
                   </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                     {cred.type}
                   </Typography>
                   <Typography
-                    variant="caption"
+                    variant="body2"
                     sx={{
-                      color: 'text.secondary',
+                      color: 'secondary.main',
                       fontFamily: 'monospace',
+                      fontSize: '0.9375rem',
+                      fontWeight: 700,
                       ml: 0.5,
                     }}
                   >
@@ -100,13 +102,13 @@ export function CredentialStatusCard({ credentials = [] }: CredentialStatusCardP
                   color={cred.enabled ? 'success' : 'default'}
                   variant="outlined"
                   size="small"
-                  sx={{ height: 22, fontSize: '0.75rem' }}
+                  sx={{ height: 26, fontSize: '0.8125rem', fontWeight: 600 }}
                 />
               </Box>
             ))}
           </Stack>
         ) : (
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.75, lineHeight: 1.6 }}>
             目前尚未綁定任何實體或數位憑證。如需領取公會證，請洽管理員櫃檯登記。
           </Typography>
         )}

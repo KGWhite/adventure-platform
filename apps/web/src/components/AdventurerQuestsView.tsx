@@ -222,11 +222,19 @@ export function AdventurerQuestsView() {
                       justifyContent: 'space-between',
                       alignItems: 'flex-start',
                       flexWrap: 'wrap',
-                      gap: 1,
-                      mb: 1.5,
+                      gap: 1.5,
+                      mb: 1.75,
                     }}
                   >
-                    <Typography variant="h6" component="h3" sx={{ fontWeight: 700 }}>
+                    <Typography
+                      variant="h5"
+                      component="h2"
+                      sx={{
+                        fontWeight: 800,
+                        color: 'text.primary',
+                        fontSize: { xs: '1.25rem', sm: '1.4rem' },
+                      }}
+                    >
                       {quest.title}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -236,20 +244,35 @@ export function AdventurerQuestsView() {
                           size="small"
                           color="default"
                           variant="outlined"
+                          sx={{ fontWeight: 600, fontSize: '0.8125rem' }}
                         />
                       )}
                       <Chip
-                        icon={<MilitaryTechOutlinedIcon />}
+                        icon={<MilitaryTechOutlinedIcon sx={{ fontSize: 20, color: '#ffffff !important' }} />}
                         label={`+${quest.meritReward} 功績`}
-                        size="small"
-                        color="warning"
-                        variant="filled"
-                        sx={{ fontWeight: 700 }}
+                        size="medium"
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: '0.9375rem',
+                          background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
+                          color: '#ffffff',
+                          boxShadow: '0 2px 8px rgba(180, 83, 9, 0.25)',
+                          px: 1,
+                          height: 32,
+                        }}
                       />
                     </Stack>
                   </Box>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: 'text.secondary',
+                      mb: 3,
+                      lineHeight: 1.6,
+                      fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                    }}
+                  >
                     {quest.description}
                   </Typography>
 
@@ -266,17 +289,19 @@ export function AdventurerQuestsView() {
                       onClick={() => handleCompleteQuest(quest.id)}
                       startIcon={
                         isSubmitting ? (
-                          <CircularProgress size={18} color="inherit" />
+                          <CircularProgress size={20} color="inherit" />
                         ) : (
-                          <CheckCircleOutlineRoundedIcon />
+                          <CheckCircleOutlineRoundedIcon sx={{ fontSize: 22 }} />
                         )
                       }
                       sx={{
-                        py: 1.25,
-                        px: 3,
+                        py: 1.5,
+                        px: 3.5,
                         borderRadius: 2.5,
                         fontWeight: 700,
-                        minHeight: 44, // Touch target friendly for mobile/PWA
+                        fontSize: '1.025rem',
+                        minHeight: 48, // Touch target friendly for mobile/PWA
+                        boxShadow: '0 3px 12px rgba(190, 18, 60, 0.28)',
                       }}
                     >
                       {isSubmitting ? '回報審核中...' : '回報完成任務'}

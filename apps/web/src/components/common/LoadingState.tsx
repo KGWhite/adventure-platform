@@ -30,9 +30,9 @@ export function LoadingState({
         ...sx,
       }}
     >
-      <CircularProgress color="primary" size={40} />
+      <CircularProgress color="primary" size={44} />
       {message && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
           {message}
         </Typography>
       )}

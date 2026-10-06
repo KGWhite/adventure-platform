@@ -78,39 +78,49 @@ export function AdventurerView() {
           >
             <Avatar
               sx={{
-                width: { xs: 56, sm: 68 },
-                height: { xs: 56, sm: 68 },
-                bgcolor: 'primary.dark',
+                width: { xs: 68, sm: 82 },
+                height: { xs: 68, sm: 82 },
+                bgcolor: 'primary.main',
                 color: 'primary.contrastText',
-                fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                fontWeight: 700,
-                border: '2px solid',
+                fontSize: { xs: '1.6rem', sm: '2rem' },
+                fontWeight: 900,
+                border: '2.5px solid',
                 borderColor: 'secondary.main',
+                boxShadow: '0 4px 14px rgba(180, 83, 9, 0.25)',
               }}
             >
               {rank?.code || 'F'}
             </Avatar>
 
             <Box sx={{ flex: 1 }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', mb: 0.5 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', flexWrap: 'wrap', mb: 0.75 }}>
+                <Typography variant="h4" component="h2" sx={{ fontWeight: 800, color: 'text.primary' }}>
                   {displayName}
                 </Typography>
-                <Chip label={`@${user?.username}`} size="small" variant="outlined" sx={{ color: 'text.secondary' }} />
+                <Chip
+                  label={`@${user?.username}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.8125rem' }}
+                />
               </Stack>
 
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 1 }}>
+              <Stack direction="row" spacing={2.5} sx={{ alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     目前階級：
                   </Typography>
                   <RankBadge rank={rank} size="small" />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     公會功績：
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'secondary.main' }}>
+                  <Typography
+                    variant="h6"
+                    component="span"
+                    sx={{ fontWeight: 800, color: 'secondary.main', letterSpacing: 0.5 }}
+                  >
                     {merit} Merit
                   </Typography>
                 </Box>
@@ -135,9 +145,9 @@ export function AdventurerView() {
             }}
           >
             <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
-                <MilitaryTechOutlinedIcon sx={{ color: 'secondary.main' }} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', mb: 2 }}>
+                <MilitaryTechOutlinedIcon sx={{ color: 'secondary.main', fontSize: 26 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
                   公會功績與晉升資格
                 </Typography>
               </Stack>
@@ -170,13 +180,13 @@ export function AdventurerView() {
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
-            <CampaignOutlinedIcon sx={{ color: 'primary.light' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', mb: 1.25 }}>
+            <CampaignOutlinedIcon sx={{ color: 'primary.light', fontSize: 26 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
               📜 公會公告事項
             </Typography>
           </Stack>
-          <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
             冒險者身分登記確認完畢。目前階級為 <strong>Rank {rank?.code || 'F'} ({rank?.name || '初階冒險者'})</strong>。任務委託系統目前整備中，請等候公會管理員於後台審核指派新任務。
           </Typography>
         </CardContent>
@@ -192,14 +202,16 @@ export function AdventurerView() {
             startIcon={<AssignmentOutlinedIcon />}
             onClick={() => navigate('/user/quests')}
             sx={{
-              py: 1.5,
-              borderRadius: 2,
+              py: 1.75,
+              borderRadius: 2.5,
+              fontSize: '1.05rem',
+              fontWeight: 700,
               justifyContent: 'flex-start',
               color: 'text.primary',
               borderColor: 'divider',
               '&:hover': {
                 borderColor: 'primary.main',
-                bgcolor: 'rgba(99, 102, 241, 0.08)',
+                bgcolor: 'rgba(190, 18, 60, 0.05)',
               },
             }}
           >
@@ -214,14 +226,16 @@ export function AdventurerView() {
             startIcon={<PersonOutlineOutlinedIcon />}
             onClick={() => navigate('/user/profile')}
             sx={{
-              py: 1.5,
-              borderRadius: 2,
+              py: 1.75,
+              borderRadius: 2.5,
+              fontSize: '1.05rem',
+              fontWeight: 700,
               justifyContent: 'flex-start',
               color: 'text.primary',
               borderColor: 'divider',
               '&:hover': {
                 borderColor: 'primary.main',
-                bgcolor: 'rgba(99, 102, 241, 0.08)',
+                bgcolor: 'rgba(190, 18, 60, 0.05)',
               },
             }}
           >

@@ -24,16 +24,29 @@ export function PageHeader({ title, subtitle, badge, action, sx }: PageHeaderPro
         }}
       >
         <Box>
-          {badge && <Box sx={{ mb: 0.75 }}>{badge}</Box>}
+          {badge && <Box sx={{ mb: 1 }}>{badge}</Box>}
           <Typography
-            variant="h4"
+            variant="h3"
             component="h1"
-            sx={{ fontWeight: 700, color: 'text.primary' }}
+            sx={{
+              fontWeight: 800,
+              color: 'text.primary',
+              letterSpacing: '-0.02em',
+              fontSize: { xs: '1.65rem', sm: '2rem' },
+            }}
           >
             {title}
           </Typography>
           {subtitle && (
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'text.secondary',
+                mt: 0.75,
+                fontSize: { xs: '0.95rem', sm: '1.0625rem' },
+                lineHeight: 1.6,
+              }}
+            >
               {subtitle}
             </Typography>
           )}

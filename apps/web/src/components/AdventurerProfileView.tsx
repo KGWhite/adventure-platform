@@ -71,54 +71,60 @@ export function AdventurerProfileView() {
             >
               <Avatar
                 sx={{
-                  width: 64,
-                  height: 64,
-                  bgcolor: 'primary.dark',
+                  width: { xs: 68, sm: 80 },
+                  height: { xs: 68, sm: 80 },
+                  bgcolor: 'primary.main',
                   color: 'primary.contrastText',
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  border: '2px solid',
+                  fontSize: { xs: '1.6rem', sm: '2rem' },
+                  fontWeight: 900,
+                  border: '2.5px solid',
                   borderColor: 'secondary.main',
+                  boxShadow: '0 4px 14px rgba(180, 83, 9, 0.25)',
                 }}
               >
                 {rank?.code || 'F'}
               </Avatar>
 
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                <Typography variant="h4" component="h2" sx={{ fontWeight: 800, color: 'text.primary' }}>
                   {displayName}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5, fontWeight: 500 }}>
                   公會會員帳號: @{user?.username}
                 </Typography>
               </Box>
 
-              <Chip label={user?.role || 'USER'} color="primary" size="small" sx={{ fontWeight: 600 }} />
+              <Chip
+                label={user?.role || 'USER'}
+                color="primary"
+                size="medium"
+                sx={{ fontWeight: 700, fontSize: '0.875rem' }}
+              />
             </Stack>
 
             <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={1.5}>
+            <Stack spacing={1.75}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                   <PersonOutlineOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     使用者 ID (UUID)
                   </Typography>
                 </Box>
-                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.primary' }}>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.primary', fontSize: '0.9375rem' }}>
                   {user?.id}
                 </Typography>
               </Stack>
 
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                   <BadgeOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     冒險者檔案 ID
                   </Typography>
                 </Box>
-                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.primary' }}>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.primary', fontSize: '0.9375rem' }}>
                   {profile?.id || '未建立'}
                 </Typography>
               </Stack>
@@ -137,35 +143,35 @@ export function AdventurerProfileView() {
           }}
         >
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
-              <MilitaryTechOutlinedIcon sx={{ color: 'secondary.main' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', mb: 2 }}>
+              <MilitaryTechOutlinedIcon sx={{ color: 'secondary.main', fontSize: 26 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
                 階級檔案 (Rank Details)
               </Typography>
             </Stack>
 
-            <Stack spacing={1.5}>
+            <Stack spacing={2}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   目前階級：
                 </Typography>
                 <RankBadge rank={rank} size="small" />
               </Stack>
 
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   階級順位 (Order)：
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                   第 {rank?.order ?? 1} 階
                 </Typography>
               </Stack>
 
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   晉升功績門檻：
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                <Typography variant="h6" component="span" sx={{ fontWeight: 800, color: 'secondary.light', letterSpacing: 0.5 }}>
                   {rank?.promotionThreshold ? `${rank.promotionThreshold} 功績` : '已達最高階級'}
                 </Typography>
               </Stack>
@@ -185,7 +191,7 @@ export function AdventurerProfileView() {
             size="large"
             startIcon={<LogoutOutlinedIcon />}
             onClick={logout}
-            sx={{ py: 1.5, borderRadius: 2 }}
+            sx={{ py: 1.75, borderRadius: 2.5, fontSize: '1.05rem', fontWeight: 700 }}
           >
             登出公會系統
           </Button>

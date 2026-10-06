@@ -132,13 +132,13 @@ export function AdminAdventurersView({
           }}
         >
           <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
+            <TableHead sx={{ bgcolor: 'rgba(240, 233, 218, 0.6)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>冒險者名稱 / 帳號</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>當前階級</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>資格證憑證狀態</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>建立時間</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary' }}>詳細檢視</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>冒險者名稱 / 帳號</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>當前階級</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>資格證憑證狀態</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>建立時間</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>詳細檢視</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -151,10 +151,10 @@ export function AdminAdventurersView({
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                         {adv.displayName}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.85rem' }}>
                         ID: {adv.id.slice(-8)}
                       </Typography>
                     </TableCell>
@@ -173,17 +173,17 @@ export function AdminAdventurersView({
                               size="small"
                               variant="outlined"
                               color={c.enabled ? 'success' : 'default'}
-                              sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}
+                              sx={{ fontSize: '0.8125rem', fontFamily: 'monospace', fontWeight: 600 }}
                             />
                           ))}
                         </Stack>
                       ) : (
-                        <Chip label="尚未綁定" size="small" variant="outlined" sx={{ color: 'text.secondary' }} />
+                        <Chip label="尚未綁定" size="small" variant="outlined" sx={{ color: 'text.secondary', fontWeight: 600 }} />
                       )}
                     </TableCell>
 
                     <TableCell>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
                         {adv.createdAt ? new Date(adv.createdAt).toLocaleDateString() : '—'}
                       </Typography>
                     </TableCell>
@@ -193,7 +193,7 @@ export function AdminAdventurersView({
                         size="small"
                         onClick={() => setSelectedAdventurer(adv)}
                         aria-label="檢視冒險者詳細"
-                        sx={{ color: 'primary.light' }}
+                        sx={{ color: 'primary.main' }}
                       >
                         <VisibilityOutlinedIcon fontSize="small" />
                       </IconButton>
@@ -213,7 +213,7 @@ export function AdminAdventurersView({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>冒險者詳細檔案</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.25rem' }}>冒險者詳細檔案</DialogTitle>
         <DialogContent dividers>
           {selectedAdventurer && (
             <Stack spacing={2}>

@@ -1,20 +1,24 @@
 :root {
-  --bg-primary: #0a0d14;
-  --bg-secondary: #111726;
-  --bg-card: rgba(17, 24, 39, 0.75);
-  --bg-card-hover: rgba(26, 36, 56, 0.85);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: #6366f1;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #6366f1;
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-  --guild-gold: #f59e0b;
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --error: #ef4444;
-  --error-bg: rgba(239, 68, 68, 0.12);
+  --bg-primary: #f8f4eb; /* Warm parchment / ivory page foundation */
+  --bg-secondary: #f0e9d8; /* Light warm sand / parchment tone */
+  --bg-card: #fffdf9; /* Clean cream parchment paper surface */
+  --bg-card-hover: #ffffff;
+  --border-color: #e5dac4; /* Warm parchment edge */
+  --border-focus: #be123c; /* Guild Crimson */
+  --text-primary: #2d241e; /* Deep charcoal warm brown */
+  --text-secondary: #6b584a; /* Medium roasted warm brown */
+  --text-muted: #9c8a7b;
+  --accent: #be123c; /* Adventure red / guild crimson */
+  --accent-orange: #c2410c;
+  --accent-gold: #b45309;
+  --accent-gradient: linear-gradient(135deg, #be123c 0%, #c2410c 50%, #b45309 100%);
+  --guild-gold: #b45309;
+  --guild-gold-light: #d97706;
+  --guild-wax-seal: #9f1239;
+  --success: #15803d;
+  --success-bg: rgba(21, 128, 61, 0.12);
+  --error: #b91c1c;
+  --error-bg: rgba(185, 28, 28, 0.12);
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

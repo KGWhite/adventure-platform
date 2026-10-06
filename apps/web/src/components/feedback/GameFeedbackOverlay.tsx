@@ -158,61 +158,66 @@ function getEventVisualConfig(event?: FeedbackEvent | null) {
 
   if (type === FEEDBACK_EVENT_TYPES.QUEST_COMPLETED || key === FEEDBACK_ANIMATION_KEYS.QUEST_COMPLETE) {
     return {
-      accentColor: '#f59e0b',
-      accentLight: '#fbbf24',
-      bgGlow: 'rgba(245, 158, 11, 0.16)',
+      accentColor: '#b45309',
+      accentLight: '#d97706',
+      bgGlow: 'rgba(180, 83, 9, 0.12)',
       Icon: MilitaryTechOutlinedIcon,
       defaultTitle: '任務完成！',
-      buttonBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      buttonHoverBg: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+      buttonBg: 'linear-gradient(135deg, #be123c 0%, #c2410c 100%)',
+      buttonHoverBg: 'linear-gradient(135deg, #e11d48 0%, #ea580c 100%)',
+      buttonTextColor: '#ffffff',
     };
   }
 
   if (type === FEEDBACK_EVENT_TYPES.REWARD_GRANTED || key === FEEDBACK_ANIMATION_KEYS.REWARD_GRANT) {
     return {
-      accentColor: '#10b981',
-      accentLight: '#34d399',
-      bgGlow: 'rgba(16, 185, 129, 0.16)',
+      accentColor: '#c2410c',
+      accentLight: '#ea580c',
+      bgGlow: 'rgba(194, 65, 12, 0.12)',
       Icon: CardGiftcardOutlinedIcon,
       defaultTitle: '獲得獎勵！',
-      buttonBg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-      buttonHoverBg: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
+      buttonBg: 'linear-gradient(135deg, #be123c 0%, #c2410c 100%)',
+      buttonHoverBg: 'linear-gradient(135deg, #e11d48 0%, #ea580c 100%)',
+      buttonTextColor: '#ffffff',
     };
   }
 
   if (type === FEEDBACK_EVENT_TYPES.RANK_PROMOTED || key === FEEDBACK_ANIMATION_KEYS.RANK_PROMOTE) {
     return {
-      accentColor: '#818cf8',
-      accentLight: '#a5b4fc',
-      bgGlow: 'rgba(99, 102, 241, 0.22)',
+      accentColor: '#be123c',
+      accentLight: '#e11d48',
+      bgGlow: 'rgba(190, 18, 60, 0.12)',
       Icon: StarsOutlinedIcon,
       defaultTitle: '階級晉升！',
-      buttonBg: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-      buttonHoverBg: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
+      buttonBg: 'linear-gradient(135deg, #be123c 0%, #9f1239 100%)',
+      buttonHoverBg: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+      buttonTextColor: '#ffffff',
     };
   }
 
   if (type === FEEDBACK_EVENT_TYPES.CREDENTIAL_ACCEPTED || key === FEEDBACK_ANIMATION_KEYS.CREDENTIAL_ACCEPT) {
     return {
-      accentColor: '#38bdf8',
-      accentLight: '#7dd3fc',
-      bgGlow: 'rgba(56, 189, 248, 0.16)',
+      accentColor: '#1d4ed8',
+      accentLight: '#2563eb',
+      bgGlow: 'rgba(29, 78, 216, 0.12)',
       Icon: VerifiedUserOutlinedIcon,
       defaultTitle: '憑證辨識成功！',
-      buttonBg: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
-      buttonHoverBg: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%)',
+      buttonBg: 'linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%)',
+      buttonHoverBg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+      buttonTextColor: '#ffffff',
     };
   }
 
   // SPECIAL_ACHIEVEMENT or default
   return {
-    accentColor: '#fbbf24',
-    accentLight: '#fde68a',
-    bgGlow: 'rgba(251, 191, 36, 0.16)',
+    accentColor: '#b45309',
+    accentLight: '#d97706',
+    bgGlow: 'rgba(180, 83, 9, 0.12)',
     Icon: AutoAwesomeOutlinedIcon,
     defaultTitle: '成就達成！',
-    buttonBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    buttonHoverBg: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+    buttonBg: 'linear-gradient(135deg, #be123c 0%, #c2410c 100%)',
+    buttonHoverBg: 'linear-gradient(135deg, #e11d48 0%, #ea580c 100%)',
+    buttonTextColor: '#ffffff',
   };
 }
 
@@ -272,8 +277,8 @@ export function GameFeedbackOverlay({
       slotProps={{
         backdrop: {
           sx: {
-            backgroundColor: 'rgba(6, 9, 18, 0.85)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(45, 36, 30, 0.65)',
+            backdropFilter: 'blur(8px)',
             transition: 'opacity 0.25s ease',
           },
         },
@@ -283,9 +288,9 @@ export function GameFeedbackOverlay({
             m: { xs: 2, sm: 3 },
             p: { xs: 3, sm: 4 },
             borderRadius: { xs: 4, sm: 5 },
-            border: `1.5px solid ${visualConfig.accentColor}55`,
-            background: `radial-gradient(ellipse at top, ${visualConfig.bgGlow} 0%, rgba(17, 23, 38, 0.98) 72%)`,
-            boxShadow: `0 0 45px ${visualConfig.accentColor}33, 0 24px 48px rgba(0, 0, 0, 0.75)`,
+            border: '2px solid #d5c4a6',
+            background: 'linear-gradient(180deg, #fffdf9 0%, #f7f2e5 100%)',
+            boxShadow: '0 16px 48px rgba(78, 52, 28, 0.22), 0 4px 16px rgba(78, 52, 28, 0.12)',
             // Step 1: Overlay appears
             animation: `${questOverlayAppear} 0.28s cubic-bezier(0.16, 1, 0.3, 1) both`,
             overflow: 'hidden',
@@ -346,9 +351,10 @@ export function GameFeedbackOverlay({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: `linear-gradient(135deg, ${visualConfig.accentColor}33 0%, ${visualConfig.bgGlow} 100%)`,
-            border: `2px solid ${visualConfig.accentColor}`,
-            color: visualConfig.accentLight,
+            background: 'linear-gradient(135deg, #fffdf9 0%, #f3ebd9 100%)',
+            border: `2.5px solid ${visualConfig.accentColor}`,
+            color: visualConfig.accentColor,
+            boxShadow: '0 4px 16px rgba(180, 83, 9, 0.2)',
             animation: isQuestComplete
               ? `${questBadgeScaleIn} 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.12s both, ${badgePulseGlow} 2.5s ease-in-out 0.6s infinite`
               : `${questBadgeScaleIn} 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both, ${badgePulseGlow} 2.5s ease-in-out 0.5s infinite`,
@@ -366,15 +372,14 @@ export function GameFeedbackOverlay({
       {/* Sequence 3: Title fades in */}
       <Typography
         id="game-feedback-title"
-        variant="h5"
+        variant="h4"
         component="h2"
         sx={{
-          fontWeight: 800,
+          fontWeight: 900,
           letterSpacing: 0.5,
-          color: '#ffffff',
-          textShadow: `0 2px 14px ${visualConfig.accentColor}88`,
-          mb: message || value ? 1 : 2.5,
-          fontSize: { xs: '1.35rem', sm: '1.6rem' },
+          color: '#be123c',
+          mb: message || value ? 1.25 : 2.5,
+          fontSize: { xs: '1.55rem', sm: '1.85rem' },
           animation: isQuestComplete ? `${questTitleFadeIn} 0.35s ease-out 0.35s both` : undefined,
           '@media (prefers-reduced-motion: reduce)': {
             animation: `${reducedMotionFade} 0.15s ease-out both`,
@@ -392,10 +397,10 @@ export function GameFeedbackOverlay({
           variant="body1"
           sx={{
             color: 'text.secondary',
-            lineHeight: 1.5,
-            mb: value ? 2 : 2.5,
+            lineHeight: 1.6,
+            mb: value ? 2.25 : 3,
             px: 1,
-            fontSize: { xs: '0.95rem', sm: '1.05rem' },
+            fontSize: { xs: '1.05rem', sm: '1.15rem' },
             animation: isQuestComplete ? `${questMessageFadeIn} 0.3s ease-out 0.48s both` : undefined,
             '@media (prefers-reduced-motion: reduce)': {
               animation: `${reducedMotionFade} 0.15s ease-out both`,
@@ -414,15 +419,15 @@ export function GameFeedbackOverlay({
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 1,
+            gap: 1.25,
             mx: 'auto',
-            mb: 3,
-            px: 2.5,
-            py: 1,
+            mb: 3.5,
+            px: 3,
+            py: 1.25,
             borderRadius: 99,
-            backgroundColor: `${visualConfig.accentColor}18`,
-            border: `1px solid ${visualConfig.accentColor}55`,
-            boxShadow: `0 0 16px ${visualConfig.accentColor}25`,
+            backgroundColor: 'rgba(180, 83, 9, 0.10)',
+            border: '1.5px solid rgba(180, 83, 9, 0.35)',
+            boxShadow: '0 2px 8px rgba(180, 83, 9, 0.10)',
             animation: isQuestComplete ? `${questMeritAppear} 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.62s both` : undefined,
             '@media (prefers-reduced-motion: reduce)': {
               animation: `${reducedMotionFade} 0.15s ease-out both`,
@@ -432,18 +437,18 @@ export function GameFeedbackOverlay({
         >
           <AutoAwesomeOutlinedIcon
             sx={{
-              fontSize: 18,
-              color: visualConfig.accentLight,
+              fontSize: 22,
+              color: visualConfig.accentColor,
             }}
           />
           <Typography
-            variant="subtitle1"
+            variant="h6"
             component="span"
             sx={{
-              fontWeight: 800,
-              color: visualConfig.accentLight,
+              fontWeight: 900,
+              color: visualConfig.accentColor,
               letterSpacing: 0.5,
-              fontSize: { xs: '1rem', sm: '1.15rem' },
+              fontSize: { xs: '1.15rem', sm: '1.35rem' },
             }}
           >
             {value}
@@ -471,16 +476,16 @@ export function GameFeedbackOverlay({
             fullWidth
             onClick={onClose}
             sx={{
-              py: 1.25,
+              py: 1.6,
               borderRadius: 3,
-              fontWeight: 700,
-              fontSize: { xs: '0.95rem', sm: '1rem' },
-              color: '#0f172a',
+              fontWeight: 800,
+              fontSize: { xs: '1.05rem', sm: '1.125rem' },
+              color: visualConfig.buttonTextColor || '#ffffff',
               background: visualConfig.buttonBg,
-              boxShadow: `0 4px 16px ${visualConfig.accentColor}55`,
+              boxShadow: '0 3px 14px rgba(190, 18, 60, 0.3)',
               '&:hover': {
                 background: visualConfig.buttonHoverBg,
-                boxShadow: `0 6px 22px ${visualConfig.accentColor}88`,
+                boxShadow: '0 5px 20px rgba(190, 18, 60, 0.4)',
               },
               '&:active': {
                 transform: 'scale(0.98)',

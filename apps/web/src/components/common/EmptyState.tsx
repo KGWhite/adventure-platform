@@ -37,11 +37,11 @@ export function EmptyState({
       }}
     >
       {icon && <Box sx={{ mb: 1, color: 'text.secondary' }}>{icon}</Box>}
-      <Typography variant="h6" color="text.primary">
+      <Typography variant="h5" component="h3" sx={{ fontWeight: 800, color: 'text.primary' }}>
         {title}
       </Typography>
       {description && (
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
+        <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 520, lineHeight: 1.6 }}>
           {description}
         </Typography>
       )}

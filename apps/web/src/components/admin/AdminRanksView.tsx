@@ -47,13 +47,13 @@ export function AdminRanksView({ ranks }: AdminRanksViewProps) {
           }}
         >
           <Table sx={{ minWidth: 600 }}>
-            <TableHead sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
+            <TableHead sx={{ bgcolor: 'rgba(240, 233, 218, 0.6)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', width: 90 }}>順位 (Order)</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>階級代碼</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>階級名稱</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>晉升所需功績門檻 (Merit Threshold)</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>建立時間</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem', width: 110 }}>順位 (Order)</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>階級代碼</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>階級名稱</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>晉升所需功績門檻 (Merit Threshold)</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.95rem' }}>建立時間</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -64,7 +64,7 @@ export function AdminRanksView({ ranks }: AdminRanksViewProps) {
                   sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                 >
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                       第 {r.order} 階
                     </Typography>
                   </TableCell>
@@ -74,16 +74,16 @@ export function AdminRanksView({ ranks }: AdminRanksViewProps) {
                   </TableCell>
 
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                       {r.name}
                     </Typography>
                   </TableCell>
 
                   <TableCell>
                     <Typography
-                      variant="body2"
+                      variant="body1"
                       sx={{
-                        fontWeight: 700,
+                        fontWeight: 800,
                         color: r.promotionThreshold > 0 ? 'secondary.main' : 'text.secondary',
                       }}
                     >
@@ -92,7 +92,7 @@ export function AdminRanksView({ ranks }: AdminRanksViewProps) {
                   </TableCell>
 
                   <TableCell>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
                       {/* Read only from DB */}
                       系統內建
                     </Typography>

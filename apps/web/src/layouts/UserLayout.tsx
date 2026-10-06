@@ -73,7 +73,17 @@ export function UserLayout({ children }: UserLayoutProps) {
               userSelect: 'none',
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 900,
+                letterSpacing: '-0.02em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                color: 'text.primary',
+              }}
+            >
               <span>⚔️</span>
               <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
                 冒險者公會
@@ -87,7 +97,7 @@ export function UserLayout({ children }: UserLayoutProps) {
           {/* Desktop Navigation Links (hidden on mobile) */}
           <Stack
             direction="row"
-            spacing={1}
+            spacing={1.25}
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
@@ -101,15 +111,17 @@ export function UserLayout({ children }: UserLayoutProps) {
                   onClick={() => navigate(item.path)}
                   startIcon={item.icon}
                   sx={{
-                    color: isActive ? 'primary.light' : 'text.secondary',
-                    bgcolor: isActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
-                    fontWeight: isActive ? 700 : 500,
-                    borderRadius: 2,
-                    px: 1.75,
-                    py: 0.75,
+                    color: isActive ? 'primary.main' : 'text.secondary',
+                    bgcolor: isActive ? 'rgba(190, 18, 60, 0.08)' : 'transparent',
+                    border: isActive ? '1px solid rgba(190, 18, 60, 0.3)' : '1px solid transparent',
+                    fontWeight: isActive ? 800 : 600,
+                    fontSize: '1rem',
+                    borderRadius: 2.5,
+                    px: 2,
+                    py: 0.85,
                     '&:hover': {
-                      bgcolor: 'rgba(255, 255, 255, 0.05)',
-                      color: 'text.primary',
+                      bgcolor: 'rgba(190, 18, 60, 0.05)',
+                      color: 'primary.main',
                     },
                   }}
                 >
@@ -126,32 +138,35 @@ export function UserLayout({ children }: UserLayoutProps) {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1,
+                gap: 1.25,
                 cursor: 'pointer',
-                p: 0.5,
+                p: 0.75,
                 borderRadius: 2,
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' },
+                '&:hover': { bgcolor: 'rgba(190, 18, 60, 0.05)' },
               }}
             >
               <Avatar
                 sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: 'primary.dark',
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  border: '1.5px solid',
+                  width: 38,
+                  height: 38,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  fontSize: '0.9375rem',
+                  fontWeight: 800,
+                  border: '2px solid',
                   borderColor: 'secondary.main',
+                  boxShadow: '0 2px 8px rgba(180, 83, 9, 0.25)',
                 }}
               >
                 {rankCode}
               </Avatar>
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{
                   display: { xs: 'none', sm: 'block' },
-                  fontWeight: 600,
-                  maxWidth: 120,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  maxWidth: 130,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -164,14 +179,14 @@ export function UserLayout({ children }: UserLayoutProps) {
             <Tooltip title="登出公會系統">
               <IconButton
                 onClick={logout}
-                size="small"
+                size="medium"
                 aria-label="登出"
                 sx={{
                   color: 'text.secondary',
                   '&:hover': { color: 'error.main' },
                 }}
               >
-                <LogoutOutlinedIcon fontSize="small" />
+                <LogoutOutlinedIcon fontSize="medium" />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -186,7 +201,7 @@ export function UserLayout({ children }: UserLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           width: '100%',
-          pb: { xs: 9, md: 4 },
+          pb: { xs: 10, md: 4 },
         }}
       >
         <PageContainer maxWidth="md">
@@ -208,7 +223,7 @@ export function UserLayout({ children }: UserLayoutProps) {
           left: 0,
           right: 0,
           zIndex: (theme) => theme.zIndex.appBar,
-          height: 64,
+          height: 68,
           bgcolor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
@@ -217,7 +232,19 @@ export function UserLayout({ children }: UserLayoutProps) {
             py: 1,
             color: 'text.secondary',
             '&.Mui-selected': {
-              color: 'primary.light',
+              color: 'primary.main',
+            },
+            '& .MuiSvgIcon-root': {
+              fontSize: 24,
+            },
+            '& .MuiBottomNavigationAction-label': {
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              mt: 0.5,
+              '&.Mui-selected': {
+                fontSize: '0.9375rem',
+                fontWeight: 700,
+              },
             },
           },
         }}

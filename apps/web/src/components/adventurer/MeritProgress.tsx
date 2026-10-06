@@ -30,17 +30,25 @@ export function MeritProgress({
         sx={{
           justifyContent: 'space-between',
           alignItems: 'baseline',
-          mb: 1,
+          mb: 1.25,
         }}
       >
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+        <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
           {hasThreshold
             ? targetRankName
               ? `晉升至 ${targetRankName} 進度`
               : '晉升所需公會功績'
             : '公會最高階級'}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+        <Typography
+          variant="h5"
+          component="span"
+          sx={{
+            fontWeight: 900,
+            color: 'secondary.main',
+            letterSpacing: 0.5,
+          }}
+        >
           {hasThreshold ? `${currentMerit} / ${promotionThreshold}` : `${currentMerit} (上限)`}
         </Typography>
       </Stack>
@@ -49,14 +57,15 @@ export function MeritProgress({
         variant="determinate"
         value={percentage}
         sx={{
-          height: 10,
-          borderRadius: 5,
-          bgcolor: 'rgba(255, 255, 255, 0.08)',
+          height: 14,
+          borderRadius: 7,
+          bgcolor: 'rgba(180, 83, 9, 0.12)',
           '& .MuiLinearProgress-bar': {
-            borderRadius: 5,
+            borderRadius: 7,
             background: hasThreshold
-              ? 'linear-gradient(90deg, #6366f1 0%, #a855f7 100%)'
-              : 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)',
+              ? 'linear-gradient(90deg, #be123c 0%, #c2410c 50%, #b45309 100%)'
+              : 'linear-gradient(90deg, #b45309 0%, #d97706 100%)',
+            boxShadow: '0 2px 6px rgba(190, 18, 60, 0.25)',
           },
         }}
       />
@@ -66,15 +75,15 @@ export function MeritProgress({
         sx={{
           justifyContent: 'space-between',
           alignItems: 'center',
-          mt: 0.75,
+          mt: 1,
         }}
       >
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
           {hasThreshold ? `目前進度 ${percentage}%` : '已達成階級榮譽上限'}
         </Typography>
         {hasThreshold && (
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            尚需 {Math.max(0, promotionThreshold - currentMerit)} 功績
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+            尚需 <Box component="span" sx={{ color: 'secondary.main', fontWeight: 700 }}>{Math.max(0, promotionThreshold - currentMerit)}</Box> 功績
           </Typography>
         )}
       </Stack>

@@ -78,13 +78,13 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Brand Header in Drawer */}
-      <Toolbar sx={{ px: 2, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-        <SecurityOutlinedIcon sx={{ color: 'secondary.main', fontSize: 26 }} />
+      <Toolbar sx={{ px: 2.5, py: 1, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <SecurityOutlinedIcon sx={{ color: 'secondary.main', fontSize: 28 }} />
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2, color: 'text.primary' }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2, color: 'text.primary', fontSize: '1.15rem' }}>
             公會管理後台
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', letterSpacing: '0.05em' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', letterSpacing: '0.06em', fontSize: '0.8125rem', fontWeight: 600 }}>
             GUILD ADMIN
           </Typography>
         </Box>
@@ -102,25 +102,26 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
                 selected={isSelected}
                 onClick={() => handleSelectTab(item.key)}
                 sx={{
-                  borderRadius: 2,
-                  py: 1,
-                  px: 1.5,
+                  borderRadius: 2.5,
+                  py: 1.25,
+                  px: 1.75,
                   '&.Mui-selected': {
-                    bgcolor: 'rgba(99, 102, 241, 0.15)',
-                    color: 'primary.light',
-                    fontWeight: 700,
+                    bgcolor: 'rgba(190, 18, 60, 0.08)',
+                    border: '1px solid rgba(190, 18, 60, 0.28)',
+                    color: 'primary.main',
+                    fontWeight: 800,
                     '& .MuiListItemIcon-root': {
-                      color: 'primary.light',
+                      color: 'primary.main',
                     },
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 38, color: isSelected ? 'primary.light' : 'text.secondary' }}>
+                <ListItemIcon sx={{ minWidth: 40, color: isSelected ? 'primary.main' : 'text.secondary' }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: isSelected ? 700 : 500 }}>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: isSelected ? 800 : 600 }}>
                       {item.label}
                     </Typography>
                   }
@@ -132,8 +133,9 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
                     size="small"
                     variant="outlined"
                     sx={{
-                      height: 18,
-                      fontSize: '0.6875rem',
+                      height: 20,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
                       color: 'text.secondary',
                       borderColor: 'divider',
                     }}
@@ -149,10 +151,10 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
 
       {/* Footer Info in Drawer */}
       <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.8125rem' }}>
           Adventure Platform v0.1
         </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
           Role: {user?.role || 'ADMIN'}
         </Typography>
       </Box>
@@ -176,7 +178,7 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
       >
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3 } }}>
           {/* Left: Mobile Drawer Hamburger & Title */}
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
             <IconButton
               color="inherit"
               aria-label="開啟導覽選單"
@@ -187,7 +189,7 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
               <MenuOutlinedIcon />
             </IconButton>
 
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', fontSize: '1.2rem' }}>
               🛡️ 管理控制台
             </Typography>
           </Stack>
@@ -196,10 +198,10 @@ export function AdminLayout({ children, currentTab, onTabChange }: AdminLayoutPr
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
             <Chip
               label={`管理員: @${user?.username}`}
-              size="small"
+              size="medium"
               color="secondary"
               variant="outlined"
-              sx={{ fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}
+              sx={{ fontWeight: 700, fontSize: '0.875rem', display: { xs: 'none', sm: 'inline-flex' } }}
             />
 
             <Tooltip title="登出管理後台">

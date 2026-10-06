@@ -61,22 +61,22 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
             <CardContent sx={{ p: 2.5 }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     冒險者人數
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mt: 0.5 }}>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.5 }}>
                     {metrics?.totalAdventurers ?? '...'}
                   </Typography>
                 </Box>
-                <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(99, 102, 241, 0.12)', color: 'primary.light' }}>
-                  <GroupOutlinedIcon />
+                <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: 'rgba(190, 18, 60, 0.10)', color: 'primary.main' }}>
+                  <GroupOutlinedIcon sx={{ fontSize: 28 }} />
                 </Box>
               </Stack>
               <Button
                 size="small"
                 endIcon={<ArrowForwardOutlinedIcon fontSize="small" />}
                 onClick={() => navigate('/admin/adventurers')}
-                sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                sx={{ p: 0, minWidth: 0, fontWeight: 700, fontSize: '0.9375rem' }}
               >
                 檢視冒險者名冊
               </Button>
@@ -99,15 +99,15 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
             <CardContent sx={{ p: 2.5 }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     公會階級數
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mt: 0.5 }}>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.5 }}>
                     {metrics?.totalRanks ?? '...'}
                   </Typography>
                 </Box>
-                <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(245, 158, 11, 0.12)', color: 'secondary.main' }}>
-                  <MilitaryTechOutlinedIcon />
+                <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: 'rgba(180, 83, 9, 0.10)', color: 'secondary.main' }}>
+                  <MilitaryTechOutlinedIcon sx={{ fontSize: 28 }} />
                 </Box>
               </Stack>
               <Button
@@ -115,7 +115,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
                 color="secondary"
                 endIcon={<ArrowForwardOutlinedIcon fontSize="small" />}
                 onClick={() => navigate('/admin/ranks')}
-                sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                sx={{ p: 0, minWidth: 0, fontWeight: 700, fontSize: '0.9375rem' }}
               >
                 檢視階級體系配置
               </Button>
@@ -138,15 +138,15 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
             <CardContent sx={{ p: 2.5 }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     已發行憑證
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mt: 0.5 }}>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.5 }}>
                     {metrics?.totalCredentials ?? '...'}
                   </Typography>
                 </Box>
-                <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.12)', color: 'success.main' }}>
-                  <BadgeOutlinedIcon />
+                <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: 'rgba(21, 128, 61, 0.10)', color: 'success.main' }}>
+                  <BadgeOutlinedIcon sx={{ fontSize: 28 }} />
                 </Box>
               </Stack>
               <Button
@@ -154,7 +154,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
                 color="success"
                 endIcon={<ArrowForwardOutlinedIcon fontSize="small" />}
                 onClick={() => navigate('/admin/credentials')}
-                sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                sx={{ p: 0, minWidth: 0, fontWeight: 700, fontSize: '0.9375rem' }}
               >
                 檢視憑證管理
               </Button>
@@ -177,18 +177,18 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
             <CardContent sx={{ p: 2.5 }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     系統註冊帳號
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mt: 0.5 }}>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.5 }}>
                     {metrics?.totalUsers ?? '...'}
                   </Typography>
                 </Box>
-                <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(56, 189, 248, 0.12)', color: 'info.main' }}>
-                  <SecurityOutlinedIcon />
+                <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: 'rgba(29, 78, 216, 0.10)', color: 'info.main' }}>
+                  <SecurityOutlinedIcon sx={{ fontSize: 28 }} />
                 </Box>
               </Stack>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                 含 USER 冒險者與 ADMIN 管理員
               </Typography>
             </CardContent>
@@ -207,7 +207,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
           p: { xs: 2, sm: 3 },
         }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 2.5, color: 'text.primary' }}>
           公會管理快速通道 (Management Shortcuts)
         </Typography>
 
@@ -219,7 +219,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
               size="large"
               startIcon={<GroupOutlinedIcon />}
               onClick={() => navigate('/admin/adventurers')}
-              sx={{ py: 1.5, borderRadius: 2, justifyContent: 'flex-start' }}
+              sx={{ py: 1.75, borderRadius: 2.5, fontSize: '1rem', fontWeight: 700, justifyContent: 'flex-start' }}
             >
               冒險者名冊管理
             </Button>
@@ -231,7 +231,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
               size="large"
               startIcon={<MilitaryTechOutlinedIcon />}
               onClick={() => navigate('/admin/ranks')}
-              sx={{ py: 1.5, borderRadius: 2, justifyContent: 'flex-start' }}
+              sx={{ py: 1.75, borderRadius: 2.5, fontSize: '1rem', fontWeight: 700, justifyContent: 'flex-start' }}
             >
               階級順位與門檻配置
             </Button>
@@ -243,7 +243,7 @@ export function AdminDashboard({ metrics }: AdminDashboardProps) {
               size="large"
               startIcon={<BadgeOutlinedIcon />}
               onClick={() => navigate('/admin/credentials')}
-              sx={{ py: 1.5, borderRadius: 2, justifyContent: 'flex-start' }}
+              sx={{ py: 1.75, borderRadius: 2.5, fontSize: '1rem', fontWeight: 700, justifyContent: 'flex-start' }}
             >
               實體／數位憑證管理
             </Button>
