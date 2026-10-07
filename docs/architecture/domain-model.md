@@ -82,7 +82,11 @@ Represents physical or digital identification tokens assigned to adventurers.
 - `type`: Enum `CredentialType` (`QRCODE`, `RFID`, `NFC`)
 - `value`: Unique token identifier / tag serial / QR payload
 - `enabled`: Boolean flag indicating if token is active
-- **Hardware Abstraction Rule**: Core domain abstractions are decoupled from physical hardware scanning devices. `QRCODE`, `RFID`, and `NFC` are database model types for future flexibility; **physical hardware and scanner integrations are not yet implemented**.
+- **Hardware Abstraction & Multi-Credential Design**: Core domain abstractions are decoupled from physical hardware scanning devices.
+  - *Phase 1 Focus*: Leverages `CredentialType.QRCODE` as the static carrier printed on physical Adventure Cards, resolved by Camera-based Scanners.
+  - *1:N Player-to-Credential Mapping*: Supports token rotation, revocation of lost cards, and multi-credential binding without mutating the underlying adventurer profile.
+  - *Future NFC Upgrade*: An adventurer starting with a QR card can subsequently register an `NFC` token under the same profile, allowing both credentials to resolve to the same character without profile migration.
+  - *Stateless Token Rule*: `value` stores only a static token (e.g. `adventure://player/{token}`); dynamic state (HP, gold, merit) is strictly persisted in server domain tables.
 
 ### Quest (`quests` table)
 Represents a task or mission available to adventurers who hold the prerequisite rank.
@@ -143,10 +147,18 @@ Extensible reward catalog skeleton.
 ---
 
 ### Story Independence & Generic Platform Design
-While the current UI theme is styled as an **Adventurer Guild**, all backend data models and domain abstractions remain story-independent:
+While the current UI theme is styled as an **Adventurer Guild**, all backend data models and domain abstractions remain story-independent and serve as the baseline primitives for the broader **Physical RPG Platform** (detailed in [docs/game-design.md](../game-design.md)):
 - `Credential`, `Rank`, `Quest`, `QuestCompletion`, `MeritLedger`, `PromotionRequest`, and `Reward` are generic platform primitives.
 - Story-specific flavor (e.g., "公會任務", "冒險者公會", "S 級冒險者") belongs strictly in the frontend display and localized presentation layers.
-- Core business logic and database tables remain reusable for future alternative game templates (e.g. sci-fi, corporate onboarding, school treasure hunts).
+- **Mapping to the Unified Physical RPG Model**:
+  - **Player**: Mapped to `User` + `AdventurerProfile` + `Credential` (physical token identifier, e.g., NFC card resolved via decoupled Scanner).
+  - **World Node (Input / Actor / Output)**: Currently, the platform implements the baseline *Adventurer Guild* node. Future iterations generalize nodes into a unified `World Node` tripartite structure:
+    - *Input*: Decoupled `Scanner` resolving Adventure ID tokens.
+    - *Actor Control*: Live staff mobile operation terminal (`Actor Mode`).
+    - *Output*: Presentation endpoints (`Display Node`, expanding to `World Output Node` with audio/light/mechanics).
+  - **Interaction & Rule**: Implemented today via rank-gated Quests and completion reporting. Future nodes will support dynamic interactions (purchases, Boss duels, buff acquisitions) evaluated by a dynamic Rule Engine.
+  - **Dual-Track Economy**: `MeritLedger` currently models enduring status (**Merit**). Future extensions will incorporate expendable currency (**Coins**) to facilitate shop and minigame transactions.
+- Core business logic and database tables remain reusable for future alternative game templates (e.g., sci-fi, corporate onboarding, school treasure hunts, live camp RPGs).
 
 ---
 

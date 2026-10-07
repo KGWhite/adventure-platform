@@ -1,14 +1,25 @@
 # Adventure Platform
 
-Adventure Platform (`adventure-platform`) 是一個可擴充的實體／數位冒險遊戲平台。
+Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／引擎（Physical RPG Platform / Physical MMORPG Engine）**。
 
-當前產品概念為冒險者公會（Adventurer Guild）：
-- **USER** = 冒險者（Adventurer）
-- **ADMIN** = 公會管理者（Guild Administrator）
+其核心理念並非讓冒險者低頭盯著手機螢幕操作傳統手遊，而是利用實體卡片識別、手機端世界角色終端、大螢幕呈現、真人 NPC/GM、實體空間與遊戲後端引擎，讓**「現實世界本身成為遊戲世界」**。
 
-平台將陸續支援憑證（Credential）、任務（Quest）、公會功績（Guild Merit）、階級（Rank）、晉升（Promotion）與獎勵（Reward）。
+### 核心定位與設計理念
+- **實體身分識別（Adventure ID & QR Credential）**：冒險者持有一張實體 Adventure Card。**第一階段 MVP 採用印製之靜態 QR Code 作為身分憑證**，透過手機／設備內建鏡頭掃描辨識，快速驗證端到端遊戲循環；架構上嚴格將 Adventure ID（玩家核心身分）與 QR Code（實體載體）解耦，未來可平滑升級為 NFC 晶片卡而無需重構核心業務邏輯。
+- **輸入端解耦（Scanner Abstraction）**：輸入端抽象為 `Scanner` 介面（Camera QR Scanner、Manual Debug Mode 以及未來的 NFC Scanner），遊戲邏輯（戰鬥、商店、公會、任務）只依賴解析後的冒險者身分。
+- **世界角色終端（World Actor - Control）**：世界中的 NPC、店主、Boss、神官、守衛與 GM 由工作人員或玩家拿手機扮演（支援動態切換 `Actor Mode`）。手機是真人角色用來掃描冒險者 ID、判定規則、結算挑戰與操作遊戲的專用**控制終端（Control）**。
+- **世界呈現裝置（Display Node - Presentation）**：電視、螢幕、平板或投影機作為世界呈現窗口，將數位世界的狀態、戰鬥與事件即時渲染至現實實體空間。**控制（Actor Device）與呈現（Display Node）嚴格職責分離**。
+- **統一節點抽象（World Node）**：將武器店、防具店、公會、神殿、寶箱、Boss、傳送門、幸運屋等設施統一抽象為 `Input (Scanner) + Actor Control + Output (Display Node)` 架構。
+- **雙軌通訊與事件驅動**：操作指令（Command）採標準 REST API，即時視覺事件（Realtime Event）採 WebSocket 廣播，Display 端點保持輕量化無狀態渲染。
+- **雙軌資源與經濟體系**：
+  - **金幣（Coins）**：高頻可消耗流通資源，用於購買裝備、藥品、服務與休閒活動。
+  - **功績（Merit）**：不易被消耗之世界地位、聲望與資格累積，用於階級晉升（Rank Up）、解鎖高階委託、特殊商店與挑戰 Boss 資格。
+- **首個 MVP 落地案例（Use Case）**：平台首個具體應用為「兒童冒險與獎勵系統（`games/kids-adventure`）」，作為概念驗證（PoC/MVP），同時底層架構完整具備支撐大型展演、營隊、主題商場等通用實境 RPG 之擴充能力。
+- **詳細設計文件**：請參閱完整遊戲設計紀錄 [docs/game-design.md](docs/game-design.md)。
 
-目前進度：
+---
+
+### 目前實作進度（Adventurer Guild MVP 骨架）
 - **Phase 1**：技術基底建立完成（React + Vite + PWA、NestJS Modular Monolith、PostgreSQL 16、Prisma、pnpm workspace、Docker Compose）。
 - **Phase 2**：核心身分與冒險者領域模型完成（User、AdventurerProfile、Rank、Credential，包含資料庫遷移與開發 Seed 資料）。
 - **Phase 3**：身分驗證與角色化前端版面完成（JWT Token 認證、角色權限守衛、/login、/user 冒險者儀表板、/admin 公會管理控制台）。
@@ -259,7 +270,7 @@ adventure-platform/
 ├── packages/
 │   └── shared/                   # 未來共用型別與工具函式庫
 ├── games/
-│   └── kids-adventure/           # 遊戲專案配置
+│   └── kids-adventure/           # 遊戲專案配置（首個 MVP 落地案例：兒童冒險與獎勵系統）
 ├── infrastructure/
 │   ├── database/migrations/      # 資料庫歷史腳本
 │   └── nginx/                    # Nginx 反向代理配置與 TLS 憑證目錄
@@ -267,6 +278,7 @@ adventure-platform/
 │       ├── certs/                # TLS 憑證與金鑰目錄 (.gitkeep，不提交金鑰)
 │       └── generate-cert.sh      # 開發用自簽 TLS 憑證產生腳本 (支援 SAN)
 └── docs/
+    ├── game-design.md            # 實體 RPG 遊戲平台設計規格書 (World Node, Actor Mode, 雙軌資源)
     ├── architecture/             # 架構與領域模型技術文件
     │   ├── domain-model.md
     │   └── system-architecture.md

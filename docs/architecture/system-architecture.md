@@ -116,4 +116,62 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
    - **Tool**: Docker Compose (`compose.yaml`).
    - **Baseline Services**: `nginx`, `web`, `api`, `postgres`.
 
+---
+
+## Target Realtime & Display Architecture (Physical RPG Extension)
+
+To support the physical RPG gameplay where real-world spaces represent the game environment, the architecture adopts a decoupled presentation, command, and identity input model:
+
+```text
+┌─────────────────────────────────┐
+│     Physical Adventure Card     │ (Physical Card with Static QR Code Token)
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│       Scanner Abstraction       │
+│  ├── QRScanner (Camera / Web)   │ ◄─── Phase 1 MVP Core
+│  ├── ManualScanner (Debug Mode) │ ◄─── Phase 1 Developer Fallback
+│  └── NFCScanner (Future Reader) │ ◄─── Future Hardware Migration
+└────────────────┬────────────────┘
+                 │ Resolves credentialToken (adventureId)
+                 ▼
+┌─────────────────────────────────┐
+│       Actor Device (Web)        │ (Mobile Browser: Guild Staff / Boss / Merchant)
+└────────────────┬────────────────┘
+                 │ Command (HTTP / REST API with credentialToken)
+                 ▼
+┌─────────────────────────────────┐
+│     NestJS API / Game Server    │ (Resolves Credential -> Player, Rule Engine)
+└────────────────┬────────────────┘
+                 │ Realtime Event (WebSocket push)
+                 ▼
+┌─────────────────────────────────┐
+│       Display Node (Web)        │ (TV / Monitor / Projector: /display/*)
+└─────────────────────────────────┘
+```
+
+### Architectural Decisions (ADR Summary)
+1. **Phase 1 Identity & Credential Decision (QR Code MVP)**:
+   - Phase 1 MVP adopts physical **Adventure Cards featuring QR Codes**, scanned via built-in device cameras (mobile phones, laptops, tablets), paired with a **Manual Credential Input** debug mode.
+   - NFC is deliberately bypassed in Phase 1 to eliminate peripheral reader procurement, tag protocol variances, and mobile browser permission hurdles (such as iOS Web NFC constraints), accelerating end-to-end game loop validation.
+2. **Strict Decoupling of Adventure ID from Credential Carrier**:
+   - The QR Code is **not** the Adventure ID; it is merely a static credential carrier.
+   - The QR Code payload strictly holds a static credential token (e.g. `adventure://player/{token}`) and **never** stores dynamic character state (HP, gold, merit, quests).
+   - Core game engines (Battle, Shop, Guild, Quests, Display) depend solely on the resolved `Player` identity and are wholly oblivious to how the credential token was acquired.
+3. **Scanner Abstraction & Migration Boundary**:
+   - All input mechanisms implement a unified `Scanner` interface outputting a standard `AdventureIdentity` token.
+   - **Future NFC Migration Impact Boundary**:
+     - *Modules Affected*: Only the edge input adapter (`QRScanner` replaced or supplemented by `NFCScanner` / Web NFC / serial reader adapter).
+     - *Modules Guaranteed Unaffected*: NestJS API, Prisma schema, `User`/`AdventurerProfile` domains, QuestsModule, Battle logic, Shop logic, Rule Engine, WebSocket Gateway, and Display Node views.
+4. **Separation of Control and Presentation**:
+   - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands.
+   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01`, `/display/guild-01`, `/display/shop-01`) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
+5. **Command vs Event Transport Separation**:
+   - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /battle/attack`, `POST /quests/complete`, etc.) ensuring transactional consistency, idempotency, and standard authentication guards.
+   - **Realtime Events (Presentations)**: Dispatched asynchronously via WebSocket Gateway from backend to subscribed Display Node channels. Display nodes remain stateless renderers.
+6. **Generalization to World Output Node (Long-Term)**:
+   - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
+
+See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.
