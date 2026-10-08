@@ -29,10 +29,16 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - 驗證完整實體遊戲閉環：**QR Adventure Card → Boss Actor 掃描 → Game Server 辨識玩家 → 建立 Battle → Boss Actor 操作戰鬥 → Server 計算結果 → WebSocket 推送事件 → Boss Display 即時顯示 → Battle 結束 → 更新 Player State → 發放 Gold / Merit**。
   - **世界角色終端 (World Actor)**：`/actor/boss`（支援相機 QR 掃描與 Manual Credential Input 雙模式，大按鈕單手操作）。
   - **世界呈現終端 (Display Node)**：`/display/boss-01`（TV / 大螢幕沉浸式 RPG HUD、HP 動畫、受擊震動、飄字、勝利結算與獎勵顯示、自動重置計時器）。
-  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.started`、`battle.attack`、`battle.damage`、`battle.victory`、`battle.defeat`、`reward.received`。
+  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.*`、`reward.*`、`quest.*`。
   - **Server 決定權威**：戰鬥數值、HP 扣減、勝負判定、金幣與功績發放均由後端權威計算與寫入資料庫及 MeritLedger。
+- **已完成：Guild + Quest Vertical Slice MVP (首個完整 RPG Gameplay Loop)**：
+  - 串起第一個端到端可玩遊戲循環：**Adventure Card → 公會掃 QR (`/guild`) → 顯示角色狀態 → 接任務 (`POST /api/v1/player-quests`) → 前往 Boss 討伐場 (`/actor/boss` + `/display/boss-01`) → 擊敗黑騎士 → Server 權威自動累加進度並切換至 `completed` (`quest.completed`) → 回公會再次掃卡 (`POST /api/v1/guild/scan`) → 顯示 QUEST COMPLETE → 點擊 Claim Reward (`POST /api/v1/player-quests/:id/claim`) → 獲得 Gold / Merit / MeritLedger 寫入**。
+  - **公會實體終端機 (Guild Terminal)**：`/guild`（適合平板、筆電與固定 Kiosk 終端，相機 QR 掃描與測試卡片切換、冒險者狀態、任務接取、進度條與華麗任務完成領獎動效）。
+  - **Server 決定權威與解耦架構**：Boss 戰鬥模組、Boss Actor 與 Boss Display 完全不包含 Quest 規則；戰鬥勝利經由 Domain Handler 自動更新任務進度並推播 WebSocket 事件。
+  - **獎勵所有權明確分離 (Reward Ownership)**：明確劃分 Battle Reward（擊敗 Boss 直接獲得）與 Quest Reward（公會委託達成領取）。
+  - **防重複完成與重複領獎保護 (Double Claim Protection)**。
 - **下一步候選**：
-  - Guild Status Terminal（公會冒險者自助狀態大螢幕）→ Quest（委託接取與交回）→ Reward（獎勵兌換）→ Shop（商店交易）
+  - Shop + Equipment（商店交易、道具購買與裝備管理）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
 ---
 
@@ -40,7 +46,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 
 | 層級 | 技術選型 | 說明 |
 | :--- | :--- | :--- |
-| **Gateway / Proxy**| Nginx 1.27 (Alpine) | 單一 HTTPS 入口（Port 443），終止 TLS 並分流 `/` (Web) 與 `/api` (API)，提供 PWA Secure Context |
+| **Gateway / Proxy**| Nginx 1.27 (Alpine) | 單一入口（Port 443 HTTPS、Port 80 HTTP 重導向），終止 TLS 並分流 `/` (Web) 與 `/api` / `/ws` (API & WebSocket)，提供 PWA Secure Context |
 | **Frontend** | React 19, TypeScript, Vite, MUI, PWA | 單一前端應用程式，採用 MUI 作為唯一元件庫，支援行動優先響應式設計、桌面瀏覽器與 PWA 安裝 |
 | **Backend** | NestJS, TypeScript | Modular Monolith 架構，提供 `/api/v1` REST API |
 | **Database** | PostgreSQL 16 | 執行於 Docker Compose，單一資料庫實例 |
@@ -122,6 +128,9 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/user/quests` | `USER` | 公會委託告示欄：任務委託清單（Coming soon 整備中） |
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
+| `/guild` | 公開 / 現場 | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算 |
+| `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥、操作攻擊結算 |
+| `/display/boss-01` | 公開 / 現場 | **世界呈現終端 (Display Node)**：大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
 
 ### 前端 UI 架構基礎 (MUI Shared Design Foundation)
 
@@ -226,7 +235,7 @@ Phase 4 完成了核心遊戲領域模型的資料庫與領域骨架，為後續
 ```text
 adventure-platform/
 ├── .env.example                  # 環境變數範本
-├── AGENT.md                      # 開發規範與治理準則
+├── AGENTS.md                     # 開發規範與治理準則
 ├── README.md                     # 專案首頁與快速上手指南
 ├── compose.yaml                  # Docker Compose 服務定義 (web, api, postgres)
 ├── package.json                  # Root package 與 workspace scripts
@@ -244,9 +253,12 @@ adventure-platform/
 │   │       ├── adventurers/      # 冒險者個人檔案模組
 │   │       ├── auth/             # JWT 認證、守衛與裝飾器模組
 │   │       ├── credentials/      # 冒險者憑證模組 (QRCODE, RFID, NFC)
+│   │       ├── bosses/           # 世界 Boss 模組 (Black Knight)
+│   │       ├── battles/          # 戰鬥連線與攻擊權威結算模組
+│   │       ├── events/           # 即時 WebSocket Gateway & SSE 串流中樞
 │   │       ├── health/           # 健康檢查端點 GET /api/v1/health
 │   │       ├── prisma/           # PrismaService / PrismaModule
-│   │       ├── quests/           # 任務查詢與完成回報模組
+│   │       ├── quests/           # 任務查詢、接取、進度更新與報酬領取模組
 │   │       ├── ranks/            # 階級模組 (F..S)
 │   │       ├── users/            # 使用者與身分模組 (USER, ADMIN)
 │   │       ├── app.module.ts
@@ -256,6 +268,9 @@ adventure-platform/
 │       ├── public/               # PWA Icons 與靜態資產
 │       ├── src/
 │       │   ├── components/
+│       │   │   ├── actor/               # 世界角色終端 (/actor/boss)
+│       │   │   ├── display/             # 世界呈現終端 (/display/boss-01)
+│       │   │   ├── guild/               # 公會實體終端機 (/guild)
 │       │   │   ├── feedback/            # 遊戲即時回饋覆蓋層 (GameFeedbackOverlay)
 │       │   │   ├── AdminView.tsx        # 公會管理員控制台版面
 │       │   │   ├── AdventurerView.tsx   # 行動優先冒險者個人儀表板
@@ -334,9 +349,35 @@ Compose 會依序啟動：
 1. `postgres`（含 Healthcheck）
 2. `api`（等候 postgres ready 後自動執行 Prisma 遷移、資料庫 Seed 並啟動服務）
 3. `web`（等候 api 後啟動內部預覽服務）
-4. `nginx`（單一 HTTPS 入口，對外暴露 443 埠，將 `/` 導向 `web:5173`，將 `/api/` 導向 `api:3000`）
+4. `nginx`（反向代理閘道，對外暴露 80 與 443 埠，將 `/` 導向 `web:5173`，將 `/api/` 與 `/ws` 導向 `api:3000`）
 
-### 4. 服務存取與主要 API 端點
+### 4. 連接埠需求與開放設定 (Port Requirements & Exposure)
+
+專案依照運行情境（Docker Compose 整合運行 vs. 本機原始碼開發）所需開放或使用的連接埠如下：
+
+#### (1) Docker Compose 整合運行（宿主機 / 防火牆開放連接埠）
+
+| 連接埠 (Port) | 協定 | 對應服務 | 存取方向 / 角色 | 說明與安全建議 |
+| :--- | :--- | :--- | :--- | :--- |
+| **80** | TCP (HTTP) | `nginx` | 對外開放 (Inbound) | HTTP 入口，自動 301 轉址導向 HTTPS (Port 443) |
+| **443** | TCP (HTTPS / WSS) | `nginx` | 對外開放 (Inbound) | **主要對外安全入口**。反向代理前端 Web (`/`)、後端 REST API (`/api`) 與即時 WebSocket (`/ws`)，提供 PWA 必要之 Secure Context |
+| **5432** | TCP (PostgreSQL) | `postgres` | 本機/除錯開放 | 預設映射 `${POSTGRES_PORT:-5432}:5432`，供本機 GUI 資料庫工具 (DBeaver / TablePlus) 或本機 Prisma 工具直接連線。<br>⚠️ **生產或公開網路環境請勿對外開放** |
+
+> **Docker 內部虛擬網路連接埠（無需對宿主機或外部防火牆開放）**：
+> - `3000` (`api` 容器)：NestJS 內部監聽埠，僅供 Nginx 透過 Docker 內部網路反向代理 (`http://api:3000`)。
+> - `5173` (`web` 容器)：React 前端預覽服務內部監聽埠，僅供 Nginx 透過 Docker 內部網路反向代理 (`http://web:5173`)。
+
+#### (2) 本機原始碼開發模式 (`pnpm` Source-Level Dev)
+
+若不透過 Docker 執行整套服務，而是於本機執行 `pnpm` 指令開發時：
+
+| 連接埠 (Port) | 協定 | 啟動指令 | 預設網址 | 說明 |
+| :--- | :--- | :--- | :--- | :--- |
+| **5173** | TCP (HTTP) | `pnpm dev:web` | `http://localhost:5173` | Vite 前端開發伺服器（支援 HMR 熱重載與代理轉發） |
+| **3000** | TCP (HTTP/WS) | `pnpm dev:api` | `http://localhost:3000` | NestJS 後端開發伺服器（可透過 `PORT` 環境變數自訂） |
+| **5432** | TCP (PostgreSQL) | `docker compose up -d postgres` | `localhost:5432` | 本機開發用 PostgreSQL 容器實例 |
+
+### 5. 服務存取與主要 API 端點
 
 | 服務 / API | 網址 | 說明 |
 | :--- | :--- | :--- |
@@ -347,11 +388,18 @@ Compose 會依序啟動：
 | **Ranks API** | [https://localhost/api/v1/ranks](https://localhost/api/v1/ranks) | 查詢所有冒險者階級（F 到 S） |
 | **Adventurers API** | [https://localhost/api/v1/adventurers](https://localhost/api/v1/adventurers) | 查詢與建立冒險者檔案 |
 | **Credentials API** | [https://localhost/api/v1/credentials](https://localhost/api/v1/credentials) | 登記與查詢冒險者憑證 |
+| **Quests API** | [https://localhost/api/v1/quests](https://localhost/api/v1/quests) | 查詢公會可用任務清單 |
+| **PlayerQuests API** | `POST https://localhost/api/v1/player-quests` | 接取任務（綁定冒險者憑證與任務） |
+| **Claim Reward API** | `POST https://localhost/api/v1/player-quests/:id/claim` | 領取任務達成報酬（原子寫入 Gold / Merit） |
+| **Guild Scan API** | `POST https://localhost/api/v1/guild/scan` | 公會終端掃描冒險者憑證，回傳角色狀態與任務 |
+| **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
+| **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`) |
+| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`） |
 | **PostgreSQL** | `localhost:5432` | 資料庫連接埠（供本機開發與遷移工具使用） |
 
 > **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。
 
-### 5. 行動裝置與區域網路 (LAN) PWA 測試
+### 6. 行動裝置與區域網路 (LAN) PWA 測試
 
 PWA 功能（Web App Manifest 安裝、Service Worker 快取）嚴格要求在安全上下文（Secure Context, HTTPS 或 localhost）下執行。若欲於同 Wi-Fi 網段之手機或平板測試：
 1. 查詢開發主機區域網路 IP（例如 `192.168.1.100`）。
@@ -437,8 +485,8 @@ pnpm --filter @adventure-platform/api db:seed
 
 ## Documentation
 
-- 領域模型與階級憑證架構：[docs/architecture/domain-model.md](file:///home/abUC/adventure-platform/docs/architecture/domain-model.md)
-- 系統架構詳細說明：[docs/architecture/system-architecture.md](file:///home/abUC/adventure-platform/docs/architecture/system-architecture.md)
-- 本地開發完整指引：[docs/development/getting-started.md](file:///home/abUC/adventure-platform/docs/development/getting-started.md)
-- 依賴與版本策略規範：[docs/development/dependency-policy.md](file:///home/abUC/adventure-platform/docs/development/dependency-policy.md)
-- Agent 開發規範：[AGENT.md](file:///home/abUC/adventure-platform/AGENT.md)
+- 領域模型與階級憑證架構：[docs/architecture/domain-model.md](docs/architecture/domain-model.md)
+- 系統架構詳細說明：[docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
+- 本地開發完整指引：[docs/development/getting-started.md](docs/development/getting-started.md)
+- 依賴與版本策略規範：[docs/development/dependency-policy.md](docs/development/dependency-policy.md)
+- Agent 開發規範：[AGENTS.md](AGENTS.md)

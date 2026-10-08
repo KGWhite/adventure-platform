@@ -17,7 +17,7 @@ Respect the existing repository structure. Do not create new top-level directori
 If a new top-level directory is genuinely needed:
 1. Explain the rationale clearly.
 2. Confirm that the existing directory structure cannot reasonably accommodate the files.
-3. Update [README.md](file:///home/abUC/adventure-platform/README.md).
+3. Update [README.md](README.md).
 4. Update relevant documentation in `docs/`.
 
 ## 3. Documentation Rule
@@ -35,7 +35,7 @@ Documentation integrity is mandatory. Any change affecting:
 - Runtime behavior
 - Major feature behavior
 
-Must check and update [README.md](file:///home/abUC/adventure-platform/README.md) and related files in `docs/`.
+Must check and update [README.md](README.md) and related files in `docs/`.
 
 - Documentation must always remain synchronized with actual implementation.
 - Never leave obsolete commands, architectural diagrams, directory trees, or configuration keys.
@@ -43,7 +43,7 @@ Must check and update [README.md](file:///home/abUC/adventure-platform/README.md
 
 ## 4. README Maintenance
 
-[README.md](file:///home/abUC/adventure-platform/README.md) is the primary entry point of this repository.
+[README.md](README.md) is the primary entry point of this repository.
 
 After any modification, verify that:
 - Directory structure is up to date.
@@ -52,7 +52,7 @@ After any modification, verify that:
 - Environment variable specifications are valid.
 - Docker / Compose commands and descriptions match the current state.
 
-Update [README.md](file:///home/abUC/adventure-platform/README.md) within the same commit/change if discrepancies exist.
+Update [README.md](README.md) within the same commit/change if discrepancies exist.
 
 ## 5. Empty Directories
 
@@ -90,7 +90,7 @@ All text files must adhere to the following:
 
 ## 10. Dependency and Version Policy
 
-See full specification in [docs/development/dependency-policy.md](file:///home/abUC/adventure-platform/docs/development/dependency-policy.md).
+See full specification in [docs/development/dependency-policy.md](docs/development/dependency-policy.md).
 
 - **Core Principle**: Use versions that are modern, stable, actively maintained, and reasonably recent. Prefer stability over bleeding-edge features.
 - **General Rules**:
@@ -142,7 +142,7 @@ Before finalizing any task, check off the following:
 4. No trailing whitespace exists in any modified file.
 5. All text files end with exactly one newline.
 6. Empty directories that must be tracked contain `.gitkeep`.
-7. [README.md](file:///home/abUC/adventure-platform/README.md) is still accurate.
+7. [README.md](README.md) is still accurate.
 8. Relevant files under `docs/` are still accurate.
 9. Documentation was updated if architecture, behavior, or configuration changed.
 

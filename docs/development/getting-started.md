@@ -9,7 +9,7 @@ This guide describes how to run and develop the Adventure Platform locally.
 - **pnpm**: v12.8.1 (pinned in root `package.json` `packageManager` and Dockerfiles)
 - **PostgreSQL**: 16 (pinned via `postgres:16-alpine` in `compose.yaml`)
 
-> For full version selection and dependency management guidelines, see [Dependency and Version Policy](file:///home/abUC/adventure-platform/docs/development/dependency-policy.md).
+> For full version selection and dependency management guidelines, see [Dependency and Version Policy](dependency-policy.md).
 
 ## Quickstart (Integrated Docker Compose Stack)
 
@@ -47,11 +47,23 @@ When starting, Docker Compose will launch four services:
 1. `postgres`: PostgreSQL 16 database with health check.
 2. `api`: NestJS modular monolith (automatically executes Prisma migrations and seeds default test data).
 3. `web`: React Vite PWA frontend build served internally.
-4. `nginx`: Reverse proxy gateway terminating TLS and routing requests:
+4. `nginx`: Reverse proxy gateway terminating TLS and routing requests (ports 80 and 443):
    - `https://<host>/` ──► `http://web:5173`
    - `https://<host>/api/` ──► `http://api:3000`
+   - `wss://<host>/ws` ──► `http://api:3000`
+   - `http://<host>/` (port 80) ──► redirects to HTTPS (port 443)
 
-### 4. Verify Running Services via HTTPS
+### 4. Port Requirements & Exposure
+
+| Port | Protocol | Service | Scope | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **80** | TCP (HTTP) | `nginx` | Inbound / Public | HTTP entry point; automatically redirects 301 to HTTPS (Port 443) |
+| **443** | TCP (HTTPS / WSS) | `nginx` | Inbound / Public | Main secure entry point for frontend, API (`/api`), and WebSockets (`/ws`) |
+| **5432** | TCP (PostgreSQL) | `postgres` | Local / Dev tools | Database port mapped to host (`${POSTGRES_PORT:-5432}:5432`) |
+
+> **Container-internal ports**: `3000` (`api`) and `5173` (`web`) are proxied internally by Nginx and do not need to be exposed on the host.
+
+### 5. Verify Running Services via HTTPS
 - Web application (PWA): [https://localhost](https://localhost) (redirects to `/login`)
 - Health check: [https://localhost/api/v1/health](https://localhost/api/v1/health) (returns `{"status":"ok"}`)
 - PostgreSQL (database port for dev tools): `localhost:5432`
