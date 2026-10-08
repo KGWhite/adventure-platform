@@ -1,0 +1,791 @@
+.guild-terminal-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 20%, #1e2638 0%, #0d111a 100%);
+  color: #e2e8f0;
+  font-family: 'Cinzel', 'Noto Serif TC', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.guild-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  background: rgba(13, 17, 26, 0.85);
+  border-bottom: 2px solid #b38b4d;
+  backdrop-filter: blur(8px);
+}
+
+.guild-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.guild-emblem {
+  font-size: 2.2rem;
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(246, 211, 101, 0.4));
+}
+
+.guild-title {
+  font-size: 1.5rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin: 0;
+  color: #f7fafc;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.guild-subtitle {
+  font-size: 0.85rem;
+  margin: 0.2rem 0 0 0;
+  color: #a0aec0;
+}
+
+.guild-header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.guild-nav-link {
+  color: #d69e2e;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(214, 158, 46, 0.4);
+  border-radius: 4px;
+  background: rgba(214, 158, 46, 0.1);
+  transition: all 0.2s ease;
+}
+
+.guild-nav-link:hover {
+  background: rgba(214, 158, 46, 0.25);
+  border-color: #d69e2e;
+  color: #faf089;
+}
+
+/* Main */
+.guild-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.guild-card {
+  background: rgba(20, 26, 38, 0.8);
+  border: 1px solid rgba(179, 139, 77, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 1.75rem;
+}
+
+.scanner-card {
+  max-width: 680px;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.card-section-title {
+  font-size: 1.25rem;
+  color: #e2e8f0;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.scanner-instruction {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Tabs */
+.scanner-mode-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e0;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #b38b4d;
+  color: #1a202c;
+  border-color: #d69e2e;
+  box-shadow: 0 0 12px rgba(179, 139, 77, 0.4);
+}
+
+/* Camera */
+.camera-box {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  border: 1px solid #4a5568;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.camera-video {
+  width: 100%;
+  display: block;
+}
+
+.qr-guide-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border: 2px dashed #ecc94b;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.camera-prompt {
+  padding: 2.5rem;
+}
+
+.camera-error-banner {
+  background: rgba(229, 62, 62, 0.2);
+  color: #feb2b2;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Manual Box */
+.manual-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.preset-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.preset-label {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.preset-chip {
+  background: rgba(74, 85, 104, 0.4);
+  border: 1px solid #4a5568;
+  color: #edf2f7;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-chip:hover {
+  background: rgba(179, 139, 77, 0.3);
+  border-color: #b38b4d;
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.guild-text-input {
+  flex: 1;
+  background: rgba(13, 17, 26, 0.9);
+  border: 1px solid #4a5568;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.guild-text-input:focus {
+  outline: none;
+  border-color: #d69e2e;
+  box-shadow: 0 0 8px rgba(214, 158, 46, 0.4);
+}
+
+/* Buttons */
+.action-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.gold-btn {
+  background: linear-gradient(135deg, #d69e2e 0%, #b38b4d 100%);
+  color: #1a202c;
+  box-shadow: 0 4px 12px rgba(214, 158, 46, 0.3);
+}
+
+.gold-btn:hover {
+  background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);
+  box-shadow: 0 6px 16px rgba(214, 158, 46, 0.5);
+  transform: translateY(-1px);
+}
+
+.claim-btn {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
+  width: 100%;
+  box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
+}
+
+.claim-btn:hover {
+  background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
+  transform: translateY(-2px);
+}
+
+.outline-btn {
+  background: transparent;
+  border: 1px solid #4a5568;
+  color: #cbd5e0;
+}
+
+.outline-btn:hover {
+  border-color: #cbd5e0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pulse-glow {
+  animation: pulseGlow 1.8s infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 12px rgba(72, 187, 120, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(72, 187, 120, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 12px rgba(72, 187, 120, 0.5);
+  }
+}
+
+/* Alerts */
+.guild-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.error-alert {
+  background: rgba(229, 62, 62, 0.2);
+  border: 1px solid #e53e3e;
+  color: #feb2b2;
+}
+
+.success-alert {
+  background: rgba(56, 161, 105, 0.2);
+  border: 1px solid #38a169;
+  color: #9ae6b4;
+}
+
+/* Content Grid */
+.guild-content-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .guild-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Player Status Card */
+.player-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  background: rgba(179, 139, 77, 0.2);
+  border: 1px solid #b38b4d;
+  color: #ecc94b;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.switch-card-btn {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.switch-card-btn:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.player-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-avatar {
+  font-size: 2.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #4a5568;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-name {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.player-level {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+/* Stats */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
+.hp-bar-bg {
+  background: #1a202c;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #4a5568;
+  margin-bottom: 1.25rem;
+}
+
+.hp-bar-fill {
+  background: linear-gradient(90deg, #e53e3e, #f56565);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.resource-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.resource-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #4a5568;
+  background: rgba(13, 17, 26, 0.6);
+}
+
+.gold-resource {
+  border-color: rgba(214, 158, 46, 0.4);
+}
+
+.merit-resource {
+  border-color: rgba(99, 179, 237, 0.4);
+}
+
+.res-icon {
+  font-size: 1.5rem;
+}
+
+.res-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.res-num {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.res-name {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.credential-tag {
+  font-size: 0.8rem;
+  color: #718096;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.75rem;
+}
+
+.credential-tag code {
+  color: #cbd5e0;
+}
+
+/* Quest Management Card */
+.quest-management-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.quest-state-box {
+  border-radius: 10px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.completed-box {
+  background: radial-gradient(circle at 50% 0%, rgba(72, 187, 120, 0.15), rgba(20, 26, 38, 0.9));
+  border: 2px solid #48bb78;
+  box-shadow: 0 0 25px rgba(72, 187, 120, 0.3);
+}
+
+.in-progress-box {
+  background: rgba(26, 32, 44, 0.6);
+  border: 1px solid #4a5568;
+}
+
+.claimed-box {
+  background: rgba(45, 55, 72, 0.4);
+  border: 1px solid #4a5568;
+}
+
+.completion-ribbon {
+  align-self: center;
+  background: linear-gradient(135deg, #ffd700, #ffae00);
+  color: #1a202c;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  padding: 0.35rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.quest-status-badge {
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+}
+
+.in-progress-badge {
+  background: rgba(66, 153, 225, 0.2);
+  color: #63b3ed;
+  border: 1px solid #4299e1;
+}
+
+.claimed-badge {
+  background: rgba(72, 187, 120, 0.2);
+  color: #9ae6b4;
+  border: 1px solid #48bb78;
+}
+
+.quest-title-large {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.quest-desc {
+  margin: 0;
+  color: #cbd5e0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Progress Meter */
+.progress-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.meter-bar-bg {
+  background: #1a202c;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #4a5568;
+}
+
+.meter-bar-fill {
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.meter-bar-fill.complete {
+  background: linear-gradient(90deg, #38a169, #48bb78);
+}
+
+/* Rewards Preview */
+.reward-preview-card {
+  background: rgba(13, 17, 26, 0.6);
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.preview-label {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.preview-values {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.reward-chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.gold-chip {
+  background: rgba(214, 158, 46, 0.2);
+  color: #ecc94b;
+  border: 1px solid #d69e2e;
+}
+
+.merit-chip {
+  background: rgba(99, 179, 237, 0.2);
+  color: #90cdf4;
+  border: 1px solid #63b3ed;
+}
+
+/* Guidance Callout */
+.quest-guidance-callout {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(49, 130, 206, 0.15);
+  border: 1px solid rgba(49, 130, 206, 0.4);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #bee3f8;
+  line-height: 1.5;
+}
+
+.quest-guidance-callout p {
+  margin: 0.2rem 0 0 0;
+}
+
+.callout-icon {
+  font-size: 1.3rem;
+}
+
+/* Available Quests */
+.available-quests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quest-entry-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(26, 32, 44, 0.7);
+  border: 1px solid rgba(179, 139, 77, 0.4);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  gap: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.quest-entry-card:hover {
+  border-color: #d69e2e;
+  background: rgba(26, 32, 44, 0.95);
+  transform: translateY(-2px);
+}
+
+.quest-entry-main {
+  flex: 1;
+}
+
+.quest-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.quest-entry-title {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.quest-target-tag {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #cbd5e0;
+}
+
+.quest-entry-desc {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.quest-entry-rewards {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.reward-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ecc94b;
+}
+
+.no-quests-msg {
+  color: #718096;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Celebration Overlay */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.celebration-modal {
+  background: radial-gradient(circle at 50% 30%, #2b3a4a, #141a26);
+  border: 2px solid #ffd700;
+  padding: 2.5rem 3.5rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+  animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.celebration-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.celebration-modal h2 {
+  font-size: 2rem;
+  color: #ffd700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.1em;
+}
+
+.celebration-modal p {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

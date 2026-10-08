@@ -5,7 +5,11 @@ export type GameEventType =
   | 'battle.damage'
   | 'battle.victory'
   | 'battle.defeat'
-  | 'reward.received';
+  | 'reward.received'
+  | 'quest.accepted'
+  | 'quest.progress_updated'
+  | 'quest.completed'
+  | 'quest.reward_claimed';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -83,4 +87,38 @@ export interface RewardReceivedData {
   gold: number;
   merit: number;
   item: string;
+}
+
+export interface QuestAcceptedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  playerName?: string;
+  questTitle?: string;
+  targetCount: number;
+}
+
+export interface QuestProgressUpdatedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  progress: number;
+  targetCount: number;
+}
+
+export interface QuestCompletedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  progress: number;
+  targetCount: number;
+  bossId?: string;
+}
+
+export interface QuestRewardClaimedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  rewardGold: number;
+  rewardMerit: number;
 }

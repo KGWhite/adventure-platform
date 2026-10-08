@@ -52,11 +52,12 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
 ### Components
 
 1. **Nginx Reverse Proxy (`infrastructure/nginx`)**
-   - **Role**: Single HTTPS entry point for the integrated MVP stack.
-   - **Port**: Listens on port `443` with TLS enabled.
+   - **Role**: Single HTTPS entry point and gateway for the integrated MVP stack.
+   - **Ports**: Listens on port `443` (HTTPS / WSS, TLS enabled) and port `80` (HTTP, redirects to HTTPS).
    - **Certificates**: Local development self-signed certificate (`infrastructure/nginx/certs/server.crt` and `server.key`), generated via `infrastructure/nginx/generate-cert.sh`.
    - **Routing**:
      - `/api/` ──► `http://api:3000` (preserves full API path, e.g. `/api/v1/health`)
+     - `/ws` ──► `http://api:3000` (RFC 6455 WebSocket Upgrade gateway)
      - `/` ──► `http://web:5173` (React PWA, Web App Manifest, Service Worker, static assets)
    - **PWA Secure Context**: Provides HTTPS origin required for PWA Service Worker registration and Web App Manifest caching when testing from mobile and local network devices.
 
@@ -76,6 +77,9 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `/user/quests`: Guild quest notices with API completion reporting and feedback animation.
      - `/user/rewards`: Guild merit rewards exchange (Coming soon placeholder).
      - `/admin`: Guild Administration Console (`dashboard`, `adventurers`, `ranks`, `credentials`, and Coming soon tabs).
+     - `/guild`: **Guild Terminal (World Node)**: Adventurer Card scanning, Adventurer status, Quest acceptance, progress tracking, and reward claiming.
+     - `/actor/boss`: **World Actor Terminal**: Mobile-first Boss battle control terminal.
+     - `/display/boss-01`: **World Display Node**: Large-screen RPG HUD with HP animations, sound/vibration effects, and victory settlement.
    - **Local Visual Feedback Architecture**:
      - `src/types/feedback.ts` (`FeedbackEvent`) and `src/components/feedback/` (`GameFeedbackOverlay`, `questCompletionToFeedbackEvent`).
      - **API Flow**: User action ──► API request ──► Backend validation & DB update ──► API success ──► Frontend `FeedbackEvent` ──► Staged animation sequence.
@@ -98,8 +102,11 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `UsersModule`: Identity management and password hashing (passwords never exposed).
      - `AdventurersModule`: Adventurer profile management and rank assignment.
      - `RanksModule`: Database-driven rank tiers (F through S).
-     - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC).
-     - `QuestsModule`: Quest listings (`GET /quests`, `GET /quests/:id`) and quest completion reporting with atomic merit ledger write (`POST /quests/:id/complete`).
+     - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC) with in-memory fallback.
+     - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
+     - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `GET /battles/:id`).
+     - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
+     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455) & SSE streaming (`GET /events/sse`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`).
      - `PrismaModule`: Global Prisma database connection service.
    - **ORM**: Prisma embedded directly within the API service.
 
@@ -191,4 +198,3 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.
-

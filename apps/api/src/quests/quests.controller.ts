@@ -2,57 +2,52 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Post,
-  UseGuards,
 } from '@nestjs/common';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
-import type { RequestUser } from '../auth/decorators/current-user.decorator.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { QuestsService } from './quests.service.js';
+import {
+  AcceptQuestDto,
+  GuildScanDto,
+} from './quests.types.js';
 
-class CompleteQuestDto {
-  adventurerId?: string;
-}
-
-@Controller('quests')
+@Controller()
 export class QuestsController {
-  constructor(
-    private readonly questsService: QuestsService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly questsService: QuestsService) {}
 
-  @Get()
+  // 1. Quests definition list
+  @Get('quests')
   async listQuests() {
     return this.questsService.findAll();
   }
 
-  @Get(':id')
+  // 2. Single quest details
+  @Get('quests/:id')
   async getQuest(@Param('id') id: string) {
     return this.questsService.findById(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post(':id/complete')
-  async completeQuest(
-    @Param('id') id: string,
-    @CurrentUser() user: RequestUser,
-    @Body() dto: CompleteQuestDto,
-  ) {
-    let targetAdventurerId = dto.adventurerId;
+  // 3. Accept quest -> creates PlayerQuest instance
+  @Post('player-quests')
+  async acceptQuest(@Body() dto: AcceptQuestDto) {
+    return this.questsService.acceptQuest(dto);
+  }
 
-    if (!targetAdventurerId) {
-      const profile = await this.prisma.adventurerProfile.findUnique({
-        where: { userId: user.id },
-      });
-      if (!profile) {
-        throw new NotFoundException('Adventurer profile not found for current user');
-      }
-      targetAdventurerId = profile.id;
-    }
+  // 4. Get active quest for player
+  @Get('player-quests/player/:playerId')
+  async getActivePlayerQuest(@Param('playerId') playerId: string) {
+    return this.questsService.findActivePlayerQuest(playerId);
+  }
 
-    return this.questsService.completeQuest(id, targetAdventurerId, user.id);
+  // 5. Claim reward for completed quest
+  @Post('player-quests/:id/claim')
+  async claimReward(@Param('id') id: string) {
+    return this.questsService.claimReward(id);
+  }
+
+  // 6. Guild Terminal Scan (Card scan -> Player + Active Quest + Available Quests)
+  @Post('guild/scan')
+  async scanGuild(@Body() dto: GuildScanDto) {
+    return this.questsService.scanGuild(dto.credentialValue, dto.displayId);
   }
 }

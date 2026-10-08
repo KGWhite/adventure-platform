@@ -94,18 +94,39 @@ Represents physical or digital identification tokens assigned to adventurers.
   - *Stateless Token Rule*: `value` stores only a static token (e.g. `adventure://player/{token}`); dynamic state (HP, gold, merit) is strictly persisted in server domain tables.
 
 ### Quest (`quests` table)
-Represents a task or mission available to adventurers who hold the prerequisite rank.
+Represents a task or mission available to adventurers in the game world.
 - `id`: Unique identifier (CUID)
-- `title`: Short task title
+- `title` / `name`: Short task title
 - `description`: Quest instructions or objectives
-- `requiredRankId`: Foreign key to `Rank` (specifies minimum rank requirement)
-- `meritReward`: Non-negative merit awarded upon completion (default: `0`)
+- `objectiveType`: Objective category (Phase 2 MVP: `defeat_boss`)
+- `targetId`: Objective target entity identifier (e.g., `boss-01` / `black-knight`)
+- `targetCount`: Required completion count (default: `1`)
+- `rewardGold`: Gold granted upon claiming quest reward (default: `0`)
+- `rewardMerit`: Merit points granted upon claiming quest reward (default: `0`)
+- `requiredRankId`: Optional foreign key to `Rank`
 - `enabled`: Active/inactive toggle
 - `createdAt`, `updatedAt`: Timestamps
-- **Design Principle**: Scope is deliberately minimal. Does not support complex quest types, recurrence, multi-stage dependencies, timers, maps, or multiplayer mechanics.
+- **Design Principle**: Scope is deliberately minimal. Does not use a complex scripting engine or DSL; objectives are purely declarative.
+
+### PlayerQuest (`player_quests` table)
+Represents an individual adventurer's active or historical quest progression instance.
+- `id`: Unique instance identifier (CUID)
+- `playerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `questId`: Foreign key to `Quest` (cascade delete)
+- `progress`: Current accumulated count towards target (default: `0`)
+- `targetCount`: Target requirement snapshot (default: `1`)
+- `status`: Enum `PlayerQuestStatus` (`ACCEPTED`, `COMPLETED`, `CLAIMED`)
+- `acceptedAt`: Timestamp when quest was accepted at Guild Terminal
+- `completedAt`: Timestamp when objective condition was satisfied
+- `claimedAt`: Timestamp when reward was claimed
+- **State Semantics**:
+  - `accepted`: Quest is active and in progress.
+  - `completed`: Quest objective is achieved; waiting for player to return to Guild and claim reward.
+  - `claimed`: Reward has been paid out; prevents double completion and double claiming.
+- **Single Active Quest Invariant**: In this phase, an adventurer may have at most one active (`accepted` or `completed`) quest at a time.
 
 ### QuestCompletion (`quest_completions` table)
-Records an adventurer's attempt or completion of a quest.
+Legacy verification record for admin-reviewed quest submissions.
 - `id`: Unique identifier (CUID)
 - `questId`: Foreign key to `Quest` (cascade delete)
 - `adventurerId`: Foreign key to `AdventurerProfile` (cascade delete)
@@ -113,7 +134,6 @@ Records an adventurer's attempt or completion of a quest.
 - `completedAt`: Timestamp of completion attempt
 - `approvedAt`: Timestamp of administrator review
 - `approvedBy`: Foreign key to `User` (the administrator who reviewed the submission)
-- **Workflow State**: Designed to support future review and verification workflows. Full verification/approval execution logic is deferred to subsequent phases.
 
 ### MeritLedger (`merit_ledgers` table)
 Immutable ledger recording all credit and debit changes to an adventurer's Guild Merit.

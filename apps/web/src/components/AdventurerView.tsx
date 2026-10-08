@@ -242,6 +242,28 @@ export function AdventurerView() {
             檢視完整個人檔案 (Profile)
           </Button>
         </Grid>
+        <Grid size={{ xs: 12 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/guild')}
+            sx={{
+              py: 1.75,
+              borderRadius: 2.5,
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: '#1a202c',
+              background: 'linear-gradient(135deg, #d69e2e 0%, #b38b4d 100%)',
+              boxShadow: '0 4px 14px rgba(214, 158, 46, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)',
+              },
+            }}
+          >
+            🏰 開啟公會實體終端機 (Guild Terminal: /guild)
+          </Button>
+        </Grid>
       </Grid>
     </Box>
   );

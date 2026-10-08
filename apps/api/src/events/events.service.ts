@@ -9,6 +9,10 @@ import type {
   GameEvent,
   GameEventType,
   PlayerScannedData,
+  QuestAcceptedData,
+  QuestCompletedData,
+  QuestProgressUpdatedData,
+  QuestRewardClaimedData,
   RewardReceivedData,
 } from './events.types.js';
 import { PureWebSocketServer } from './websocket.server.js';
@@ -98,5 +102,21 @@ export class EventsService {
 
   emitRewardReceived(displayId: string, data: RewardReceivedData) {
     return this.emit('reward.received', displayId, data);
+  }
+
+  emitQuestAccepted(displayId: string, data: QuestAcceptedData) {
+    return this.emit('quest.accepted', displayId, data);
+  }
+
+  emitQuestProgressUpdated(displayId: string, data: QuestProgressUpdatedData) {
+    return this.emit('quest.progress_updated', displayId, data);
+  }
+
+  emitQuestCompleted(displayId: string, data: QuestCompletedData) {
+    return this.emit('quest.completed', displayId, data);
+  }
+
+  emitQuestRewardClaimed(displayId: string, data: QuestRewardClaimedData) {
+    return this.emit('quest.reward_claimed', displayId, data);
   }
 }

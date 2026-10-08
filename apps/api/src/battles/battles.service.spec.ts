@@ -6,16 +6,24 @@ import { EventsModule } from '../events/events.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EventsService } from '../events/events.service.js';
+import { QuestsService } from '../quests/quests.service.js';
 
 describe('BattlesService (Vertical Slice MVP)', () => {
   let battlesService: BattlesService;
   let eventsService: EventsService;
+  let questsService: QuestsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [PrismaModule, EventsModule, CredentialsModule, BossesModule],
       providers: [
         BattlesService,
+        {
+          provide: QuestsService,
+          useValue: {
+            onBossDefeated: vi.fn().mockResolvedValue(null),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {

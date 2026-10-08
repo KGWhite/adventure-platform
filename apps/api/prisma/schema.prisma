@@ -30,6 +30,12 @@ enum PromotionRequestStatus {
   REJECTED
 }
 
+enum PlayerQuestStatus {
+  ACCEPTED
+  COMPLETED
+  CLAIMED
+}
+
 model User {
   id                String             @id @default(cuid())
   username          String             @unique
@@ -79,6 +85,7 @@ model AdventurerProfile {
   meritLedgerEntries MeritLedger[]
   promotionRequests  PromotionRequest[]
   battles            Battle[]
+  playerQuests       PlayerQuest[]
 
   @@map("adventurer_profiles")
 }
@@ -100,15 +107,39 @@ model Quest {
   id             String            @id @default(cuid())
   title          String
   description    String
-  requiredRankId String
+  objectiveType  String            @default("defeat_boss")
+  targetId       String?
+  targetCount    Int               @default(1)
+  rewardGold     Int               @default(0)
+  rewardMerit    Int               @default(0)
+  requiredRankId String?
   meritReward    Int               @default(0)
   enabled        Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  requiredRank   Rank              @relation(fields: [requiredRankId], references: [id])
+  requiredRank   Rank?             @relation(fields: [requiredRankId], references: [id])
   completions    QuestCompletion[]
+  playerQuests   PlayerQuest[]
 
   @@map("quests")
+}
+
+model PlayerQuest {
+  id          String            @id @default(cuid())
+  playerId    String
+  questId     String
+  progress    Int               @default(0)
+  targetCount Int               @default(1)
+  status      PlayerQuestStatus @default(ACCEPTED)
+  acceptedAt  DateTime          @default(now())
+  completedAt DateTime?
+  claimedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  player      AdventurerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  quest       Quest             @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@map("player_quests")
 }
 
 model QuestCompletion {

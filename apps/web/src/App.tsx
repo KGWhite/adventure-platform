@@ -13,6 +13,7 @@ import { AdventurerRewardsView } from './components/AdventurerRewardsView.js';
 import { AdminView } from './components/AdminView.js';
 import { BossActorView } from './components/actor/BossActorView.js';
 import { BossDisplayView } from './components/display/BossDisplayView.js';
+import { GuildTerminalView } from './components/guild/GuildTerminalView.js';
 import './App.css';
 
 function UserRouter({ path }: { path: string }) {
@@ -39,6 +40,11 @@ function MainRouter() {
   // 2. World Node: Boss Actor Terminal (/actor/boss)
   if (path.startsWith('/actor')) {
     return <BossActorView />;
+  }
+
+  // 3. World Node: Guild Terminal (/guild)
+  if (path.startsWith('/guild')) {
+    return <GuildTerminalView />;
   }
 
   // 3. User Dashboard

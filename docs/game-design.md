@@ -500,20 +500,25 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
 - [x] **雙軌經濟資源**：流通消耗金幣（Coins）與成就資格功績（Merit）。
 - [x] **年齡安全規範**：機率型娛樂設施嚴禁法幣賭博與現金兌現。
 
-### 12.2 已完成實作項目 (Completed - Phase 1 MVP)
+### 12.2 已完成實作項目 (Completed Vertical Slices)
 - [x] **QR Code Adventure Card 憑證架構**：實體卡片印製靜態 Token，動態角色資料完全由 Server 權威維護。
 - [x] **Scanner 雙模式支援**：手機鏡頭掃描 QR Code，內建 Manual Credential Input 開發除錯模式。
 - [x] **Boss Actor Web (`/actor/boss`)**：手機端戰鬥終端，大按鈕單手操作，支援玩家身分解析、戰鬥發起、單手點擊 Attack。
 - [x] **Boss Display Node (`/display/boss-01`)**：TV / 大螢幕沉浸式 RPG HUD，即時血條動畫、受擊飄字、震動動效、勝利與獎勵結算、自動重置計時器。
-- [x] **純 Node.js RFC 6455 WebSocket Gateway**：支援即時雙向連線與 SSE 串流備援，統一推播 7 種標準遊戲事件。
+- [x] **純 Node.js RFC 6455 WebSocket Gateway**：支援即時雙向連線與 SSE 串流備援，推播標準遊戲事件。
 - [x] **Server 權威戰鬥與獎勵更新**：Server 計算扣血與勝負，勝利後自動更新 Player `gold` 與 `merit` 並寫入 `merit_ledgers`。
-- [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)。
+- [x] **Guild + Quest Vertical Slice MVP (首個完整 RPG Gameplay Loop)**：
+  - 完整閉環：**Adventure Card → 公會掃 QR (`/guild`) → 顯示角色狀態 → 接任務 (`Defeat Black Knight`) → 前往 Boss 戰鬥 → 擊敗黑騎士 → Server 權威更新 Quest Progress 至 completed → 回公會再次掃卡 → 顯示 QUEST COMPLETE → Claim Reward 領取報酬 → 寫入 Gold / Merit / MeritLedger**。
+  - **公會實體終端機 (`/guild`)**：適合平板、筆電與固定 Kiosk 終端，包含相機掃描、手動測試代碼、冒險者狀態面板、任務接取、進度條與華麗任務完成領獎動效。
+  - **Server 決定權威與解耦架構**：Boss 戰鬥模組、Boss Actor 與 Boss Display 完全不涉及 Quest 規則；戰鬥勝利經由 Domain Handler 依據 Player ID 與 Boss ID 自動更新任務進度並推播 WebSocket 事件。
+  - **獎勵所有權明確切分 (Reward Ownership)**：明確劃分 Battle Reward（討伐黑騎士勝利發放）與 Quest Reward（公會委託達成領取）。
+  - **防重複領獎機制**：嚴格交易驗證，防止重複完成與重複 Claim。
+- [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Guild Status Terminal (`/display/guild-01`)**：公會冒險者自助大螢幕，感應 Adventure Card 即刻展開完整冒險者身分、目前階級徽章、HP/金幣/功績數值與委託告示。
-2. **Quest 任務閉環**：冒險者接取與回報任務，GM 核准後發放功績。
-3. **Reward 獎勵兌換**：功績兌換實體紀念品或特殊稱號。
-4. **Shop 商店交易**：金幣購買補給品或虛擬道具。
+1. **Shop + Equipment 垂直切片**：武器店／防具店／道具店 World Node，使用戰鬥與任務獲得之金幣購買裝備，並提供冒險者裝備與背包檢視。
+2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
+3. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。

@@ -230,6 +230,7 @@ async function main() {
       description: 'Register at the guild counter and verify your adventurer credential.',
       requiredRankId: rankF.id,
       meritReward: 50,
+      rewardMerit: 50,
       enabled: true,
     },
     create: {
@@ -238,6 +239,37 @@ async function main() {
       description: 'Register at the guild counter and verify your adventurer credential.',
       requiredRankId: rankF.id,
       meritReward: 50,
+      rewardMerit: 50,
+      enabled: true,
+    },
+  });
+
+  // 7b. Vertical Slice Demo Quest: Defeat the Black Knight
+  await prisma.quest.upsert({
+    where: { id: 'quest-defeat-black-knight' },
+    update: {
+      title: '討伐黑騎士 (Defeat the Black Knight)',
+      description: '前往 Boss 之間，擊敗作惡多端的黑騎士，證明冒險者的實力。',
+      objectiveType: 'defeat_boss',
+      targetId: 'boss-01',
+      targetCount: 1,
+      rewardGold: 200,
+      rewardMerit: 20,
+      meritReward: 20,
+      requiredRankId: rankF.id,
+      enabled: true,
+    },
+    create: {
+      id: 'quest-defeat-black-knight',
+      title: '討伐黑騎士 (Defeat the Black Knight)',
+      description: '前往 Boss 之間，擊敗作惡多端的黑騎士，證明冒險者的實力。',
+      objectiveType: 'defeat_boss',
+      targetId: 'boss-01',
+      targetCount: 1,
+      rewardGold: 200,
+      rewardMerit: 20,
+      meritReward: 20,
+      requiredRankId: rankF.id,
       enabled: true,
     },
   });

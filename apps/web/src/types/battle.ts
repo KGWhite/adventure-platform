@@ -59,7 +59,11 @@ export type GameEventType =
   | 'battle.victory'
   | 'battle.defeat'
   | 'reward.received'
-  | 'connection.established';
+  | 'connection.established'
+  | 'quest.accepted'
+  | 'quest.progress_updated'
+  | 'quest.completed'
+  | 'quest.reward_claimed';
 
 export interface GameEvent<T = any> {
   type: GameEventType;

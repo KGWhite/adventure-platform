@@ -8,6 +8,7 @@ import { BossesService } from '../bosses/bosses.service.js';
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { QuestsService } from '../quests/quests.service.js';
 import type {
   BattleState,
   BattleTurn,
@@ -26,6 +27,7 @@ export class BattlesService {
     private readonly credentialsService: CredentialsService,
     private readonly bossesService: BossesService,
     private readonly eventsService: EventsService,
+    private readonly questsService: QuestsService,
   ) {}
 
   async scanPlayer(input: ScanPlayerInput) {
@@ -177,6 +179,13 @@ export class BattlesService {
       // Server authoritative player state update
       await this.grantVictoryRewards(battle.playerId, rewardGold, rewardMerit, battleId);
 
+      // Trigger Quest Progress Handler (Battle Result -> Player -> Boss ID -> Quest Progress)
+      try {
+        await this.questsService.onBossDefeated(battle.playerId, battle.bossId);
+      } catch (questErr) {
+        this.logger.error(`Failed to update quest progress for player ${battle.playerId}`, questErr);
+      }
+
       // Emit events: damage -> victory -> reward.received
       this.eventsService.emitBattleDamage(battle.displayId, {
         battleId,
@@ -286,7 +295,7 @@ export class BattlesService {
 
     // 2. Update DB if connected
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await (this.prisma as any).$transaction(async (tx: any) => {
         // Update AdventurerProfile
         await (tx as any).adventurerProfile?.update?.({
           where: { id: playerId },

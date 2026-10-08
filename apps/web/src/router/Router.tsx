@@ -50,8 +50,8 @@ export function RouteGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    // Public display and actor nodes bypass login requirements
-    if (path.startsWith('/display') || path.startsWith('/actor')) {
+    // Public display, actor, and guild nodes bypass login requirements
+    if (path.startsWith('/display') || path.startsWith('/actor') || path.startsWith('/guild')) {
       return;
     }
 
