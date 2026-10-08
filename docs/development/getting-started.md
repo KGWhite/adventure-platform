@@ -53,20 +53,51 @@ When starting, Docker Compose will launch four services:
    - `wss://<host>/ws` ──► `http://api:3000`
    - `http://<host>/` (port 80) ──► redirects to HTTPS (port 443)
 
-### 4. Port Requirements & Exposure
+### 4. Port Requirements & Network Architecture
 
 | Port | Protocol | Service | Scope | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **80** | TCP (HTTP) | `nginx` | Inbound / Public | HTTP entry point; automatically redirects 301 to HTTPS (Port 443) |
 | **443** | TCP (HTTPS / WSS) | `nginx` | Inbound / Public | Main secure entry point for frontend, API (`/api`), and WebSockets (`/ws`) |
-| **5432** | TCP (PostgreSQL) | `postgres` | Local / Dev tools | Database port mapped to host (`${POSTGRES_PORT:-5432}:5432`) |
 
-> **Container-internal ports**: `3000` (`api`) and `5173` (`web`) are proxied internally by Nginx and do not need to be exposed on the host.
+> **Container-internal ports (no host port publication)**:
+> - `5432` (`postgres` container): Accessible only within the Docker network by `api`. Database access for dev/ops tools can be performed via `docker exec -it adventure-postgres psql -U adventure_user -d adventure_platform` or one-off containers.
+> - `3000` (`api` container): Proxied internally by Nginx (`http://api:3000`).
+> - `5173` (`web` container): Proxied internally by Nginx (`http://web:5173`).
+
+#### Docker Network Architecture & Static IP Allocation
+
+- **Network Name**: `adventure-platform_default`
+- **Driver / Subnet**: Bridge / `172.18.0.0/16`
+- **Nginx Static IP**: `172.18.0.10` (fixed in `compose.yaml` to ensure port forwarding persistence across container recreations)
+- **Web / API / Postgres**: Dynamically allocated by Docker Engine within `172.18.0.0/16`. Services continue to communicate using Docker internal DNS service names (`web`, `api`, `postgres`).
+
+```text
+Host Network (Debian 13)
+└── Docker Network: adventure-platform_default (Subnet: 172.18.0.0/16)
+    ├── nginx    ──► Static IP: 172.18.0.10 (Host published ports: 80, 443)
+    ├── web      ──► Dynamic IP (Internal: 5173)
+    ├── api      ──► Dynamic IP (Internal: 3000)
+    └── postgres ──► Dynamic IP (Internal: 5432)
+```
+
+#### Host Firewall (firewalld) & StrictForwardPorts Considerations
+
+Host firewall rules must be managed by the host administrator and are not modified by Docker or automation scripts:
+- When using firewalld with `StrictForwardPorts=yes`, port forwarding rules pointing to Nginx should target `172.18.0.10:80` and `172.18.0.10:443`.
+- To allow inter-container and outbound communication on the Docker bridge, the administrator can trust the subnet:
+  ```bash
+  sudo firewall-cmd --permanent --zone=trusted --add-source=172.18.0.0/16
+  sudo firewall-cmd --reload
+  ```
+- To verify Nginx IP after container recreations:
+  ```bash
+  docker inspect adventure-nginx --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+  ```
 
 ### 5. Verify Running Services via HTTPS
 - Web application (PWA): [https://localhost](https://localhost) (redirects to `/login`)
 - Health check: [https://localhost/api/v1/health](https://localhost/api/v1/health) (returns `{"status":"ok"}`)
-- PostgreSQL (database port for dev tools): `localhost:5432`
 
 > **Note on Browser Certificate Warning**: Because the certificate is self-signed for local development, browsers will display a security warning. Click **Advanced** ──► **Proceed to localhost (unsafe)** to open the application.
 

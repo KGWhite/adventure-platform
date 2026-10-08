@@ -351,7 +351,7 @@ Compose 會依序啟動：
 3. `web`（等候 api 後啟動內部預覽服務）
 4. `nginx`（反向代理閘道，對外暴露 80 與 443 埠，將 `/` 導向 `web:5173`，將 `/api/` 與 `/ws` 導向 `api:3000`）
 
-### 4. 連接埠需求與開放設定 (Port Requirements & Exposure)
+### 4. 連接埠需求與網路架構 (Port Requirements & Network Architecture)
 
 專案依照運行情境（Docker Compose 整合運行 vs. 本機原始碼開發）所需開放或使用的連接埠如下：
 
@@ -361,11 +361,41 @@ Compose 會依序啟動：
 | :--- | :--- | :--- | :--- | :--- |
 | **80** | TCP (HTTP) | `nginx` | 對外開放 (Inbound) | HTTP 入口，自動 301 轉址導向 HTTPS (Port 443) |
 | **443** | TCP (HTTPS / WSS) | `nginx` | 對外開放 (Inbound) | **主要對外安全入口**。反向代理前端 Web (`/`)、後端 REST API (`/api`) 與即時 WebSocket (`/ws`)，提供 PWA 必要之 Secure Context |
-| **5432** | TCP (PostgreSQL) | `postgres` | 本機/除錯開放 | 預設映射 `${POSTGRES_PORT:-5432}:5432`，供本機 GUI 資料庫工具 (DBeaver / TablePlus) 或本機 Prisma 工具直接連線。<br>⚠️ **生產或公開網路環境請勿對外開放** |
 
-> **Docker 內部虛擬網路連接埠（無需對宿主機或外部防火牆開放）**：
+> **Docker 內部虛擬網路連接埠（未對宿主機開放）**：
+> - `5432` (`postgres` 容器)：PostgreSQL 資料庫通訊埠，僅供 `api` 容器於 Docker 內部網路互連。若需進行資料庫維運或檢視，可使用 `docker exec -it adventure-postgres psql -U adventure_user -d adventure_platform` 或臨時維運容器。
 > - `3000` (`api` 容器)：NestJS 內部監聽埠，僅供 Nginx 透過 Docker 內部網路反向代理 (`http://api:3000`)。
 > - `5173` (`web` 容器)：React 前端預覽服務內部監聽埠，僅供 Nginx 透過 Docker 內部網路反向代理 (`http://web:5173`)。
+
+##### Docker Network 架構與 Nginx 固定 IP 配置
+
+- **網路名稱**：`adventure-platform_default`
+- **驅動與子網路**：Bridge / `172.18.0.0/16`
+- **Nginx 固定 IP**：`172.18.0.10`（於 `compose.yaml` 中固定，避免容器重建後 IP 變動導致宿主機 firewalld 轉送規則失效）
+- **Web / API / Postgres**：由 Docker 於 `172.18.0.0/16` 網段內動態配發，容器間持續透過 Docker 內嵌 DNS 服務名稱 (`web`, `api`, `postgres`) 進行互連。
+
+```text
+Host Network (Debian 13)
+└── Docker Network: adventure-platform_default (Subnet: 172.18.0.0/16)
+    ├── nginx    ──► 固定 IP: 172.18.0.10 (宿主機發布 Ports: 80, 443)
+    ├── web      ──► 動態 IP (內部埠: 5173)
+    ├── api      ──► 動態 IP (內部埠: 3000)
+    └── postgres ──► 動態 IP (內部埠: 5432)
+```
+
+##### 宿主機防火牆 (firewalld) 與 StrictForwardPorts 注意事項
+
+宿主機防火牆規則由管理者自行維護，Docker 與專案配置不得自動變更：
+- 若宿主機啟用 `firewalld` 且設定 `StrictForwardPorts=yes`，轉送至 Nginx 的規則應導向固定 IP `172.18.0.10:80` 與 `172.18.0.10:443`。
+- 為確保 Docker 橋接網段內部通訊及容器連外順暢，管理者可將自訂網段加入 `trusted` 區域：
+  ```bash
+  sudo firewall-cmd --permanent --zone=trusted --add-source=172.18.0.0/16
+  sudo firewall-cmd --reload
+  ```
+- 容器重建後確認 Nginx 固定 IP 指令：
+  ```bash
+  docker inspect adventure-nginx --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+  ```
 
 #### (2) 本機原始碼開發模式 (`pnpm` Source-Level Dev)
 
@@ -395,7 +425,7 @@ Compose 會依序啟動：
 | **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
 | **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`) |
 | **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`） |
-| **PostgreSQL** | `localhost:5432` | 資料庫連接埠（供本機開發與遷移工具使用） |
+| **PostgreSQL** | 內部 `postgres:5432` | 資料庫連接埠（Docker 整合環境僅限內部存取；本機原始碼模式可按需暴露） |
 
 > **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。
 
