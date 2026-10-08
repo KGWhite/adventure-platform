@@ -168,10 +168,27 @@ To support the physical RPG gameplay where real-world spaces represent the game 
    - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands.
    - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01`, `/display/guild-01`, `/display/shop-01`) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
 5. **Command vs Event Transport Separation**:
-   - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /battle/attack`, `POST /quests/complete`, etc.) ensuring transactional consistency, idempotency, and standard authentication guards.
-   - **Realtime Events (Presentations)**: Dispatched asynchronously via WebSocket Gateway from backend to subscribed Display Node channels. Display nodes remain stateless renderers.
+   - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /api/v1/battles`, `POST /api/v1/battles/:id/attack`, `POST /api/v1/battles/scan`, `POST /api/v1/credentials/validate`).
+   - **Realtime Events (Presentations)**: Dispatched asynchronously via Pure Node.js RFC 6455 WebSocket Gateway (and SSE stream fallback `/api/v1/events/stream`) to subscribed Display Nodes. Display nodes remain stateless renderers.
+   - **Implemented Event Schema**:
+     - `player.scanned`: Adventurer card recognized, payload contains player name, level, hp, gold, merit.
+     - `battle.started`: Combat initialized, displays player vs boss arena and health bars.
+     - `battle.attack`: Attack motion initiated, triggers attack flash and sound.
+     - `battle.damage`: Damage dealt and received, displays floating damage numbers, triggers screen shake, updates HP bars.
+     - `battle.victory`: Boss defeated, displays victory aura and fanfare.
+     - `battle.defeat`: Challenger fallen, displays defeat banner.
+     - `reward.received`: Gold and Merit awarded, reflects server ledger update (+120 Gold, +10 Merit, Medal).
+
 6. **Generalization to World Output Node (Long-Term)**:
    - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
 
+---
+
+## Current Status & Next Steps
+
+- **Completed**: Boss Vertical Slice MVP (`/actor/boss` + `/display/boss-01` + BattlesModule + EventsModule + BossesModule)
+- **Next Candidate**: Guild Status Terminal (`/display/guild-01`) → Quest workflow → Reward exchange → Shop transaction
+
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.
+

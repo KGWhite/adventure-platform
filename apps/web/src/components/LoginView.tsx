@@ -103,6 +103,28 @@ export function LoginView() {
               公會管理員 (admin)
             </button>
           </div>
+
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(148, 163, 184, 0.2)' }}>
+            <p className="demo-title" style={{ color: '#f59e0b' }}>⚔️ Physical RPG 實體節點直達：</p>
+            <div className="demo-buttons" style={{ marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ background: '#7c3aed', color: '#fff' }}
+                onClick={() => navigate('/actor/boss')}
+              >
+                📱 Boss Actor Web (/actor/boss)
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ background: '#0284c7', color: '#fff' }}
+                onClick={() => navigate('/display/boss-01')}
+              >
+                📺 Boss Display (/display/boss-01)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -73,6 +73,11 @@ Represents the guild adventurer persona linked to a user account.
 - `userId`: Foreign key to `User` (1-to-1 relationship, cascade delete)
 - `displayName`: Character / adventurer name
 - `currentRankId`: Foreign key to `Rank` (initial default is Rank F)
+- `level`: Adventurer progression level (default: `1`)
+- `hp`: Current health points (default: `100`)
+- `maxHp`: Maximum health points (default: `100`)
+- `gold`: Circulating coins currency (default: `0`)
+- `merit`: Total guild merit points (default: `0`, synchronized with MeritLedger)
 - `createdAt`, `updatedAt`: Timestamps
 
 ### Credential (`credentials` table)
@@ -142,7 +147,30 @@ Extensible reward catalog skeleton.
 - `config`: Optional JSONB structure containing type-specific parameters (e.g., sound/animation assets, peripheral control flags)
 - `enabled`: Availability toggle
 - `createdAt`, `updatedAt`: Timestamps
-- **Extension Point Notice**: In Phase 4, `Reward` serves solely as a schema extension point. **Reward execution, hardware activation, and animation playback are not implemented in this phase.**
+
+### Boss (`bosses` table)
+Represents a World Boss adversary encountered at physical challenge nodes.
+- `id`: Unique identifier (e.g., `boss-01` / `black-knight`)
+- `name`: Display name (e.g., "Black Knight")
+- `hp`: Current baseline health points (e.g. `150`)
+- `maxHp`: Maximum health points (e.g. `150`)
+- `attackPower`: Base attack damage capacity (e.g. `15`)
+- `createdAt`, `updatedAt`: Timestamps
+
+### Battle (`battles` table)
+Represents an authoritative combat session between an Adventurer (Player) and a Boss.
+- `id`: Unique combat identifier (e.g., `battle-1728345600000`)
+- `playerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `bossId`: Foreign key to `Boss` (cascade delete)
+- `playerHp`: Current player health in battle
+- `bossHp`: Current boss health in battle
+- `status`: Combat state (`active`, `victory`, `defeat`)
+- `startedAt`: Battle start timestamp
+- `endedAt`: Battle termination timestamp (null while active)
+- `rewardGold`: Gold granted upon victory (default: `120`)
+- `rewardMerit`: Guild merit granted upon victory (default: `10`)
+- `rewardItem`: Text/item reward descriptor (e.g. `Black Knight Medal`)
+- **Server Authoritative Rule**: Damage, counterattacks, victory, and reward payouts are strictly calculated on the Game Server. Frontend displays and mobile actor terminals act purely as presentation and command triggers.
 
 ---
 

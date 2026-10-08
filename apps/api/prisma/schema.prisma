@@ -61,18 +61,24 @@ model Rank {
 }
 
 model AdventurerProfile {
-  id                String             @id @default(cuid())
-  userId            String             @unique
-  displayName       String
-  currentRankId     String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentRank       Rank               @relation(fields: [currentRankId], references: [id])
-  credentials       Credential[]
-  questCompletions  QuestCompletion[]
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  displayName        String
+  currentRankId      String
+  level              Int                 @default(1)
+  hp                 Int                 @default(100)
+  maxHp              Int                 @default(100)
+  gold               Int                 @default(0)
+  merit              Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRank        Rank                @relation(fields: [currentRankId], references: [id])
+  credentials        Credential[]
+  questCompletions   QuestCompletion[]
   meritLedgerEntries MeritLedger[]
-  promotionRequests PromotionRequest[]
+  promotionRequests  PromotionRequest[]
+  battles            Battle[]
 
   @@map("adventurer_profiles")
 }
@@ -161,4 +167,35 @@ model Reward {
   updatedAt   DateTime @updatedAt
 
   @@map("rewards")
+}
+
+model Boss {
+  id          String   @id
+  name        String
+  hp          Int
+  maxHp       Int
+  attackPower Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  battles     Battle[]
+
+  @@map("bosses")
+}
+
+model Battle {
+  id          String            @id @default(cuid())
+  playerId    String
+  bossId      String
+  playerHp    Int
+  bossHp      Int
+  status      String            @default("active")
+  startedAt   DateTime          @default(now())
+  endedAt     DateTime?
+  rewardGold  Int               @default(0)
+  rewardMerit Int               @default(0)
+  rewardItem  String?
+  player      AdventurerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  boss        Boss              @relation(fields: [bossId], references: [id], onDelete: Cascade)
+
+  @@map("battles")
 }

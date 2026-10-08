@@ -19,15 +19,20 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 
 ---
 
-### 目前實作進度（Adventurer Guild MVP 骨架）
+### 目前實作進度
 - **Phase 1**：技術基底建立完成（React + Vite + PWA、NestJS Modular Monolith、PostgreSQL 16、Prisma、pnpm workspace、Docker Compose）。
 - **Phase 2**：核心身分與冒險者領域模型完成（User、AdventurerProfile、Rank、Credential，包含資料庫遷移與開發 Seed 資料）。
 - **Phase 3**：身分驗證與角色化前端版面完成（JWT Token 認證、角色權限守衛、/login、/user 冒險者儀表板、/admin 公會管理控制台）。
 - **Phase 4**：MVP 遊戲領域骨架完成（Quest、QuestCompletion、MeritLedger、PromotionRequest、Reward，建立資料庫遷移與完整驗證）。
-- **Local Feedback (Phase 1)**：前端通用即時視覺回饋模型建立完成（`FeedbackEvent`），提供操作完成後之本機即時反饋基礎模型。
-- **Local Feedback (Phase 2)**：遊戲回饋覆蓋層元件完成（`GameFeedbackOverlay`），提供兼具行動優先、PWA 與桌面端之慶祝動畫、標題、副標題與功績/獎勵視覺高亮效果。
-- **Local Feedback (Phase 3)**：實作首個輕量級任務完成動效（`quest-complete`），建立彈窗出現、徽章彈跳放大、標題淡入、功績數值彈出與自動/手動關閉之階段式動畫時序。
-- **Local Feedback (Phase 4)**：完成後端 API 與本機回饋串接（Quests API + 領域回應轉換器 `questCompletionToFeedbackEvent`），落實僅於後端確認成功後觸發動效、失敗僅顯示錯誤 UI 之規範，支援 `prefers-reduced-motion` 無障礙設計，並預留未來跨裝置事件接入點。
+- **Local Feedback**：前端通用即時視覺回饋模型建立完成（`FeedbackEvent`、`GameFeedbackOverlay`、`quest-complete` 動效與 Quests API 整合）。
+- **已完成：Boss Vertical Slice MVP (首個實體互動閉環)**：
+  - 驗證完整實體遊戲閉環：**QR Adventure Card → Boss Actor 掃描 → Game Server 辨識玩家 → 建立 Battle → Boss Actor 操作戰鬥 → Server 計算結果 → WebSocket 推送事件 → Boss Display 即時顯示 → Battle 結束 → 更新 Player State → 發放 Gold / Merit**。
+  - **世界角色終端 (World Actor)**：`/actor/boss`（支援相機 QR 掃描與 Manual Credential Input 雙模式，大按鈕單手操作）。
+  - **世界呈現終端 (Display Node)**：`/display/boss-01`（TV / 大螢幕沉浸式 RPG HUD、HP 動畫、受擊震動、飄字、勝利結算與獎勵顯示、自動重置計時器）。
+  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.started`、`battle.attack`、`battle.damage`、`battle.victory`、`battle.defeat`、`reward.received`。
+  - **Server 決定權威**：戰鬥數值、HP 扣減、勝負判定、金幣與功績發放均由後端權威計算與寫入資料庫及 MeritLedger。
+- **下一步候選**：
+  - Guild Status Terminal（公會冒險者自助狀態大螢幕）→ Quest（委託接取與交回）→ Reward（獎勵兌換）→ Shop（商店交易）
 
 ---
 

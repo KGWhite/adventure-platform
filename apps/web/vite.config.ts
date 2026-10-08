@@ -50,6 +50,10 @@ export default defineConfig({
         target: process.env.BACKEND_URL || 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/ws': {
+        target: process.env.BACKEND_URL || 'http://localhost:3000',
+        ws: true,
+      },
     },
   },
   preview: {
@@ -60,6 +64,10 @@ export default defineConfig({
       '/api': {
         target: process.env.BACKEND_URL || 'http://api:3000',
         changeOrigin: true,
+      },
+      '/ws': {
+        target: process.env.BACKEND_URL || 'http://api:3000',
+        ws: true,
       },
     },
   },

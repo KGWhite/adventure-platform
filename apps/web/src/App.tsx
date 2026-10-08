@@ -11,6 +11,8 @@ import { AdventurerProfileView } from './components/AdventurerProfileView.js';
 import { AdventurerQuestsView } from './components/AdventurerQuestsView.js';
 import { AdventurerRewardsView } from './components/AdventurerRewardsView.js';
 import { AdminView } from './components/AdminView.js';
+import { BossActorView } from './components/actor/BossActorView.js';
+import { BossDisplayView } from './components/display/BossDisplayView.js';
 import './App.css';
 
 function UserRouter({ path }: { path: string }) {
@@ -29,6 +31,17 @@ function UserRouter({ path }: { path: string }) {
 function MainRouter() {
   const { path } = useNavigation();
 
+  // 1. World Node: Boss Display Node (/display/boss-01)
+  if (path.startsWith('/display')) {
+    return <BossDisplayView />;
+  }
+
+  // 2. World Node: Boss Actor Terminal (/actor/boss)
+  if (path.startsWith('/actor')) {
+    return <BossActorView />;
+  }
+
+  // 3. User Dashboard
   if (path.startsWith('/user')) {
     return (
       <UserLayout>
@@ -37,17 +50,16 @@ function MainRouter() {
     );
   }
 
+  // 4. Admin Console
   if (path.startsWith('/admin')) {
     return <AdminView />;
   }
-
 
   // Default to Login view
   return <LoginView />;
 }
 
 export function App() {
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

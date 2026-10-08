@@ -1,0 +1,554 @@
+/* Boss Actor Mobile Terminal Stylesheet */
+
+.boss-actor-root {
+  min-height: 100vh;
+  background: #090d16;
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* App Bar */
+.actor-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbar-branding {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.branding-icon {
+  font-size: 1.5rem;
+}
+
+.branding-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.branding-subtitle {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.open-display-link {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #38bdf8;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.open-display-link:hover {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+/* Content Container */
+.actor-main-content {
+  flex: 1;
+  padding: 1rem;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+/* Cards */
+.actor-card {
+  background: #111827;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+/* Select */
+.actor-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Tabs */
+.tab-pill-group {
+  display: flex;
+  background: #1e293b;
+  padding: 3px;
+  border-radius: 0.5rem;
+}
+
+.tab-pill {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-pill.active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* Quick Presets */
+.quick-presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.presets-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.preset-btn {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+/* Inputs & Buttons */
+.credential-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actor-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.actor-btn {
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actor-btn:active {
+  transform: scale(0.97);
+}
+
+.actor-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.actor-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+}
+
+.actor-btn-danger {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+}
+
+.actor-btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.actor-btn-lg {
+  padding: 1rem 1.5rem;
+  font-size: 1.05rem;
+  width: 100%;
+}
+
+.actor-btn-xl {
+  padding: 1.35rem 2rem;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  width: 100%;
+  border-radius: 1rem;
+}
+
+/* Camera Viewfinder */
+.camera-viewfinder-box {
+  background: #020617;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  margin-bottom: 0.75rem;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+}
+
+.scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.viewfinder-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.viewfinder-reticle {
+  width: 160px;
+  height: 160px;
+  border: 2px solid rgba(59, 130, 246, 0.8);
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.reticle-laser {
+  width: 100%;
+  height: 2px;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  position: absolute;
+  animation: scanLaser 1.8s infinite ease-in-out;
+}
+
+@keyframes scanLaser {
+  0%, 100% { top: 10%; }
+  50% { top: 90%; }
+}
+
+.reticle-hint {
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  margin-top: 0.75rem;
+}
+
+.camera-error-notice {
+  padding: 2rem;
+  text-align: center;
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+/* Scanned Player Card */
+.resolved-challenger-card {
+  margin-top: 1rem;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.challenger-badge-found {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.challenger-main-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.challenger-icon {
+  font-size: 2.25rem;
+  background: rgba(59, 130, 246, 0.2);
+  width: 54px;
+  height: 54px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.challenger-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.challenger-meta {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.challenger-economy {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-top: 0.25rem;
+}
+
+.start-battle-btn {
+  margin-top: 0.5rem;
+}
+
+/* Combat Controller */
+.combat-status-badge {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #f59e0b;
+  margin-bottom: 1rem;
+}
+
+.combat-meters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.meter-card {
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+.meter-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meter-val {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0.25rem 0;
+}
+
+.meter-bar {
+  height: 10px;
+  background: rgba(2, 6, 23, 0.8);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease-out;
+}
+
+.player-fill {
+  background: #3b82f6;
+}
+
+.boss-fill {
+  background: #ef4444;
+}
+
+.combat-action-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.attack-button {
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.attack-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  text-align: center;
+}
+
+.combat-finished-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.outcome-alert {
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+.victory-alert {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.defeat-alert {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.outcome-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.outcome-alert h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.outcome-alert p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+}
+
+.rewards-granted {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+/* Telemetry Log */
+.telemetry-log-box {
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.log-line {
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.log-empty {
+  color: #475569;
+  font-style: italic;
+}
+
+/* Alert Notification */
+.actor-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actor-alert-error {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.alert-close-btn {
+  background: transparent;
+  border: none;
+  color: currentColor;
+  font-size: 1.25rem;
+  cursor: pointer;
+}

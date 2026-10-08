@@ -71,16 +71,111 @@ async function main() {
     update: {
       displayName: 'Rookie Adventurer',
       currentRankId: rankF.id,
-    },
+      level: 1,
+      hp: 100,
+      maxHp: 100,
+      gold: 0,
+      merit: 0,
+    } as any,
     create: {
       userId: testUser.id,
       displayName: 'Rookie Adventurer',
       currentRankId: rankF.id,
+      level: 1,
+      hp: 100,
+      maxHp: 100,
+      gold: 0,
+      merit: 0,
+    } as any,
+  });
+
+  // 4. Seed Demo Players (Aria & Leon)
+  const ariaUser = await prisma.user.upsert({
+    where: { username: 'aria' },
+    update: {
+      passwordHash: userPasswordHash,
+      role: Role.USER,
+    },
+    create: {
+      username: 'aria',
+      passwordHash: userPasswordHash,
+      role: Role.USER,
     },
   });
 
-  // 4. Test Credentials (QRCODE, RFID, NFC)
+  const ariaProfile = await prisma.adventurerProfile.upsert({
+    where: { userId: ariaUser.id },
+    update: {
+      displayName: 'Aria',
+      currentRankId: rankF.id,
+      level: 1,
+      hp: 100,
+      maxHp: 100,
+      gold: 50,
+      merit: 20,
+    } as any,
+    create: {
+      userId: ariaUser.id,
+      displayName: 'Aria',
+      currentRankId: rankF.id,
+      level: 1,
+      hp: 100,
+      maxHp: 100,
+      gold: 50,
+      merit: 20,
+    } as any,
+  });
+
+  const leonUser = await prisma.user.upsert({
+    where: { username: 'leon' },
+    update: {
+      passwordHash: userPasswordHash,
+      role: Role.USER,
+    },
+    create: {
+      username: 'leon',
+      passwordHash: userPasswordHash,
+      role: Role.USER,
+    },
+  });
+
+  const leonProfile = await prisma.adventurerProfile.upsert({
+    where: { userId: leonUser.id },
+    update: {
+      displayName: 'Leon',
+      currentRankId: rankF.id,
+      level: 2,
+      hp: 120,
+      maxHp: 120,
+      gold: 100,
+      merit: 50,
+    } as any,
+    create: {
+      userId: leonUser.id,
+      displayName: 'Leon',
+      currentRankId: rankF.id,
+      level: 2,
+      hp: 120,
+      maxHp: 120,
+      gold: 100,
+      merit: 50,
+    } as any,
+  });
+
+  // 5. Test Credentials (QRCODE, RFID, NFC)
   const testCredentials = [
+    {
+      adventurerId: ariaProfile.id,
+      type: CredentialType.QRCODE,
+      value: 'cred-demo-001',
+      enabled: true,
+    },
+    {
+      adventurerId: leonProfile.id,
+      type: CredentialType.QRCODE,
+      value: 'cred-demo-002',
+      enabled: true,
+    },
     {
       adventurerId: testProfile.id,
       type: CredentialType.QRCODE,
@@ -107,7 +202,27 @@ async function main() {
     });
   }
 
-  // 5. Starter Quest Skeleton (Rank F)
+  // 6. Test Boss: Black Knight
+  if ((prisma as any).boss) {
+    await (prisma as any).boss.upsert({
+      where: { id: 'boss-01' },
+      update: {
+        name: 'Black Knight',
+        hp: 150,
+        maxHp: 150,
+        attackPower: 15,
+      },
+      create: {
+        id: 'boss-01',
+        name: 'Black Knight',
+        hp: 150,
+        maxHp: 150,
+        attackPower: 15,
+      },
+    });
+  }
+
+  // 7. Starter Quest Skeleton (Rank F)
   await prisma.quest.upsert({
     where: { id: 'quest-starter-001' },
     update: {
@@ -127,7 +242,7 @@ async function main() {
     },
   });
 
-  // 6. Reward Skeleton (Extensible demonstration, no execution logic)
+  // 8. Reward Skeleton (Extensible demonstration, no execution logic)
   await prisma.reward.upsert({
     where: { id: 'reward-starter-001' },
     update: {

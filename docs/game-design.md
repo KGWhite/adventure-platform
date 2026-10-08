@@ -500,14 +500,22 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
 - [x] **雙軌經濟資源**：流通消耗金幣（Coins）與成就資格功績（Merit）。
 - [x] **年齡安全規範**：機率型娛樂設施嚴禁法幣賭博與現金兌現。
 
-### 12.2 第一階段 MVP 範圍 (Phase 1 Scope)
-- [x] **QR Code Adventure Card**：實體卡片印製靜態 Token，嚴禁包含動態角色資料。
-- [x] **Camera-based Scanner**：手機與筆電鏡頭掃描 QR Code，保留 Manual ID 除錯模式。
-- [x] **Web-based Display**：使用網頁瀏覽器實現 Display 端點（`/display/*`）。
-- [x] **WebSocket 即時推播**：NestJS WebSocket Gateway 推播標準化 Event 物件。
-- [x] **Boss Battle POC**：以黑騎士戰鬥為首個端到端驗證 POC（2 玩家 + 1 Boss + 1 Display）。
+### 12.2 已完成實作項目 (Completed - Phase 1 MVP)
+- [x] **QR Code Adventure Card 憑證架構**：實體卡片印製靜態 Token，動態角色資料完全由 Server 權威維護。
+- [x] **Scanner 雙模式支援**：手機鏡頭掃描 QR Code，內建 Manual Credential Input 開發除錯模式。
+- [x] **Boss Actor Web (`/actor/boss`)**：手機端戰鬥終端，大按鈕單手操作，支援玩家身分解析、戰鬥發起、單手點擊 Attack。
+- [x] **Boss Display Node (`/display/boss-01`)**：TV / 大螢幕沉浸式 RPG HUD，即時血條動畫、受擊飄字、震動動效、勝利與獎勵結算、自動重置計時器。
+- [x] **純 Node.js RFC 6455 WebSocket Gateway**：支援即時雙向連線與 SSE 串流備援，統一推播 7 種標準遊戲事件。
+- [x] **Server 權威戰鬥與獎勵更新**：Server 計算扣血與勝負，勝利後自動更新 Player `gold` 與 `merit` 並寫入 `merit_ledgers`。
+- [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)。
 
-### 12.3 待確認與待討論項目 (Pending Discussion)
+### 12.3 下一步候選流程 (Next Candidates)
+1. **Guild Status Terminal (`/display/guild-01`)**：公會冒險者自助大螢幕，感應 Adventure Card 即刻展開完整冒險者身分、目前階級徽章、HP/金幣/功績數值與委託告示。
+2. **Quest 任務閉環**：冒險者接取與回報任務，GM 核准後發放功績。
+3. **Reward 獎勵兌換**：功績兌換實體紀念品或特殊稱號。
+4. **Shop 商店交易**：金幣購買補給品或虛擬道具。
+
+### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。
 - [ ] **是否需要 Native App**：長期評估純 Web PWA 是否足以應對各種週邊與低延遲通訊，或需封裝 Native Shell。
 - [ ] **World Output 物理機關聯動**：實體燈光（DMX / Zigbee）、音響與自動門鎖之通訊協定（MQTT / Webhooks）。
