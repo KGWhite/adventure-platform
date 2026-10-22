@@ -146,8 +146,10 @@ pnpm --filter @adventure-platform/api db:seed
 - **Admin**: `username: admin`, `password: admin123` (Role: `ADMIN`)
 - **Adventurer User**: `username: adventurer`, `password: adventurer123` (Role: `USER`)
 - **Adventurer Profile**: `displayName: Rookie Adventurer`, `rank: Rank F`
-- **Sample Credentials**: `ADV-DEV-001-QR` (QRCODE), `ADV-DEV-001-NFC` (NFC)
-- **Starter Quest**: `First Steps in the Guild` (Rank F, 50 merit reward)
+- **Demo Adventurers**: `username: aria` and `username: leon`, both with `password: adventurer123` (Role: `USER`)
+- **Sample Credentials**: `ADV-DEV-001-QR` (QRCODE) and `ADV-DEV-001-NFC` (NFC) for Rookie Adventurer; `cred-demo-001` (Aria) and `cred-demo-002` (Leon), both QRCODE
+- **World Boss**: `boss-01` Black Knight (HP 150)
+- **Quests**: `First Steps in the Guild` (`quest-starter-001`, 50 merit) and `Defeat the Black Knight` (`quest-defeat-black-knight`, target `boss-01`, 200 gold / 20 merit)
 - **Reward Skeleton**: `Guild Welcome Badge` (type: `virtual_item`)
 
 ### 4. Run Development Servers

@@ -512,7 +512,7 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
   - **公會實體終端機 (`/guild`)**：適合平板、筆電與固定 Kiosk 終端，包含相機掃描、手動測試代碼、冒險者狀態面板、任務接取、進度條與華麗任務完成領獎動效。
   - **Server 決定權威與解耦架構**：Boss 戰鬥模組、Boss Actor 與 Boss Display 完全不涉及 Quest 規則；戰鬥勝利經由 Domain Handler 依據 Player ID 與 Boss ID 自動更新任務進度並推播 WebSocket 事件。
   - **獎勵所有權明確切分 (Reward Ownership)**：明確劃分 Battle Reward（討伐黑騎士勝利發放）與 Quest Reward（公會委託達成領取）。
-  - **防重複領獎機制**：嚴格交易驗證，防止重複完成與重複 Claim。
+  - **防重複領獎機制**：以 `PlayerQuest` 狀態（`completed` → `claimed`）檢查防止重複完成與重複 Claim；目前尚未以資料庫條件更新保證並行請求下的安全性。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
