@@ -99,15 +99,16 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `HealthModule`: Health monitoring (`GET /api/v1/health`)
      - `AuthModule`: Token-based authentication (`POST /auth/login`, `GET /auth/me`, `POST /auth/logout`) with `JwtStrategy` and `RolesGuard`.
      - `AdminModule`: Protected administrative operations (`GET /admin/summary`), restricted to `ADMIN` role.
-     - `UsersModule`: Identity management and password hashing (passwords never exposed).
-     - `AdventurersModule`: Adventurer profile management and rank assignment.
+     - `UsersModule`: Identity management and password hashing (passwords never exposed). `POST /users` is restricted to `ADMIN` and always creates `USER` accounts (client-supplied `role` is rejected).
+     - `AdventurersModule`: Adventurer profile management and rank assignment. `POST /adventurers` is restricted to `ADMIN`.
      - `RanksModule`: Database-driven rank tiers (F through S).
-     - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC) with in-memory fallback.
+     - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC) with in-memory fallback. `POST /credentials` is restricted to `ADMIN`.
      - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
      - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `GET /battles/:id`).
      - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
      - `EventsModule`: Real-time WebSocket Gateway (RFC 6455) & SSE streaming (`GET /events/sse`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`).
      - `PrismaModule`: Global Prisma database connection service.
+   - **Request Validation**: Global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); request body DTOs declare `class-validator` rules and invalid or unknown fields return `400 Bad Request`.
    - **ORM**: Prisma embedded directly within the API service.
 
 4. **Database (`postgres`)**

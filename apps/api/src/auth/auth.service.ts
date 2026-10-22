@@ -1,11 +1,17 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcryptjs from 'bcryptjs';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { sanitizeUser } from '../users/users.service.js';
 
 export class LoginDto {
+  @IsString()
+  @IsNotEmpty()
   username!: string;
+
+  @IsString()
+  @IsNotEmpty()
   password!: string;
 }
 

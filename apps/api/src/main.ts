@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import type { IncomingMessage } from 'node:http';
 import type { Socket } from 'node:net';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { EventsService } from './events/events.service.js';
@@ -9,6 +10,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
   app.enableCors();
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const eventsService = app.get(EventsService);
   const httpServer = app.getHttpServer();
