@@ -22,6 +22,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
 │                  Nginx Reverse Proxy                   │
 │               (infrastructure/nginx)                   │
 │   ├── /api/  ──►  http://api:3000 (NestJS API)         │
+│   ├── /ws    ──►  http://api:3000 (WebSocket Upgrade)  │
 │   └── /      ──►  http://web:5173 (React PWA)          │
 └──────────────┬─────────────────────────┬───────────────┘
                │                         │
@@ -37,6 +38,9 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
                                │  ├── RanksModule        │
                                │  ├── CredentialsModule  │
                                │  ├── QuestsModule       │
+                               │  ├── BossesModule       │
+                               │  ├── BattlesModule      │
+                               │  ├── EventsModule       │
                                │  └── PrismaModule       │
                                │  ┌───────────────────┐  │
                                │  │      Prisma       │  │
@@ -74,20 +78,20 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `/login`: Public authentication page with quick demo account buttons.
      - `/user`: Mobile-first Adventurer Dashboard (Rank badge, Merit progress, Credential status).
      - `/user/profile`: Adventurer detailed profile and credential management.
-     - `/user/quests`: Guild quest notices with API completion reporting and feedback animation.
+     - `/user/quests`: Read-only guild quest notices listing `GET /api/v1/quests` with gold / merit rewards; quests are accepted and claimed at `/guild`.
      - `/user/rewards`: Guild merit rewards exchange (Coming soon placeholder).
      - `/admin`: Guild Administration Console (`dashboard`, `adventurers`, `ranks`, `credentials`, and Coming soon tabs).
      - `/guild`: **Guild Terminal (World Node)**: Adventurer Card scanning, Adventurer status, Quest acceptance, progress tracking, and reward claiming.
      - `/actor/boss`: **World Actor Terminal**: Mobile-first Boss battle control terminal.
-     - `/display/boss-01`: **World Display Node**: Large-screen RPG HUD with HP animations, sound/vibration effects, and victory settlement.
+     - `/display/:displayId`: **World Display Node** (e.g. `/display/boss-01`; every `/display/*` path currently renders the Boss display): Large-screen RPG HUD with HP animations, sound/vibration effects, and victory settlement.
    - **Local Visual Feedback Architecture**:
-     - `src/types/feedback.ts` (`FeedbackEvent`) and `src/components/feedback/` (`GameFeedbackOverlay`, `questCompletionToFeedbackEvent`).
+     - `src/types/feedback.ts` (`FeedbackEvent`) and `src/components/feedback/` (`GameFeedbackOverlay`, `questCompletionToFeedbackEvent`). No page currently renders the overlay; it is kept as the extension point for local and real-time feedback.
      - **API Flow**: User action ──► API request ──► Backend validation & DB update ──► API success ──► Frontend `FeedbackEvent` ──► Staged animation sequence.
      - **Failure Handling**: On API failure or network fault, the success animation is strictly suppressed, and a standard error Alert UI is presented.
      - **Domain Separation**: Backend provides domain data only (`success`, `quest`, `questCompletion`, `meritGranted`) without UI/CSS coupling.
      - **Accessibility**: `@media (prefers-reduced-motion: reduce)` removes bouncy transforms and provides gentle fades. Clear semantic icons and text headings communicate success without relying solely on color.
      - **Future Event Extension Point**: The UI component only requires `FeedbackEvent`. Future real-time sources (WebSocket / SSE) can plug into this same pipeline without altering domain logic.
-     - *Not yet implemented*: WebSocket, SSE, Redis, MQTT, cross-device real-time sync, large-screen event display.
+     - Cross-device real-time events are delivered by `EventsModule` (WebSocket `/ws`, SSE fallback) to `/display/*` views. *Not yet implemented*: Redis, MQTT, or any external event broker; events are broadcast within the single API process.
    - **PWA**: Integrated via `vite-plugin-pwa` with web manifest and service worker generation.
    - **Design**: Mobile-first responsive layout supporting mobile browsers, desktop displays, and PWA standalone installation.
    - **Scope**: Single unified frontend application.
@@ -106,7 +110,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
      - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `GET /battles/:id`).
      - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
-     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455) & SSE streaming (`GET /events/sse`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`).
+     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455, `/ws`) & SSE streaming (`GET /events/stream`, status at `GET /events/status`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`).
      - `PrismaModule`: Global Prisma database connection service.
    - **Request Validation**: Global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); request body DTOs declare `class-validator` rules and invalid or unknown fields return `400 Bad Request`.
    - **ORM**: Prisma embedded directly within the API service.
@@ -168,13 +172,14 @@ To support the physical RPG gameplay where real-world spaces represent the game 
    - The QR Code payload strictly holds a static credential token (e.g. `adventure://player/{token}`) and **never** stores dynamic character state (HP, gold, merit, quests).
    - Core game engines (Battle, Shop, Guild, Quests, Display) depend solely on the resolved `Player` identity and are wholly oblivious to how the credential token was acquired.
 3. **Scanner Abstraction & Migration Boundary**:
-   - All input mechanisms implement a unified `Scanner` interface outputting a standard `AdventureIdentity` token.
+   - Target design: all input mechanisms implement a unified `Scanner` interface outputting a standard `AdventureIdentity` token.
+   - *Current implementation*: `/actor/boss` and `/guild` each embed a camera / manual input mode and send the raw `credentialValue` to the API; a shared `Scanner` interface has not been extracted yet.
    - **Future NFC Migration Impact Boundary**:
      - *Modules Affected*: Only the edge input adapter (`QRScanner` replaced or supplemented by `NFCScanner` / Web NFC / serial reader adapter).
      - *Modules Guaranteed Unaffected*: NestJS API, Prisma schema, `User`/`AdventurerProfile` domains, QuestsModule, Battle logic, Shop logic, Rule Engine, WebSocket Gateway, and Display Node views.
 4. **Separation of Control and Presentation**:
    - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands.
-   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01`, `/display/guild-01`, `/display/shop-01`) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
+   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01` today; `/display/guild-01` and `/display/shop-01` are planned) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
 5. **Command vs Event Transport Separation**:
    - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /api/v1/battles`, `POST /api/v1/battles/:id/attack`, `POST /api/v1/battles/scan`, `POST /api/v1/credentials/validate`).
    - **Realtime Events (Presentations)**: Dispatched asynchronously via Pure Node.js RFC 6455 WebSocket Gateway (and SSE stream fallback `/api/v1/events/stream`) to subscribed Display Nodes. Display nodes remain stateless renderers.
@@ -186,6 +191,7 @@ To support the physical RPG gameplay where real-world spaces represent the game 
      - `battle.victory`: Boss defeated, displays victory aura and fanfare.
      - `battle.defeat`: Challenger fallen, displays defeat banner.
      - `reward.received`: Gold and Merit awarded, reflects server ledger update (+120 Gold, +10 Merit, Medal).
+     - `quest.accepted`, `quest.progress_updated`, `quest.completed`, `quest.reward_claimed`: Guild quest lifecycle events (currently published to `guild-01`).
 
 6. **Generalization to World Output Node (Long-Term)**:
    - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
@@ -195,7 +201,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 ## Current Status & Next Steps
 
 - **Completed**: Boss Vertical Slice MVP (`/actor/boss` + `/display/boss-01` + BattlesModule + EventsModule + BossesModule)
-- **Next Candidate**: Guild Status Terminal (`/display/guild-01`) → Quest workflow → Reward exchange → Shop transaction
+- **Completed**: Guild + Quest Vertical Slice MVP (`/guild` + `PlayerQuest` acceptance, progress and reward claim)
+- **Next Candidates**: Shop + Equipment → Rank Up → Guild Status Terminal (`/display/guild-01`)
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.

@@ -24,7 +24,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 - **Phase 2**：核心身分與冒險者領域模型完成（User、AdventurerProfile、Rank、Credential，包含資料庫遷移與開發 Seed 資料）。
 - **Phase 3**：身分驗證與角色化前端版面完成（JWT Token 認證、角色權限守衛、/login、/user 冒險者儀表板、/admin 公會管理控制台）。
 - **Phase 4**：MVP 遊戲領域骨架完成（Quest、QuestCompletion、MeritLedger、PromotionRequest、Reward，建立資料庫遷移與完整驗證）。
-- **Local Feedback**：前端通用即時視覺回饋模型建立完成（`FeedbackEvent`、`GameFeedbackOverlay`、`quest-complete` 動效與 Quests API 整合）。
+- **Local Feedback**：前端通用即時視覺回饋模型建立完成（`FeedbackEvent`、`GameFeedbackOverlay`、`quest-complete` 動效）。原本串接的 `POST /api/v1/quests/:id/complete` 已於 Guild + Quest Vertical Slice 移除，任務流程改由 `/guild` 終端與 `PlayerQuest` 完成；`GameFeedbackOverlay` 與 `questCompletionToFeedbackEvent` 目前沒有頁面使用，保留為擴充點。
 - **已完成：Boss Vertical Slice MVP (首個實體互動閉環)**：
   - 驗證完整實體遊戲閉環：**QR Adventure Card → Boss Actor 掃描 → Game Server 辨識玩家 → 建立 Battle → Boss Actor 操作戰鬥 → Server 計算結果 → WebSocket 推送事件 → Boss Display 即時顯示 → Battle 結束 → 更新 Player State → 發放 Gold / Merit**。
   - **世界角色終端 (World Actor)**：`/actor/boss`（支援相機 QR 掃描與 Manual Credential Input 雙模式，大按鈕單手操作）。
@@ -36,7 +36,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **公會實體終端機 (Guild Terminal)**：`/guild`（適合平板、筆電與固定 Kiosk 終端，相機 QR 掃描與測試卡片切換、冒險者狀態、任務接取、進度條與華麗任務完成領獎動效）。
   - **Server 決定權威與解耦架構**：Boss 戰鬥模組、Boss Actor 與 Boss Display 完全不包含 Quest 規則；戰鬥勝利經由 Domain Handler 自動更新任務進度並推播 WebSocket 事件。
   - **獎勵所有權明確分離 (Reward Ownership)**：明確劃分 Battle Reward（擊敗 Boss 直接獲得）與 Quest Reward（公會委託達成領取）。
-  - **防重複完成與重複領獎保護 (Double Claim Protection)**。
+  - **防重複完成與重複領獎保護 (Double Claim Protection)**：以 `PlayerQuest` 狀態檢查阻擋重複 Claim；尚未以資料庫條件更新保證並行請求下的安全性。
 - **下一步候選**：
   - Shop + Equipment（商店交易、道具購買與裝備管理）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
@@ -71,6 +71,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 │                  Nginx Reverse Proxy                   │
 │               (infrastructure/nginx)                   │
 │   ├── /api/  ──►  http://api:3000 (NestJS API)         │
+│   ├── /ws    ──►  http://api:3000 (WebSocket Upgrade)  │
 │   └── /      ──►  http://web:5173 (React PWA)          │
 └──────────────┬─────────────────────────┬───────────────┘
                │                         │
@@ -86,6 +87,9 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
                                │  ├── RanksModule        │
                                │  ├── CredentialsModule  │
                                │  ├── QuestsModule       │
+                               │  ├── BossesModule       │
+                               │  ├── BattlesModule      │
+                               │  ├── EventsModule       │
                                │  └── PrismaModule       │
                                │  ┌───────────────────┐  │
                                │  │      Prisma       │  │
@@ -99,7 +103,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 ```
 
 ### 1. 角色定義與映射 (Role Mapping)
-- `Role.USER` = **冒險者 (Adventurer)**：登入後導向 `/user` 儀表板，檢視稱號、目前階級、公會功績 (0) 與資格證狀態。
+- `Role.USER` = **冒險者 (Adventurer)**：登入後導向 `/user` 儀表板，檢視稱號、目前階級、公會功績與資格證狀態。
 - `Role.ADMIN` = **公會管理者 (Guild Administrator)**：登入後導向 `/admin` 控制台，檢視公會總覽、冒險者名冊、階級體系與憑證發行狀態。
 - 後端角色名稱嚴格保持 `USER` 與 `ADMIN`，遊戲主題故事標籤僅於前端 UI 層呈現。
 
@@ -127,12 +131,12 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/login` | 公開 | 公會身分驗證登入表單，附開發測試帳號一鍵代入按鈕 |
 | `/user` | `USER` | 行動優先冒險者儀表板：稱號、階級、功績晉升進度條、資格證卡片、公會公告事項 |
 | `/user/profile` | `USER` | 冒險者個人詳細檔案：帳號 ID、階級詳細門檻、綁定憑證清單與登出功能 |
-| `/user/quests` | `USER` | 公會委託告示欄：任務委託清單（Coming soon 整備中） |
+| `/user/quests` | `USER` | 公會委託告示欄（唯讀）：讀取 `GET /api/v1/quests` 顯示任務與金幣／功績報酬，並提示前往 `/guild` 掃卡接取與領獎 |
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
 | `/guild` | 公開 / 現場 | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算 |
 | `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥、操作攻擊結算 |
-| `/display/boss-01` | 公開 / 現場 | **世界呈現終端 (Display Node)**：大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
+| `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件，目前所有 `/display/*` 皆渲染 Boss Display。大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
 
 ### 前端 UI 架構基礎 (MUI Shared Design Foundation)
 
@@ -177,7 +181,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
    - **管理後台結構性**：管理端共享相同明亮羊皮紙基調（公會行事處風格），但保持嚴謹高密度資料表格與表單佈局。
    - **遊戲化覆蓋層元件 (`GameFeedbackOverlay`)**：提供置中／全螢幕遊戲式彈窗（非傳統純 Snackbar），針對行動優先與 PWA 觸控體驗特別強化。
    - **首發任務完成動效 (`quest-complete`)**：以純 CSS Keyframes 與原生瀏覽器轉場打造輕量級階段式時序（遮罩與卡片淡入 -> 核心徽章彈跳放大 -> 標題滑入 -> 訊息淡入 -> 功績獎勵數值彈出 -> 操作按鈕就緒），支援手動按鈕/點擊遮罩關閉及預設 4.5 秒自動關閉。
-   - **API 成功確認與回饋觸發流程 (Phase 4)**：
+   - **API 成功確認與回饋觸發流程 (Phase 4)**（原由 `/user/quests` 觸發；該端點移除後目前沒有頁面使用，以下為保留之設計規範）：
      - 使用者操作 ──► API 請求 ──► 後端驗證 ──► 資料庫交易更新 ──► API 成功回應 ──► 前端轉換為 `FeedbackEvent` ──► 播放動畫。
      - **失敗處置**：若 API 回應失敗（4xx/5xx）或網路中斷，**嚴格禁止播放成功動畫**，直接於介面呈現標準錯誤警示（Error Alert UI）。
      - **前後端領域邊界隔離**：後端僅回傳客觀領域事實（`success`, `quest`, `questCompletion`, `meritGranted`），嚴格禁止後端深度耦合 CSS 類別名、動畫名稱或前端元件名稱；前端透過 `questCompletionToFeedbackEvent` 轉換器決定視覺呈現。
@@ -188,11 +192,9 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
      - `Reward` 模型保持通用領域物件（包含虛擬道具、實體獎勵、裝置動作等），不將獎勵直接等同於動畫；動畫僅為視覺呈現手法之一。
    - **未來跨裝置即時事件擴充點 (Future Event Architecture)**：
      - 前端視覺回饋層僅依賴 `FeedbackEvent` 資料合約，與事件發起來源解耦。未來新增 WebSocket 或 SSE 等即時通訊管線時，只需將即時事件同樣轉換為 `FeedbackEvent` 即可直接驅動元件，無需重寫遊戲領域邏輯。
-     - **當前階段明確未引入且未實作之技術**：
-       - ❌ WebSocket
-       - ❌ 跨裝置即時動畫同步 (Cross-device real-time animation)
-       - ❌ 大螢幕/投影看板事件展示 (Large-screen display)
-       - ❌ Redis / MQTT / SSE / Event Broker
+     - **後續已實作之即時能力**：Boss Vertical Slice 已加入 `EventsModule`（RFC 6455 WebSocket `/ws` 與 SSE `GET /api/v1/events/stream`），並由 `/display/:displayId` 大螢幕接收跨裝置事件；本機回饋層仍維持只依賴 `FeedbackEvent`。
+     - **目前仍未引入之技術**：
+       - ❌ Redis / MQTT / 外部 Event Broker（事件僅於單一 API 程序內廣播）
        - ❌ 微服務拆分
 
 ---
@@ -201,7 +203,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 ## MVP Game Domain Skeleton & Intended Flow (Phase 4)
 
 
-Phase 4 完成了核心遊戲領域模型的資料庫與領域骨架，為後續流程打下最小且可擴充的基礎，本階段不引入完整遊戲工作流實作。
+Phase 4 完成了核心遊戲領域模型的資料庫與領域骨架。其後的 Boss 與 Guild + Quest Vertical Slice 已在此骨架上加入 `PlayerQuest`、`Boss`、`Battle` 與任務接取／領獎流程；晉升審核（`PromotionRequest`）與獎勵派發（`Reward`）仍未實作。完整欄位請見 [docs/architecture/domain-model.md](docs/architecture/domain-model.md)。
 
 ### 1. 預期 MVP 完整遊戲與升遷循環 (Intended MVP Flow)
 
@@ -221,9 +223,9 @@ Phase 4 完成了核心遊戲領域模型的資料庫與領域骨架，為後續
 
 | 實體模型 | 欄位與概念 | 設計原則與 MVP 約束 |
 | :--- | :--- | :--- |
-| **`Quest`** | `id`, `title`, `description`, `requiredRankId`, `meritReward`, `enabled` | 任務基礎骨架。不建立複雜任務類型、遞迴、前置依賴、計時器、地圖或多人協同行為。 |
-| **`QuestCompletion`** | `id`, `questId`, `adventurerId`, `status`, `completedAt`, `approvedAt`, `approvedBy` | 任務完成紀錄與審核狀態（`PENDING` / `APPROVED` / `REJECTED`），為後續驗證流程預留欄位，本階段不實作完整審查運算。 |
-| **`MeritLedger`** | `id`, `adventurerId`, `amount`, `reason`, `sourceType`, `sourceId`, `createdAt` | **功績帳本模式**：功績決不單獨以可變數值存在於個人檔案，所有變動均寫入不可變帳本，確保公會功績每筆增減皆可追溯與稽核。 |
+| **`Quest`** | `id`, `title`, `description`, `objectiveType`, `targetId`, `targetCount`, `rewardGold`, `rewardMerit`, `requiredRankId`, `meritReward`（舊欄位）, `enabled` | 宣告式任務定義（目前僅 `defeat_boss`）。不建立複雜任務類型、遞迴、前置依賴、計時器、地圖或多人協同行為。 |
+| **`QuestCompletion`** | `id`, `questId`, `adventurerId`, `status`, `completedAt`, `approvedAt`, `approvedBy` | 任務完成紀錄與審核狀態（`PENDING` / `APPROVED` / `REJECTED`），為管理員審核流程預留；目前的 Guild 任務流程改用 `PlayerQuest`，未寫入此表。 |
+| **`MeritLedger`** | `id`, `adventurerId`, `amount`, `reason`, `sourceType`, `sourceId`, `createdAt` | **功績帳本模式**：每筆功績變動都寫入不可變帳本以供追溯與稽核；`AdventurerProfile.merit` 是同一交易內同步遞增的餘額快取，不是唯一資料來源。目前寫入來源為 `BATTLE_VICTORY` 與 `QUEST_REWARD`。 |
 | **`PromotionRequest`** | `id`, `adventurerId`, `fromRankId`, `toRankId`, `status`, `reviewedBy`, `reviewedAt` | **嚴格禁止自動升階**：功績累積達標僅代表「具備晉升資格」，必須經由申請並由公會管理員審查核准後方能升階。 |
 | **`Reward`** | `id`, `name`, `description`, `type`, `config`, `enabled` | **可擴充獎勵骨架**：保留未來擴充各類型獎勵（`virtual_item`, `physical_reward`, `animation`, `device_action`, `custom`）之進入點。**本階段僅保留架構擴充點，未實作獎勵派發或動畫播放邏輯**。 |
 
@@ -239,7 +241,7 @@ adventure-platform/
 ├── .env.example                  # 環境變數範本
 ├── AGENTS.md                     # 開發規範與治理準則
 ├── README.md                     # 專案首頁與快速上手指南
-├── compose.yaml                  # Docker Compose 服務定義 (web, api, postgres)
+├── compose.yaml                  # Docker Compose 服務定義 (nginx, web, api, postgres)
 ├── package.json                  # Root package 與 workspace scripts
 ├── pnpm-lock.yaml                # pnpm 依賴鎖定檔
 ├── pnpm-workspace.yaml           # pnpm workspace 配置
@@ -271,20 +273,26 @@ adventure-platform/
 │       ├── src/
 │       │   ├── components/
 │       │   │   ├── actor/               # 世界角色終端 (/actor/boss)
-│       │   │   ├── display/             # 世界呈現終端 (/display/boss-01)
-│       │   │   ├── guild/               # 公會實體終端機 (/guild)
+│       │   │   ├── admin/               # 管理員元件 (Dashboard、名冊、階級、憑證)
+│       │   │   ├── adventurer/          # 冒險者元件 (RankBadge、MeritProgress、CredentialStatusCard)
+│       │   │   ├── common/              # 共享版面原語 (PageContainer、PageHeader 等)
+│       │   │   ├── display/             # 世界呈現終端 (/display/:displayId)
 │       │   │   ├── feedback/            # 遊戲即時回饋覆蓋層 (GameFeedbackOverlay)
+│       │   │   ├── guild/               # 公會實體終端機 (/guild)
 │       │   │   ├── AdminView.tsx        # 公會管理員控制台版面
-│       │   │   ├── AdventurerView.tsx   # 行動優先冒險者個人儀表板
+│       │   │   ├── Adventurer*View.tsx  # 冒險者儀表板、檔案、任務、獎勵頁
 │       │   │   └── LoginView.tsx        # 公會身分驗證登入介面
 │       │   ├── context/
 │       │   │   └── AuthContext.tsx      # 全域身分狀態與 Token 管理
+│       │   ├── hooks/
+│       │   │   └── useGameEvents.ts     # WebSocket / SSE 即時事件訂閱
+│       │   ├── layouts/                 # UserLayout / AdminLayout
 │       │   ├── router/
 │       │   │   └── Router.tsx           # 路由提供者與權限跳轉守衛
-│       │   ├── types/
-│       │   │   ├── auth.ts              # 前端身分驗證與冒險者共用型別
-│       │   │   ├── feedback.ts          # 前端通用即時視覺回饋模型 (FeedbackEvent)
-│       │   │   └── index.ts             # 型別匯出入口
+│       │   ├── theme/                   # MUI 主題 (palette、typography)
+│       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、quest)
+│       │   ├── utils/
+│       │   │   └── audioEffects.ts      # 戰鬥音效
 │       │   ├── App.tsx                  # 應用程式進入點與路由分發
 │       │   ├── App.css
 │       │   └── index.css
@@ -294,9 +302,9 @@ adventure-platform/
 ├── games/
 │   └── kids-adventure/           # 遊戲專案配置（首個 MVP 落地案例：兒童冒險與獎勵系統）
 ├── infrastructure/
-│   ├── database/migrations/      # 資料庫歷史腳本
+│   ├── database/migrations/      # 預留目錄 (.gitkeep)；Prisma 遷移位於 apps/api/prisma/migrations
 │   └── nginx/                    # Nginx 反向代理配置與 TLS 憑證目錄
-│       ├── nginx.conf            # Nginx 設定檔 (HTTPS 443, / 與 /api 路由)
+│       ├── nginx.conf            # Nginx 設定檔 (HTTPS 443, /、/api 與 /ws 路由)
 │       ├── certs/                # TLS 憑證與金鑰目錄 (.gitkeep，不提交金鑰)
 │       └── generate-cert.sh      # 開發用自簽 TLS 憑證產生腳本 (支援 SAN)
 └── docs/
@@ -305,6 +313,7 @@ adventure-platform/
     │   ├── domain-model.md
     │   └── system-architecture.md
     └── development/              # 開發流程指南
+        ├── dependency-policy.md
         └── getting-started.md
 ```
 
@@ -452,8 +461,10 @@ PWA 功能（Web App Manifest 安裝、Service Worker 快取）嚴格要求在�
 - **測試管理員**：`username: admin`, 密碼: `admin123`（角色: `ADMIN`）── 登入後進入 `/admin`。
 - **測試冒險者**：`username: adventurer`, 密碼: `adventurer123`（角色: `USER`）── 登入後進入 `/user`。
 - **冒險者個人檔案**：名稱 `Rookie Adventurer`，預設階級為 `Rank F`。
-- **測試憑證**：`ADV-DEV-001-QR` (`QRCODE`) 與 `ADV-DEV-001-NFC` (`NFC`)。
-- **初始任務骨架**：`First Steps in the Guild`（Rank F 資格，完成獎勵 50 功績）。
+- **Demo 冒險者**：`aria`（Aria）與 `leon`（Leon），密碼同為 `adventurer123`（角色: `USER`）。
+- **測試憑證**：`ADV-DEV-001-QR` (`QRCODE`) 與 `ADV-DEV-001-NFC` (`NFC`) 屬於 Rookie Adventurer；`cred-demo-001` 屬於 Aria、`cred-demo-002` 屬於 Leon（皆為 `QRCODE`）。
+- **世界 Boss**：`boss-01` Black Knight（HP 150）。
+- **任務**：`First Steps in the Guild`（`quest-starter-001`，50 功績）與 `討伐黑騎士 (Defeat the Black Knight)`（`quest-defeat-black-knight`，目標 `boss-01`，報酬 200 Gold / 20 功績）。
 - **初始獎勵骨架**：`Guild Welcome Badge`（`virtual_item` 類型，演示擴充點）。
 
 > ⚠️ 上述帳號與憑證僅供本地開發與測試使用。

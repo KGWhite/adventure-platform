@@ -43,18 +43,25 @@ src/
 │   │   ├── LoadingState.tsx      # 載入中狀態
 │   │   ├── EmptyState.tsx        # 無資料狀態
 │   │   └── ErrorState.tsx        # 錯誤警示狀態
+│   ├── actor/                    # 世界角色終端 (BossActorView, /actor/boss)
+│   ├── display/                  # 世界呈現終端 (BossDisplayView, /display/:displayId)
+│   ├── feedback/                 # 遊戲回饋覆蓋層 (GameFeedbackOverlay、FeedbackEvent 轉換器)
+│   ├── guild/                    # 公會實體終端機 (GuildTerminalView, /guild)
 │   ├── LoginView.tsx             # 身分驗證頁面
 │   ├── AdventurerView.tsx        # 冒險者儀表板 (/user)
 │   ├── AdventurerProfileView.tsx # 冒險者個人檔案 (/user/profile)
-│   ├── AdventurerQuestsView.tsx  # 公會委託告示欄 (/user/quests，Coming soon)
+│   ├── AdventurerQuestsView.tsx  # 公會委託告示欄 (/user/quests)
 │   ├── AdventurerRewardsView.tsx # 公會獎勵兌換所 (/user/rewards，Coming soon)
 │   └── AdminView.tsx             # 公會管理控制台進入點與分頁切換 (/admin)
 ├── context/
 │   └── AuthContext.tsx           # 認證與使用者狀態 Context
 ├── router/
 │   └── Router.tsx                # 路由與角色守衛 (RouteGuard)
-├── types/
-│   └── auth.ts                   # 型別定義
+├── hooks/
+│   └── useGameEvents.ts          # WebSocket / SSE 即時事件訂閱
+├── types/                        # 型別定義 (auth、battle、feedback、quest)
+├── utils/
+│   └── audioEffects.ts           # 戰鬥音效
 ├── App.tsx                       # 應用程式進入點與子路徑路由
 └── main.tsx                      # React DOM 渲染進入點
 ```
@@ -67,7 +74,7 @@ src/
 | :--- | :--- | :--- |
 | `/user` | 冒險者公會總覽儀表板（稱號、階級、功績進度、資格證、公告） | 已完成 (Phase 2) |
 | `/user/profile` | 冒險者個人詳細檔案（帳號 ID、階級門檻、綁定憑證、登出） | 已完成 (Phase 2) |
-| `/user/quests` | 公會委託告示欄（任務清單） | 整備中 (Coming soon) |
+| `/user/quests` | 公會委託告示欄（唯讀，讀取 `GET /api/v1/quests`；接取與領獎請至 `/guild`） | 已完成 |
 | `/user/rewards` | 公會獎勵兌換所（功績獎勵） | 整備中 (Coming soon) |
 
 ### 管理員體驗路由 (Guild Admin Management Routes)
@@ -81,6 +88,14 @@ src/
 | `/admin/quests` | 任務系統管理 | 整備中 (Coming soon) |
 | `/admin/promotions` | 階級晉升審核 | 整備中 (Coming soon) |
 | `/admin/rewards` | 榮譽獎勵庫發放管理 | 整備中 (Coming soon) |
+
+### 現場終端路由 (On-site Terminal Routes，免登入)
+
+| 路徑 | 說明 | 狀態 |
+| :--- | :--- | :--- |
+| `/guild` | 公會實體終端機：掃卡、冒險者狀態、接取任務、領取報酬 | 已完成 |
+| `/actor/boss` | Boss 世界角色終端：掃卡、發起戰鬥、攻擊 | 已完成 |
+| `/display/:displayId` | 大螢幕呈現終端：以 `displayId` 訂閱即時事件（目前皆為 Boss 畫面） | 已完成 |
 
 ## 開發指令
 
