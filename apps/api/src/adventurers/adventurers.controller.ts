@@ -1,10 +1,26 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Roles } from '../auth/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { AdventurersService, CreateAdventurerInput } from './adventurers.service.js';
 
 class CreateAdventurerDto implements CreateAdventurerInput {
+  @IsString()
+  @IsNotEmpty()
   userId!: string;
+
+  @IsString()
+  @IsNotEmpty()
   displayName!: string;
+
+  @IsOptional()
+  @IsString()
   rankCode?: string;
+
+  @IsOptional()
+  @IsString()
   rankId?: string;
 }
 
@@ -18,6 +34,8 @@ export class AdventurersController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   async createAdventurer(@Body() dto: CreateAdventurerDto) {
     return this.adventurersService.create(dto);
   }

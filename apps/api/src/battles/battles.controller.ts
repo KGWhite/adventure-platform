@@ -1,15 +1,29 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { BattlesService } from './battles.service.js';
 import type { CreateBattleInput, ScanPlayerInput } from './battles.types.js';
 
 class CreateBattleDto implements CreateBattleInput {
+  @IsString()
+  @IsNotEmpty()
   credentialValue!: string;
+
+  @IsString()
+  @IsNotEmpty()
   bossId!: string;
+
+  @IsOptional()
+  @IsString()
   displayId?: string;
 }
 
 class ScanPlayerDto implements ScanPlayerInput {
+  @IsString()
+  @IsNotEmpty()
   credentialValue!: string;
+
+  @IsOptional()
+  @IsString()
   displayId?: string;
 }
 

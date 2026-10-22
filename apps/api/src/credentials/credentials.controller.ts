@@ -1,15 +1,31 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { Credential, CredentialType } from '@prisma/client';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Credential, CredentialType, Role } from '@prisma/client';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Roles } from '../auth/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { CreateCredentialInput, CredentialsService, ResolvedPlayer } from './credentials.service.js';
 
 class CreateCredentialDto implements CreateCredentialInput {
+  @IsString()
+  @IsNotEmpty()
   adventurerId!: string;
+
+  @IsEnum(CredentialType)
   type!: CredentialType;
+
+  @IsString()
+  @IsNotEmpty()
   value!: string;
+
+  @IsOptional()
+  @IsBoolean()
   enabled?: boolean;
 }
 
 class ValidateCredentialDto {
+  @IsString()
+  @IsNotEmpty()
   value!: string;
 }
 
@@ -28,6 +44,8 @@ export class CredentialsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   async createCredential(@Body() dto: CreateCredentialDto): Promise<Credential> {
     return this.credentialsService.create(dto);
   }

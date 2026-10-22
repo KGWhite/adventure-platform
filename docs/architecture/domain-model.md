@@ -231,6 +231,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 ### Role Enforcement (Backend vs Frontend)
 - Security is strictly enforced on the API layer via `RolesGuard` and `@Roles(...)`.
 - `USER` accounts cannot access protected `ADMIN` endpoints (e.g., `GET /api/v1/admin/summary` returns `403 Forbidden`).
+- Administrative write endpoints (`POST /api/v1/users`, `POST /api/v1/adventurers`, `POST /api/v1/credentials`) are also `ADMIN`-only. `POST /api/v1/users` never accepts a client-supplied `role`; new accounts are always `USER`.
 - Frontend route hiding provides user experience separation, but is backed by server-side authorization.
 
 ---

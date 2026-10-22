@@ -1,11 +1,20 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { CreateUserInput, SafeUser, UsersService } from './users.service.js';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { Roles } from '../auth/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { SafeUser, UsersService } from './users.service.js';
 
-class CreateUserDto implements CreateUserInput {
+// Role is intentionally not accepted from clients; new users are always USER.
+export class CreateUserDto {
+  @IsString()
+  @IsNotEmpty()
   username!: string;
+
+  @IsString()
+  @IsNotEmpty()
   password!: string;
-  role?: Role;
 }
 
 @Controller('users')
@@ -13,8 +22,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   async createUser(@Body() dto: CreateUserDto): Promise<SafeUser> {
-    return this.usersService.create(dto);
+    return this.usersService.create({
+      username: dto.username,
+      password: dto.password,
+      role: Role.USER,
+    });
   }
 
   @Get(':id')

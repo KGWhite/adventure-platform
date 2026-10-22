@@ -111,6 +111,8 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 
 ### 3. 安全性與權限保護 (Authorization & Protection)
 - **後端防護**：管理員專用 API（如 `GET /api/v1/admin/summary`）受 `RolesGuard` 與 `@Roles(Role.ADMIN)` 保護；`USER` 請求將直接遭到拒絕並回傳 `403 Forbidden`。
+- **管理類寫入端點**：`POST /api/v1/users`、`POST /api/v1/adventurers`、`POST /api/v1/credentials` 同樣僅限 `ADMIN`（未帶 Token 回傳 `401`，`USER` 回傳 `403`）。`POST /api/v1/users` 不接受用戶端指定 `role`，新建帳號一律為 `USER`。
+- **請求驗證**：API 啟用全域 `ValidationPipe`（`whitelist` + `forbidNonWhitelisted` + `transform`），所有 Request Body DTO 以 `class-validator` 宣告規則；缺漏必填欄位或夾帶未宣告欄位一律回傳 `400 Bad Request`。
 - **前端路由守衛**：
   - 未登入使用者訪問 `/user` 或 `/admin` 自動跳轉至 `/login`。
   - 一般冒險者（`USER`）無法進入 `/admin`，會被自動重導向回 `/user`。
@@ -416,8 +418,8 @@ Host Network (Debian 13)
 | **Auth API** | [https://localhost/api/v1/auth/login](https://localhost/api/v1/auth/login) | 登入端點（簽發 JWT） |
 | **Admin API** | [https://localhost/api/v1/admin/summary](https://localhost/api/v1/admin/summary) | 管理員保護端點（僅限 ADMIN，USER 存取回傳 403） |
 | **Ranks API** | [https://localhost/api/v1/ranks](https://localhost/api/v1/ranks) | 查詢所有冒險者階級（F 到 S） |
-| **Adventurers API** | [https://localhost/api/v1/adventurers](https://localhost/api/v1/adventurers) | 查詢與建立冒險者檔案 |
-| **Credentials API** | [https://localhost/api/v1/credentials](https://localhost/api/v1/credentials) | 登記與查詢冒險者憑證 |
+| **Adventurers API** | [https://localhost/api/v1/adventurers](https://localhost/api/v1/adventurers) | 查詢冒險者檔案；建立 (`POST`) 僅限 ADMIN |
+| **Credentials API** | [https://localhost/api/v1/credentials](https://localhost/api/v1/credentials) | 查詢冒險者憑證；登記 (`POST`) 僅限 ADMIN |
 | **Quests API** | [https://localhost/api/v1/quests](https://localhost/api/v1/quests) | 查詢公會可用任務清單 |
 | **PlayerQuests API** | `POST https://localhost/api/v1/player-quests` | 接取任務（綁定冒險者憑證與任務） |
 | **Claim Reward API** | `POST https://localhost/api/v1/player-quests/:id/claim` | 領取任務達成報酬（原子寫入 Gold / Merit） |

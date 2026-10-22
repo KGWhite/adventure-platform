@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
 export type PlayerQuestStatus = 'accepted' | 'completed' | 'claimed';
 
 export interface QuestData {
@@ -29,13 +31,26 @@ export interface PlayerQuestData {
 }
 
 export class AcceptQuestDto {
+  @IsOptional()
+  @IsString()
   credentialValue?: string;
+
+  @IsOptional()
+  @IsString()
   playerId?: string;
+
+  @IsString()
+  @IsNotEmpty()
   questId!: string;
 }
 
 export class GuildScanDto {
+  @IsString()
+  @IsNotEmpty()
   credentialValue!: string;
+
+  @IsOptional()
+  @IsString()
   displayId?: string;
 }
 
