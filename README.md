@@ -384,6 +384,7 @@ Compose 會依序啟動：
 - **驅動與子網路**：Bridge / `172.18.0.0/16`
 - **Nginx 固定 IP**：`172.18.0.10`（於 `compose.yaml` 中固定，避免容器重建後 IP 變動導致宿主機 firewalld 轉送規則失效）
 - **Web / API / Postgres**：由 Docker 於 `172.18.0.0/16` 網段內動態配發，容器間持續透過 Docker 內嵌 DNS 服務名稱 (`web`, `api`, `postgres`) 進行互連。
+- **Nginx 動態解析上游**：`nginx.conf` 透過 `resolver 127.0.0.11`（Docker 內嵌 DNS）於請求時解析 `api` / `web`，因此單獨重建 `api` 或 `web` 容器後即使 IP 改變也不需重啟 Nginx。
 
 ```text
 Host Network (Debian 13)
