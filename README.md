@@ -43,7 +43,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **交易安全**：以條件扣款（`gold >= price`）與 `requestId` 冪等鍵防止超扣與重複扣款，每筆交易寫入 `Purchase` 稽核紀錄。
   - **資料庫必要**：商店與背包 API 不使用記憶體 fallback，資料庫不可用時回 `503`。
 - **下一步候選**：
-  - Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
+  - Action Card Battle（刷卡即時回饋與實體行動卡技能組合，規格已定案：[docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
 ---
 
@@ -322,7 +322,8 @@ adventure-platform/
 │       └── generate-cert.sh      # 開發用自簽 TLS 憑證產生腳本 (支援 SAN)
 └── docs/
     ├── game-design.md            # 實體 RPG 遊戲平台設計規格書 (World Node, Actor Mode, 雙軌資源)
-    ├── specs/                    # 待實作之 Vertical Slice 需求規格
+    ├── specs/                    # Vertical Slice 需求規格
+    │   ├── action-card-battle.md
     │   └── shop-equipment.md
     ├── architecture/             # 架構與領域模型技術文件
     │   ├── domain-model.md
@@ -549,6 +550,7 @@ pnpm --filter @adventure-platform/api db:seed
 - 領域模型與階級憑證架構：[docs/architecture/domain-model.md](docs/architecture/domain-model.md)
 - 系統架構詳細說明：[docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
 - Shop + Equipment 需求規格：[docs/specs/shop-equipment.md](docs/specs/shop-equipment.md)
+- Action Card Battle 需求規格：[docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)
 - 本地開發完整指引：[docs/development/getting-started.md](docs/development/getting-started.md)
 - 依賴與版本策略規範：[docs/development/dependency-policy.md](docs/development/dependency-policy.md)
 - Agent 開發規範：[AGENTS.md](AGENTS.md)
