@@ -71,6 +71,7 @@ When starting, Docker Compose will launch four services:
 - **Driver / Subnet**: Bridge / `172.18.0.0/16`
 - **Nginx Static IP**: `172.18.0.10` (fixed in `compose.yaml` to ensure port forwarding persistence across container recreations)
 - **Web / API / Postgres**: Dynamically allocated by Docker Engine within `172.18.0.0/16`. Services continue to communicate using Docker internal DNS service names (`web`, `api`, `postgres`).
+- **Nginx Upstream Resolution**: `nginx.conf` resolves `api` / `web` per request through `resolver 127.0.0.11` (Docker embedded DNS), so rebuilding or recreating `api` or `web` does not require restarting Nginx even if their IPs change.
 
 ```text
 Host Network (Debian 13)

@@ -63,6 +63,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `/api/` ──► `http://api:3000` (preserves full API path, e.g. `/api/v1/health`)
      - `/ws` ──► `http://api:3000` (RFC 6455 WebSocket Upgrade gateway)
      - `/` ──► `http://web:5173` (React PWA, Web App Manifest, Service Worker, static assets)
+   - **Upstream Resolution**: Upstreams are referenced through variables with `resolver 127.0.0.11 valid=10s` (Docker embedded DNS), so `api` / `web` service names are re-resolved at request time and recreated containers are reached without restarting Nginx.
    - **PWA Secure Context**: Provides HTTPS origin required for PWA Service Worker registration and Web App Manifest caching when testing from mobile and local network devices.
 
 2. **Web (`apps/web`)**
