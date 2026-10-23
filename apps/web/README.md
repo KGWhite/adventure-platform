@@ -7,6 +7,7 @@ Adventure Platform 的單一前端應用程式，支援行動瀏覽器、桌面�
 - **Framework**: React 19 + TypeScript + Vite
 - **UI Component System**: Material UI (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`)
 - **PWA**: `vite-plugin-pwa`
+- **App Logo**: `public/favicon.svg` 為公會盾徽 Logo 原始檔（瀏覽器分頁圖示）。PWA 安裝圖示由它轉出：`pwa-192x192.png`、`pwa-512x512.png`（`any`，圓角底）、`maskable-icon-512x512.png`（`maskable`，滿版底，主體位於 80% 安全區內）與 `apple-touch-icon-180x180.png`（iOS 加入主畫面，滿版底）。修改 Logo 時請一併重新轉出這些 PNG。
 - **Linting**: Oxlint
 
 > **注意**：本專案採用 MUI 作為唯一 UI 元件庫。嚴格禁止引入 Ant Design、Chakra UI、Mantine、Bootstrap、Tailwind UI 等其他相互競爭之元件庫。
