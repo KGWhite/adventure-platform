@@ -29,7 +29,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - 驗證完整實體遊戲閉環：**QR Adventure Card → Boss Actor 掃描 → Game Server 辨識玩家 → 建立 Battle → Boss Actor 操作戰鬥 → Server 計算結果 → WebSocket 推送事件 → Boss Display 即時顯示 → Battle 結束 → 更新 Player State → 發放 Gold / Merit**。
   - **世界角色終端 (World Actor)**：`/actor/boss`（支援相機 QR 掃描與 Manual Credential Input 雙模式，大按鈕單手操作）。
   - **世界呈現終端 (Display Node)**：`/display/boss-01`（TV / 大螢幕沉浸式 RPG HUD、HP 動畫、受擊震動、飄字、勝利結算與獎勵顯示、自動重置計時器）。
-  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.*`、`reward.*`、`quest.*`（Shop 切片新增 `shop.purchase_completed`、`equipment.changed`）。
+  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.*`、`reward.*`、`quest.*`（Shop 切片新增 `shop.purchase_completed`、`equipment.changed`；Action Card 切片新增 `card.scanned`、`skill.cast`、`skill.fizzled`）。
   - **Server 決定權威**：戰鬥數值、HP 扣減、勝負判定、金幣與功績發放均由後端權威計算與寫入資料庫及 MeritLedger。
 - **已完成：Guild + Quest Vertical Slice MVP (首個完整 RPG Gameplay Loop)**：
   - 串起第一個端到端可玩遊戲循環：**Adventure Card → 公會掃 QR (`/guild`) → 顯示角色狀態 → 接任務 (`POST /api/v1/player-quests`) → 前往 Boss 討伐場 (`/actor/boss` + `/display/boss-01`) → 擊敗黑騎士 → Server 權威自動累加進度並切換至 `completed` (`quest.completed`) → 回公會再次掃卡 (`POST /api/v1/guild/scan`) → 顯示 QUEST COMPLETE → 點擊 Claim Reward (`POST /api/v1/player-quests/:id/claim`) → 獲得 Gold / Merit / MeritLedger 寫入**。
@@ -42,8 +42,13 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **裝備欄位**：武器（`WEAPON`，加攻擊）與防具（`ARMOR`，減少 Boss 反擊傷害，最低 1 點）；裝備數值於開戰時快照。
   - **交易安全**：以條件扣款（`gold >= price`）與 `requestId` 冪等鍵防止超扣與重複扣款，每筆交易寫入 `Purchase` 稽核紀錄。
   - **資料庫必要**：商店與背包 API 不使用記憶體 fallback，資料庫不可用時回 `503`。
+- **已完成：Action Card Battle Vertical Slice MVP (刷卡即時回饋與實體行動卡)**：規格見 [docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)。
+  - **即時刷卡回饋**：`/actor/boss`、`/actor/shop`、`/guild` 在本地解碼成功的瞬間播放震動、音效與畫面閃光，不等待 API。
+  - **行動卡戰鬥**：`/actor/boss` 新增「卡片攻擊」模式（相機連續掃描、Android Chrome Web NFC 選配、手動卡片按鈕）。攻擊卡立即攻擊；元素卡（火／水／風）在 6 秒內與第二張卡組合為技能（火焰龍捲、蒸氣爆發、治癒之雨、元素斬），同元素兩張為魔法失控，單張逾時自動施放元素彈。
+  - **Server 權威**：卡槽、組合計時器與同卡 2 秒冷卻由後端記憶體管理，同一場戰鬥的刷卡、按鈕攻擊與逾時結算依序處理。
+  - **大螢幕**：`/display/boss-01` 新增卡槽、組合倒數圈與技能／失控演出（支援 `prefers-reduced-motion`）。
 - **下一步候選**：
-  - Action Card Battle（刷卡即時回饋與實體行動卡技能組合，規格已定案：[docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
+  - Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
 ---
 
@@ -140,7 +145,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
 | `/guild` | 公開 / 現場 | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算、裝備與卸下裝備 |
-| `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥、操作攻擊結算 |
+| `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥；可切換按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） |
 | `/actor/shop/:shopId` | 公開 / 店主 | **商店店主終端 (World Actor)**：店主手機掃卡（預設 `shop-01`），顯示可購清單與鎖定原因、確認購買並可立即裝備 |
 | `/display/shop-*` | 公開 / 現場 | **商店呈現終端 (Display Node)**：如 `/display/shop-01`，閒置輪播商品、掃卡歡迎、購得裝備動效與裝備變更提示 |
 | `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件；`/display/shop-*` 以外的路徑皆渲染 Boss Display。大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
@@ -236,6 +241,7 @@ Phase 4 完成了核心遊戲領域模型的資料庫與領域骨架。其後的
 | **`PromotionRequest`** | `id`, `adventurerId`, `fromRankId`, `toRankId`, `status`, `reviewedBy`, `reviewedAt` | **嚴格禁止自動升階**：功績累積達標僅代表「具備晉升資格」，必須經由申請並由公會管理員審查核准後方能升階。 |
 | **`Item` / `Shop` / `ShopItem`** | `Item`: `id`, `name`, `type` (`WEAPON` / `ARMOR`), `attack`, `defense`, `iconKey`；`ShopItem`: `shopId`, `itemId`, `price`, `requiredRankId`, `sortOrder` | 物品定義與商店上架分離：同一物品可在不同商店以不同價格與階級限制販售。目前僅有裝備類物品，無消耗品。 |
 | **`PlayerItem` / `Purchase`** | `PlayerItem`: `playerId`, `itemId`, `equipped`；`Purchase`: `price`, `goldBefore`, `goldAfter`, `requestId` | 背包與裝備狀態合一（每種裝備最多持有一件，每個欄位最多一件 `equipped`）。`Purchase` 為金幣消費稽核紀錄，`requestId` 唯一以保證重送不重複扣款。 |
+| **`ActionCard`** | `id`, `value`, `type` (`STRIKE` / `FIRE` / `WATER` / `WIND`), `label`, `enabled` | 場地共用的實體行動卡（回答「我要做什麼」），與身分用的 `Credential`（回答「我是誰」）分開。技能組合規則以程式常數定義，不建資料表。 |
 | **`Reward`** | `id`, `name`, `description`, `type`, `config`, `enabled` | **可擴充獎勵骨架**：保留未來擴充各類型獎勵（`virtual_item`, `physical_reward`, `animation`, `device_action`, `custom`）之進入點。**本階段僅保留架構擴充點，未實作獎勵派發或動畫播放邏輯**。 |
 
 ### 3. 故事獨立性 (Story Independence)
@@ -262,12 +268,13 @@ adventure-platform/
 │   │   │   ├── schema.prisma     # 核心領域與資料模型
 │   │   │   └── seed.ts           # 階級與開發測試資料 Seed 腳本
 │   │   └── src/
+│   │       ├── action-cards/     # 行動卡查詢與解析模組
 │   │       ├── admin/            # 管理員保護模組 (RolesGuard: ADMIN)
 │   │       ├── adventurers/      # 冒險者個人檔案模組
 │   │       ├── auth/             # JWT 認證、守衛與裝飾器模組
 │   │       ├── credentials/      # 冒險者憑證模組 (QRCODE, RFID, NFC)
 │   │       ├── bosses/           # 世界 Boss 模組 (Black Knight)
-│   │       ├── battles/          # 戰鬥連線與攻擊權威結算模組
+│   │       ├── battles/          # 戰鬥連線、攻擊與行動卡技能組合權威結算模組
 │   │       ├── events/           # 即時 WebSocket Gateway & SSE 串流中樞
 │   │       ├── health/           # 健康檢查端點 GET /api/v1/health
 │   │       ├── inventory/        # 冒險者背包、裝備與卸下、裝備數值計算模組
@@ -297,7 +304,8 @@ adventure-platform/
 │       │   │   └── AuthContext.tsx      # 全域身分狀態與 Token 管理
 │       │   ├── hooks/
 │       │   │   ├── useGameEvents.ts     # WebSocket / SSE 即時事件訂閱
-│       │   │   └── useQrScanner.ts      # 相機 QR 掃描 (目前用於 /actor/shop)
+│       │   │   ├── useNfcScanner.ts     # Web NFC 行動卡讀取 (Android Chrome)
+│       │   │   └── useQrScanner.ts      # 相機 QR 掃描 (/actor/boss、/actor/shop；支援連續掃描)
 │       │   ├── layouts/                 # UserLayout / AdminLayout
 │       │   ├── router/
 │       │   │   └── Router.tsx           # 路由提供者與權限跳轉守衛
@@ -305,7 +313,9 @@ adventure-platform/
 │       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、quest、shop)
 │       │   ├── utils/
 │       │   │   ├── audioEffects.ts      # 戰鬥音效
-│       │   │   └── itemIcons.ts         # 物品圖示與數值標籤
+│       │   │   ├── itemIcons.ts         # 物品圖示與數值標籤
+│       │   │   ├── scanFeedback.ts      # 刷卡即時回饋 (震動、音效、閃光)
+│       │   │   └── scanPayload.ts       # 身分卡／行動卡 payload 解析
 │       │   ├── App.tsx                  # 應用程式進入點與路由分發
 │       │   ├── App.css
 │       │   └── index.css
@@ -453,8 +463,9 @@ Host Network (Debian 13)
 | **Shops API** | `POST https://localhost/api/v1/shops/:shopId/scan`、`/purchases` | 商店掃卡（可購清單與鎖定原因）與購買交易；`GET /shops/:shopId` 取得商品目錄 |
 | **Inventory API** | `GET https://localhost/api/v1/players/:playerId/inventory` | 冒險者背包與裝備；`POST /players/:playerId/equipment` 裝備、`DELETE /players/:playerId/equipment/:slot` 卸下 |
 | **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
-| **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`) |
-| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`） |
+| **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`)；行動卡刷入 `POST /battles/:id/cards` |
+| **Action Cards API** | [https://localhost/api/v1/action-cards](https://localhost/api/v1/action-cards) | 查詢啟用中的行動卡（手動模式與列印 QR 使用） |
+| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`） |
 | **PostgreSQL** | 內部 `postgres:5432` | 資料庫連接埠（Docker 整合環境僅限內部存取；本機原始碼模式可按需暴露） |
 
 > **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。

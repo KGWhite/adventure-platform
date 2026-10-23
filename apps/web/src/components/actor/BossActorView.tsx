@@ -1,5 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BattleState, PlayerInfo } from '../../types/battle.js';
+import { useGameEvents } from '../../hooks/useGameEvents.js';
+import { useNfcScanner } from '../../hooks/useNfcScanner.js';
+import { useQrScanner } from '../../hooks/useQrScanner.js';
+import type {
+  ActionCardKind,
+  ActionCardSummary,
+  BattleState,
+  GameEvent,
+  PlayCardResponse,
+  PlayerInfo,
+} from '../../types/battle.js';
+import { playScanFeedback } from '../../utils/scanFeedback.js';
+import {
+  WRONG_CARD_FOR_ACTION,
+  WRONG_CARD_FOR_IDENTITY,
+  parseScanPayload,
+} from '../../utils/scanPayload.js';
 import './BossActorView.css';
 
 interface BossOption {
@@ -14,13 +30,25 @@ const DEFAULT_BOSSES: BossOption[] = [
   { id: 'boss-01', name: 'Black Knight', hp: 150, maxHp: 150, attackPower: 15 },
 ];
 
+const CARD_KINDS: { type: ActionCardKind; icon: string; label: string }[] = [
+  { type: 'STRIKE', icon: '⚔️', label: '攻擊' },
+  { type: 'FIRE', icon: '🔥', label: '火' },
+  { type: 'WATER', icon: '💧', label: '水' },
+  { type: 'WIND', icon: '🌪️', label: '風' },
+];
+
+const CARD_ICONS: Record<ActionCardKind, string> = {
+  STRIKE: '⚔️',
+  FIRE: '🔥',
+  WATER: '💧',
+  WIND: '🌪️',
+};
+
 export function BossActorView() {
   const [bosses, setBosses] = useState<BossOption[]>(DEFAULT_BOSSES);
   const [selectedBossId, setSelectedBossId] = useState<string>('boss-01');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
   const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
-  const [cameraActive, setCameraActive] = useState<boolean>(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -29,10 +57,20 @@ export function BossActorView() {
   const [activeBattle, setActiveBattle] = useState<BattleState | null>(null);
   const [actionLog, setActionLog] = useState<string[]>([]);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [attackMode, setAttackMode] = useState<'button' | 'card'>('button');
+  // Manual buttons rotate through the physical cards of each type so the
+  // per-card cooldown does not block same-type combos (e.g. a fizzle)
+  const [manualCards, setManualCards] = useState<Record<ActionCardKind, string[]>>({
+    STRIKE: ['card-strike-001', 'card-strike-002'],
+    FIRE: ['card-fire-001', 'card-fire-002'],
+    WATER: ['card-water-001', 'card-water-002'],
+    WIND: ['card-wind-001', 'card-wind-002'],
+  });
+  const manualCardIndexRef = useRef<Record<ActionCardKind, number>>({ STRIKE: 0, FIRE: 0, WATER: 0, WIND: 0 });
+  const [castSlot, setCastSlot] = useState<ActionCardKind[]>([]);
+  const [comboDeadline, setComboDeadline] = useState<string | null>(null);
+  const [clock, setClock] = useState(0);
+  const [lastCardMessage, setLastCardMessage] = useState<string | null>(null);
 
   const addLog = (msg: string) => {
     setActionLog((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 9)]);
@@ -53,98 +91,18 @@ export function BossActorView() {
       });
   }, []);
 
-  // Camera QR Scanner logic
-  const startCamera = async () => {
-    setCameraError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-      startQrFrameDetection();
-    } catch (err: any) {
-      setCameraError(
-        err.message || 'Camera permission denied or camera not available. Please use Manual Input.',
-      );
-      setCameraActive(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-  };
-
-  const startQrFrameDetection = () => {
-    // Check if BarcodeDetector is supported natively in modern browsers
-    const hasBarcodeDetector = 'BarcodeDetector' in window;
-    let detector: any = null;
-
-    if (hasBarcodeDetector) {
-      try {
-        detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-      } catch {
-        detector = null;
-      }
-    }
-
-    scanIntervalRef.current = setInterval(async () => {
-      if (!videoRef.current || videoRef.current.readyState < 2) return;
-
-      if (detector) {
-        try {
-          const barcodes = await detector.detect(videoRef.current);
-          if (barcodes.length > 0) {
-            const rawValue = barcodes[0].rawValue;
-            handleDetectedCode(rawValue);
-            return;
-          }
-        } catch {
-          // ignore detector error
-        }
-      }
-
-      // Canvas fallback detection
-      if (canvasRef.current && videoRef.current) {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-          // If native scanner not supported, camera provides viewfinder
-        }
-      }
-    }, 400);
-  };
-
-  const handleDetectedCode = (code: string) => {
-    stopCamera();
-    let token = code.trim();
-    // Support URL schemas, e.g. adventure://player/cred-demo-001
-    if (token.startsWith('adventure://player/')) {
-      token = token.replace('adventure://player/', '');
-    }
-    setCredentialInput(token);
-    validateAndScan(token);
-  };
-
+  // Fetch action cards for the manual card buttons
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    fetch('/api/v1/action-cards')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((cards: ActionCardSummary[]) => {
+        const byType: Partial<Record<ActionCardKind, string[]>> = {};
+        for (const card of cards) (byType[card.type] ??= []).push(card.value);
+        setManualCards((prev) => ({ ...prev, ...byType }));
+      })
+      .catch(() => {
+        // Keep seed defaults
+      });
   }, []);
 
   // Common Credential Validation Flow (Used by both Camera and Manual)
@@ -183,6 +141,116 @@ export function BossActorView() {
     }
   };
 
+  const {
+    videoRef: identityVideoRef,
+    cameraActive: identityCameraActive,
+    cameraError: identityCameraError,
+    startCamera: startIdentityCamera,
+    stopCamera: stopIdentityCamera,
+  } = useQrScanner((raw) => {
+    const payload = parseScanPayload(raw);
+    if (payload.kind === 'card') {
+      setErrorMsg(WRONG_CARD_FOR_IDENTITY);
+      return;
+    }
+    setCredentialInput(payload.value);
+    validateAndScan(payload.value);
+  });
+
+  const applyBattle = (battle: BattleState) => {
+    setActiveBattle(battle);
+    setCastSlot(battle.castSlot.map((entry) => entry.type));
+    setComboDeadline(battle.comboDeadline);
+    setClock(Date.now());
+    // Card readers only run while a battle is active
+    if (battle.status !== 'active') stopCardReaders();
+  };
+
+  // Play an action card (camera, NFC or manual button)
+  const playCard = async (cardValue: string) => {
+    if (!activeBattle || activeBattle.status !== 'active') return;
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch(`/api/v1/battles/${activeBattle.id}/cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardValue }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `刷卡失敗 (${res.status})`);
+
+      const result = data as PlayCardResponse;
+      if (result.result === 'cooldown') return;
+      applyBattle(result.battle);
+
+      if (result.result === 'charged') {
+        setLastCardMessage('🔮 蓄力中！再刷一張卡組合技能');
+      } else if (result.result === 'fizzled') {
+        setLastCardMessage('💨 魔法失控！相同元素互相抵消');
+      } else if (result.skill) {
+        const effect =
+          result.skill.heal > 0 ? `回復 ${result.skill.heal} HP` : `造成 ${result.skill.damage} 傷害`;
+        setLastCardMessage(`✨ ${result.skill.name}！${effect}`);
+      }
+      addLog(`Card ${cardValue}: ${result.result}${result.skill ? ` (${result.skill.name})` : ''}`);
+
+      if (result.battle.status === 'victory') {
+        addLog(`🎉 VICTORY! Granted +${result.battle.reward?.gold} Gold, +${result.battle.reward?.merit} Merit!`);
+      } else if (result.battle.status === 'defeat') {
+        addLog('💀 DEFEAT! Challenger has fallen.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || '刷卡失敗。');
+    }
+  };
+
+  const handleCardPayload = (raw: string) => {
+    const payload = parseScanPayload(raw);
+    if (payload.kind === 'player') {
+      setErrorMsg(WRONG_CARD_FOR_ACTION);
+      return;
+    }
+    playCard(payload.value);
+  };
+
+  const {
+    videoRef: cardVideoRef,
+    cameraActive: cardCameraActive,
+    cameraError: cardCameraError,
+    startCamera: startCardCamera,
+    stopCamera: stopCardCamera,
+  } = useQrScanner(handleCardPayload, { continuous: true, intervalMs: 150 });
+  const { nfcSupported, nfcActive, nfcError, startNfc, stopNfc } = useNfcScanner(handleCardPayload);
+
+  function stopCardReaders() {
+    stopCardCamera();
+    stopNfc();
+  }
+
+  // Tick the combo countdown while an element card is charged
+  useEffect(() => {
+    if (!comboDeadline) return;
+    const timer = setInterval(() => setClock(Date.now()), 200);
+    return () => clearInterval(timer);
+  }, [comboDeadline]);
+
+  const comboSecondsLeft = comboDeadline
+    ? Math.min(6, Math.max(0, Math.ceil((new Date(comboDeadline).getTime() - clock) / 1000)))
+    : null;
+
+  // A lone element card resolves on the server when its combo window expires
+  useGameEvents(selectedBossId, (event: GameEvent) => {
+    if (event.type !== 'skill.cast' || event.data?.skillId !== 'element-bolt') return;
+    if (!activeBattle || event.data.battleId !== activeBattle.id) return;
+    fetch(`/api/v1/battles/${activeBattle.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((battle: BattleState | null) => battle && applyBattle(battle))
+      .catch(() => {});
+    setLastCardMessage(`✨ ${event.data.skillName}！造成 ${event.data.damage} 傷害`);
+    addLog(`Combo window expired: ${event.data.skillName} dealt ${event.data.damage} dmg.`);
+  });
+
   // Start Battle Flow
   const handleStartBattle = async () => {
     if (!scannedPlayer) return;
@@ -207,7 +275,8 @@ export function BossActorView() {
       }
 
       const battle: BattleState = await res.json();
-      setActiveBattle(battle);
+      applyBattle(battle);
+      setLastCardMessage(null);
       addLog(`Battle started! ID: ${battle.id}`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to start battle.');
@@ -234,7 +303,7 @@ export function BossActorView() {
       }
 
       const updated: BattleState = await res.json();
-      setActiveBattle(updated);
+      applyBattle(updated);
 
       if (updated.lastTurn) {
         addLog(
@@ -255,10 +324,17 @@ export function BossActorView() {
   };
 
   const handleResetForNext = () => {
+    stopCardReaders();
     setActiveBattle(null);
     setScannedPlayer(null);
     setErrorMsg(null);
+    setLastCardMessage(null);
     addLog('Terminal reset for next challenger.');
+  };
+
+  const switchAttackMode = (mode: 'button' | 'card') => {
+    setAttackMode(mode);
+    if (mode === 'button') stopCardReaders();
   };
 
   const selectedBoss = bosses.find((b) => b.id === selectedBossId) || bosses[0];
@@ -324,7 +400,7 @@ export function BossActorView() {
                   className={`tab-pill ${scannerMode === 'manual' ? 'active' : ''}`}
                   onClick={() => {
                     setScannerMode('manual');
-                    stopCamera();
+                    stopIdentityCamera();
                   }}
                 >
                   ⌨️ Manual Input
@@ -334,7 +410,7 @@ export function BossActorView() {
                   className={`tab-pill ${scannerMode === 'camera' ? 'active' : ''}`}
                   onClick={() => {
                     setScannerMode('camera');
-                    startCamera();
+                    startIdentityCamera();
                   }}
                 >
                   📷 Camera Scan
@@ -345,25 +421,36 @@ export function BossActorView() {
             {/* Camera Viewfinder */}
             {scannerMode === 'camera' && (
               <div className="camera-viewfinder-box">
-                {cameraActive && <div className="camera-live-badge">LIVE SCANNER</div>}
-                {cameraError ? (
+                {identityCameraActive && <div className="camera-live-badge">LIVE SCANNER</div>}
+                {identityCameraError ? (
                   <div className="camera-error-notice">
-                    <p>{cameraError}</p>
-                    <button type="button" onClick={startCamera} className="actor-btn actor-btn-sm">
+                    <p>{identityCameraError}</p>
+                    <button
+                      type="button"
+                      onClick={startIdentityCamera}
+                      className="actor-btn actor-btn-sm"
+                    >
                       Retry Camera
                     </button>
                   </div>
                 ) : (
-                  <div className="video-container">
-                    <video ref={videoRef} playsInline muted className="scanner-video" />
-                    <canvas ref={canvasRef} style={{ display: 'none' }} />
-                    <div className="viewfinder-overlay">
-                      <div className="viewfinder-reticle">
-                        <div className="reticle-laser" />
+                  identityCameraActive && (
+                    <div className="video-container">
+                      <video
+                        ref={identityVideoRef}
+                        playsInline
+                        muted
+                        autoPlay
+                        className="scanner-video"
+                      />
+                      <div className="viewfinder-overlay">
+                        <div className="viewfinder-reticle">
+                          <div className="reticle-laser" />
+                        </div>
+                        <p className="reticle-hint">Point camera at Adventure Card QR Code</p>
                       </div>
-                      <p className="reticle-hint">Point camera at Adventure Card QR Code</p>
                     </div>
-                  </div>
+                  )
                 )}
               </div>
             )}
@@ -377,6 +464,7 @@ export function BossActorView() {
                     type="button"
                     className="preset-btn"
                     onClick={() => {
+                      playScanFeedback();
                       setCredentialInput('cred-demo-001');
                       validateAndScan('cred-demo-001');
                     }}
@@ -387,6 +475,7 @@ export function BossActorView() {
                     type="button"
                     className="preset-btn"
                     onClick={() => {
+                      playScanFeedback();
                       setCredentialInput('cred-demo-002');
                       validateAndScan('cred-demo-002');
                     }}
@@ -407,7 +496,10 @@ export function BossActorView() {
                   <button
                     type="button"
                     className="actor-btn actor-btn-primary"
-                    onClick={() => validateAndScan()}
+                    onClick={() => {
+                      playScanFeedback();
+                      validateAndScan();
+                    }}
                     disabled={isLoading}
                   >
                     {isLoading ? 'Resolving...' : '🔍 Identify Player'}
@@ -486,19 +578,111 @@ export function BossActorView() {
               </div>
             </div>
 
-            {/* ONE-HAND LARGE ATTACK BUTTON */}
             {activeBattle.status === 'active' ? (
-              <div className="combat-action-area">
-                <button
-                  type="button"
-                  className="actor-btn actor-btn-danger actor-btn-xl attack-button"
-                  onClick={handleAttack}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'EXECUTING TURN...' : '💥 ATTACK BOSS'}
-                </button>
-                <p className="attack-hint">單手操作：點擊觸發一次玩家攻擊與 Boss 反擊判定</p>
-              </div>
+              <>
+                <div className="tab-pill-group attack-mode-toggle">
+                  <button
+                    type="button"
+                    className={`tab-pill ${attackMode === 'button' ? 'active' : ''}`}
+                    onClick={() => switchAttackMode('button')}
+                  >
+                    🔘 按鈕攻擊
+                  </button>
+                  <button
+                    type="button"
+                    className={`tab-pill ${attackMode === 'card' ? 'active' : ''}`}
+                    onClick={() => switchAttackMode('card')}
+                  >
+                    🃏 卡片攻擊
+                  </button>
+                </div>
+
+                {attackMode === 'button' ? (
+                  /* ONE-HAND LARGE ATTACK BUTTON */
+                  <div className="combat-action-area">
+                    <button
+                      type="button"
+                      className="actor-btn actor-btn-danger actor-btn-xl attack-button"
+                      onClick={handleAttack}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'EXECUTING TURN...' : '💥 ATTACK BOSS'}
+                    </button>
+                    <p className="attack-hint">單手操作：點擊觸發一次玩家攻擊與 Boss 反擊判定</p>
+                  </div>
+                ) : (
+                  /* ACTION CARD MODE */
+                  <div className="card-mode-area">
+                    <div className="card-slot-row">
+                      {[0, 1].map((index) => (
+                        <div key={index} className={`card-slot ${castSlot[index] ? 'filled' : ''}`}>
+                          {castSlot[index] ? CARD_ICONS[castSlot[index]] : '＋'}
+                        </div>
+                      ))}
+                      <div className="combo-countdown">
+                        {comboSecondsLeft !== null ? `⏳ ${comboSecondsLeft}s` : '等待刷卡'}
+                      </div>
+                    </div>
+                    {/* Always rendered so the card buttons never shift while tapping */}
+                    <div className="card-result-banner">{lastCardMessage ?? '請刷行動卡'}</div>
+
+                    <div className="card-reader-controls">
+                      <button
+                        type="button"
+                        className={`actor-btn actor-btn-sm ${cardCameraActive ? 'reader-on' : ''}`}
+                        onClick={cardCameraActive ? stopCardCamera : startCardCamera}
+                      >
+                        {cardCameraActive ? '📷 關閉相機' : '📷 開啟相機連續掃描'}
+                      </button>
+                      {nfcSupported && (
+                        <button
+                          type="button"
+                          className={`actor-btn actor-btn-sm ${nfcActive ? 'reader-on' : ''}`}
+                          onClick={nfcActive ? stopNfc : startNfc}
+                        >
+                          {nfcActive ? '📶 NFC 讀取中' : '📶 啟用 NFC'}
+                        </button>
+                      )}
+                    </div>
+                    {(cardCameraError || nfcError) && (
+                      <p className="card-reader-error">{cardCameraError || nfcError}</p>
+                    )}
+                    {cardCameraActive && (
+                      <div className="video-container card-video">
+                        <video
+                          ref={cardVideoRef}
+                          playsInline
+                          muted
+                          autoPlay
+                          className="scanner-video"
+                        />
+                        <div className="viewfinder-overlay">
+                          <p className="reticle-hint">請小朋友把行動卡放到鏡頭前</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="manual-card-grid">
+                      {CARD_KINDS.map((kind) => (
+                        <button
+                          key={kind.type}
+                          type="button"
+                          className={`manual-card-btn card-${kind.type.toLowerCase()}`}
+                          onClick={() => {
+                            playScanFeedback();
+                            const values = manualCards[kind.type];
+                            const index = manualCardIndexRef.current[kind.type]++ % values.length;
+                            playCard(values[index]);
+                          }}
+                        >
+                          <span className="manual-card-icon">{kind.icon}</span>
+                          <span>{kind.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               /* Battle End Outcome */
               <div className="combat-finished-area">

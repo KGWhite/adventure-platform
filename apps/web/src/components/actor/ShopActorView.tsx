@@ -8,6 +8,8 @@ import type {
   ShopScanResponse,
 } from '../../types/shop.js';
 import { SLOT_LABELS, itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
+import { playScanFeedback } from '../../utils/scanFeedback.js';
+import { WRONG_CARD_FOR_IDENTITY, parseScanPayload } from '../../utils/scanPayload.js';
 import './BossActorView.css';
 import './ShopActorView.css';
 
@@ -135,9 +137,14 @@ export function ShopActorView() {
     }
   };
 
-  const { videoRef, cameraActive, cameraError, startCamera, stopCamera } = useQrScanner((token) => {
-    setCredentialInput(token);
-    scanCard(token);
+  const { videoRef, cameraActive, cameraError, startCamera, stopCamera } = useQrScanner((raw) => {
+    const payload = parseScanPayload(raw);
+    if (payload.kind === 'card') {
+      setErrorMsg(WRONG_CARD_FOR_IDENTITY);
+      return;
+    }
+    setCredentialInput(payload.value);
+    scanCard(payload.value);
   });
 
   const openConfirm = (offer: ShopOffer) => {
@@ -275,6 +282,7 @@ export function ShopActorView() {
                       className="preset-btn"
                       onClick={() => {
                         setCredentialInput(card.cred);
+                        playScanFeedback();
                         scanCard(card.cred);
                       }}
                     >
@@ -294,7 +302,10 @@ export function ShopActorView() {
                   <button
                     type="button"
                     className="actor-btn actor-btn-primary"
-                    onClick={() => scanCard()}
+                    onClick={() => {
+                      playScanFeedback();
+                      scanCard();
+                    }}
                     disabled={isLoading}
                   >
                     {isLoading ? '辨識中...' : '🔍 辨識冒險者'}

@@ -1,5 +1,7 @@
 export type BattleStatus = 'active' | 'victory' | 'defeat';
 
+export type ActionCardKind = 'STRIKE' | 'FIRE' | 'WATER' | 'WIND';
+
 export interface PlayerInfo {
   id: string;
   name: string;
@@ -29,6 +31,8 @@ export interface BattleReward {
 export interface BattleTurn {
   playerDamage: number;
   bossDamage: number;
+  heal: number;
+  skillId: string | null;
   turnNumber: number;
   timestamp: string;
 }
@@ -51,6 +55,55 @@ export interface BattleState {
   displayId: string;
   lastTurn: BattleTurn | null;
   reward: BattleReward | null;
+  castSlot: { type: ActionCardKind; cardValue: string; scannedAt: string }[];
+  comboDeadline: string | null;
+}
+
+export interface ActionCardSummary {
+  value: string;
+  type: ActionCardKind;
+  label: string | null;
+}
+
+export interface CastSkill {
+  id: string;
+  name: string;
+  damage: number;
+  heal: number;
+  bossCountered: boolean;
+}
+
+export interface PlayCardResponse {
+  result: 'charged' | 'cast' | 'fizzled' | 'cooldown';
+  skill: CastSkill | null;
+  castSlot: { type: ActionCardKind }[];
+  comboDeadline: string | null;
+  battle: BattleState;
+}
+
+export interface CardScannedData {
+  battleId: string;
+  playerId: string;
+  cardType: ActionCardKind;
+  castSlot: ActionCardKind[];
+  comboDeadline: string | null;
+}
+
+export interface SkillCastData {
+  battleId: string;
+  playerId: string;
+  skillId: string;
+  skillName: string;
+  cards: ActionCardKind[];
+  damage: number;
+  heal: number;
+  bossCountered: boolean;
+}
+
+export interface SkillFizzledData {
+  battleId: string;
+  playerId: string;
+  cards: ActionCardKind[];
 }
 
 export type GameEventType =
@@ -67,7 +120,10 @@ export type GameEventType =
   | 'quest.completed'
   | 'quest.reward_claimed'
   | 'shop.purchase_completed'
-  | 'equipment.changed';
+  | 'equipment.changed'
+  | 'card.scanned'
+  | 'skill.cast'
+  | 'skill.fizzled';
 
 export interface GameEvent<T = any> {
   type: GameEventType;

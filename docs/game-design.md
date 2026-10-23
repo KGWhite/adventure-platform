@@ -361,6 +361,7 @@ GM (最高管理員)
   - **Boss 手機（Actor Device）**：使用鏡頭掃描冒險者 QR Code，出示攻擊按鈕、釋放技能、施加 Debuff、結算勝負。
   - **場地螢幕（Display Node）**：同步以震撼視覺展示血條扣減、攻擊動畫與勝利結算。
 - **流程獨立性**：Battle 領域計算與結算完全只認知 Player Identity，不受 QR Code 實體細節影響。
+- **實體行動卡（已實作）**：開戰後可切換為卡片攻擊模式，由小朋友刷場地共用的行動卡（攻擊、火、水、風）取代攻擊按鈕；兩張卡在時限內組合為技能。規則與數值見 [docs/specs/action-card-battle.md](specs/action-card-battle.md)。
 
 ### 7.3 冒險者公會 (Adventurer Guild)
 - 負責委託接取、驗證、金幣與功績核發、階級審核，並配置公會狀態終端（利用設備內建鏡頭掃描 QR）供冒險者檢視個人全貌。
@@ -521,12 +522,16 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
   - **交易安全**：條件扣款防止超扣、`requestId` 冪等鍵防止重複扣款，每筆交易寫入 `Purchase` 稽核紀錄。
   - **Demo 商品**：木劍、皮甲（無階級限制）；鐵劍、鎖子甲（需 Rank E）。
   - 詳細規格：[docs/specs/shop-equipment.md](specs/shop-equipment.md)。
+- [x] **Action Card Battle Vertical Slice MVP (刷卡即時回饋與實體行動卡)**：
+  - **即時刷卡回饋**：所有掃卡終端在本地解碼成功的瞬間播放震動、音效與閃光；區網實測刷卡到大螢幕出現卡片的中位數約 25ms。
+  - **行動卡技能組合**：攻擊卡立即攻擊；火／水／風元素卡在 6 秒內組合為火焰龍捲、蒸氣爆發、治癒之雨或元素斬，同元素為魔法失控，單張逾時自動施放元素彈。
+  - **輸入方式**：相機連續掃描、Android Chrome Web NFC（選配）、手動卡片按鈕；按鈕攻擊保留為備援。
+  - 詳細規格：[docs/specs/action-card-battle.md](specs/action-card-battle.md)。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Action Card Battle 垂直切片**：刷卡瞬間的終端與大螢幕即時回饋，以及 Boss 戰中以實體行動卡（攻擊卡、火／水／風元素卡）取代按鈕攻擊並組合技能。需求規格已定案：[docs/specs/action-card-battle.md](specs/action-card-battle.md)。
-2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
-3. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
+1. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
+2. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。

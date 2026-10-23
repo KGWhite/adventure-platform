@@ -41,6 +41,13 @@ enum ItemType {
   ARMOR
 }
 
+enum ActionCardType {
+  STRIKE
+  FIRE
+  WATER
+  WIND
+}
+
 model User {
   id                String             @id @default(cuid())
   username          String             @unique
@@ -313,4 +320,16 @@ model Purchase {
   item       Item              @relation(fields: [itemId], references: [id])
 
   @@map("purchases")
+}
+
+model ActionCard {
+  id        String         @id @default(cuid())
+  value     String         @unique
+  type      ActionCardType
+  label     String?
+  enabled   Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("action_cards")
 }

@@ -1,9 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import type { ActionCardType } from '@prisma/client';
+import { ActionCardsService } from '../action-cards/action-cards.service.js';
 import { BossesService } from '../bosses/bosses.service.js';
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
@@ -12,16 +15,44 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { QuestsService } from '../quests/quests.service.js';
 import type {
   BattleState,
-  BattleTurn,
+  CardPlayResult,
+  CastSkillView,
+  CastSlotEntry,
   CreateBattleInput,
+  PlayCardResponse,
   ScanPlayerInput,
 } from './battles.types.js';
+import {
+  CARD_COOLDOWN_MS,
+  COMBO_WINDOW_MS,
+  type ElementCardType,
+  type SkillDefinition,
+  type SkillId,
+  SKILLS,
+  resolveCard,
+} from './skills.js';
+
+interface TurnAction {
+  playerDamage: number;
+  heal: number;
+  bossCounters: boolean;
+  skillId: SkillId | null;
+}
+
+interface TurnOutcome {
+  playerDamage: number;
+  bossDamage: number;
+  healed: number;
+}
 
 @Injectable()
 export class BattlesService {
   private readonly logger = new Logger(BattlesService.name);
   private readonly battles = new Map<string, BattleState>();
   private readonly turnCounters = new Map<string, number>();
+  private readonly cardCooldowns = new Map<string, Map<string, number>>();
+  private readonly comboTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly battleLocks = new Map<string, Promise<unknown>>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,6 +61,7 @@ export class BattlesService {
     private readonly eventsService: EventsService,
     private readonly questsService: QuestsService,
     private readonly inventoryService: InventoryService,
+    private readonly actionCardsService: ActionCardsService,
   ) {}
 
   async scanPlayer(input: ScanPlayerInput) {
@@ -95,6 +127,8 @@ export class BattlesService {
       displayId,
       lastTurn: null,
       reward: null,
+      castSlot: [],
+      comboDeadline: null,
     };
 
     this.battles.set(battleId, battle);
@@ -142,53 +176,183 @@ export class BattlesService {
   }
 
   async attack(battleId: string): Promise<BattleState> {
-    const battle = this.battles.get(battleId);
-    if (!battle) {
-      throw new NotFoundException(`Battle with ID '${battleId}' not found`);
-    }
+    return this.runExclusive(battleId, async () => {
+      const battle = this.battles.get(battleId);
+      if (!battle) {
+        throw new NotFoundException(`Battle with ID '${battleId}' not found`);
+      }
 
-    if (battle.status !== 'active') {
-      throw new BadRequestException(
-        `Battle is already finished with status '${battle.status}'`,
-      );
-    }
+      if (battle.status !== 'active') {
+        throw new BadRequestException(
+          `Battle is already finished with status '${battle.status}'`,
+        );
+      }
 
-    const currentTurn = (this.turnCounters.get(battleId) ?? 0) + 1;
-    this.turnCounters.set(battleId, currentTurn);
+      // 1. Emit battle.attack
+      this.eventsService.emitBattleAttack(battle.displayId, {
+        battleId,
+        attacker: 'player',
+        attackerName: battle.playerName,
+      });
 
-    // 1. Emit battle.attack
-    this.eventsService.emitBattleAttack(battle.displayId, {
-      battleId,
-      attacker: 'player',
-      attackerName: battle.playerName,
+      // 2. Resolve the turn with base damage
+      const outcome = this.applyTurn(battle, {
+        playerDamage: this.rollBaseDamage(battle),
+        heal: 0,
+        bossCounters: true,
+        skillId: null,
+      });
+      await this.finishTurn(battle, outcome);
+      return { ...battle };
     });
+  }
 
-    // 2. Calculate damage
+  async playCard(battleId: string, cardValue: string): Promise<PlayCardResponse> {
+    if (!this.battles.has(battleId)) {
+      throw new NotFoundException({
+        statusCode: 404,
+        code: 'BATTLE_NOT_FOUND',
+        message: `Battle with ID '${battleId}' not found`,
+      });
+    }
+    const card = await this.actionCardsService.resolve(cardValue);
+
+    return this.runExclusive(battleId, async () => {
+      const battle = this.battles.get(battleId)!;
+      if (battle.status !== 'active') {
+        throw new ConflictException({
+          statusCode: 409,
+          code: 'BATTLE_NOT_ACTIVE',
+          message: `Battle is already finished with status '${battle.status}'`,
+        });
+      }
+
+      const cooldowns = this.cardCooldowns.get(battleId) ?? new Map<string, number>();
+      this.cardCooldowns.set(battleId, cooldowns);
+      const now = Date.now();
+      const lastPlayed = cooldowns.get(card.value);
+      if (lastPlayed !== undefined && now - lastPlayed < CARD_COOLDOWN_MS) {
+        return this.toPlayCardResponse(battle, 'cooldown', null);
+      }
+      cooldowns.set(card.value, now);
+
+      const pending = (battle.castSlot[0]?.type as ElementCardType | undefined) ?? null;
+      const outcome = resolveCard(pending, card.type);
+
+      if (outcome.kind === 'charge') {
+        const entry = { type: card.type, cardValue: card.value, scannedAt: new Date(now).toISOString() };
+        battle.castSlot = [entry];
+        battle.comboDeadline = new Date(now + COMBO_WINDOW_MS).toISOString();
+        this.scheduleComboExpiry(battle, entry);
+        this.emitCardScanned(battle, card.type, [card.type]);
+        return this.toPlayCardResponse(battle, 'charged', null);
+      }
+
+      const cards = [...battle.castSlot.map((entry) => entry.type), card.type];
+      this.clearCombo(battle);
+      this.emitCardScanned(battle, card.type, cards);
+
+      if (outcome.kind === 'fizzle') {
+        this.eventsService.emitSkillFizzled(battle.displayId, {
+          battleId,
+          playerId: battle.playerId,
+          cards,
+        });
+        return this.toPlayCardResponse(battle, 'fizzled', null);
+      }
+
+      const skill = await this.castSkill(battle, outcome.skill, cards);
+      return this.toPlayCardResponse(battle, 'cast', skill);
+    });
+  }
+
+  private rollBaseDamage(battle: BattleState): number {
     // Player deals between 32 and 45 damage plus equipped weapon attack
-    const playerDamage = Math.floor(Math.random() * 14) + 32 + battle.playerAttack;
-    battle.bossHp = Math.max(0, battle.bossHp - playerDamage);
+    return Math.floor(Math.random() * 14) + 32 + battle.playerAttack;
+  }
+
+  private async castSkill(
+    battle: BattleState,
+    skill: SkillDefinition,
+    cards: ActionCardType[],
+  ): Promise<CastSkillView> {
+    const playerDamage =
+      skill.damageMultiplier > 0 ? Math.round(this.rollBaseDamage(battle) * skill.damageMultiplier) : 0;
+    const outcome = this.applyTurn(battle, {
+      playerDamage,
+      heal: skill.heal,
+      bossCounters: skill.bossCounters,
+      skillId: skill.id,
+    });
+    const view: CastSkillView = {
+      id: skill.id,
+      name: skill.name,
+      damage: outcome.playerDamage,
+      heal: outcome.healed,
+      bossCountered: outcome.bossDamage > 0,
+    };
+
+    this.eventsService.emitSkillCast(battle.displayId, {
+      battleId: battle.id,
+      playerId: battle.playerId,
+      skillId: skill.id,
+      skillName: skill.name,
+      cards,
+      damage: view.damage,
+      heal: view.heal,
+      bossCountered: view.bossCountered,
+    });
+    await this.finishTurn(battle, outcome);
+    this.logger.log(`${battle.playerName} cast ${skill.name} (${cards.join('+')}) in ${battle.id}`);
+    return view;
+  }
+
+  /** Applies damage, healing and the boss counter to the in-memory battle. */
+  private applyTurn(battle: BattleState, action: TurnAction): TurnOutcome {
+    const turnNumber = (this.turnCounters.get(battle.id) ?? 0) + 1;
+    this.turnCounters.set(battle.id, turnNumber);
+
+    const healed = Math.min(action.heal, battle.playerMaxHp - battle.playerHp);
+    battle.playerHp += healed;
+    battle.bossHp = Math.max(0, battle.bossHp - action.playerDamage);
 
     let bossDamage = 0;
-
     if (battle.bossHp <= 0) {
-      // Boss Defeated -> Victory!
-      battle.bossHp = 0;
-      bossDamage = 0;
       battle.status = 'victory';
       battle.endedAt = new Date().toISOString();
+      battle.reward = { gold: 120, merit: 10, item: 'Black Knight Medal' };
+    } else if (action.bossCounters) {
+      // Boss counter-attacks (12 to 20 damage), reduced by armor defense (min 1)
+      bossDamage = Math.max(1, Math.floor(Math.random() * 9) + 12 - battle.playerDefense);
+      battle.playerHp = Math.max(0, battle.playerHp - bossDamage);
+      if (battle.playerHp <= 0) {
+        battle.status = 'defeat';
+        battle.endedAt = new Date().toISOString();
+      }
+    }
 
-      const rewardGold = 120;
-      const rewardMerit = 10;
-      const rewardItem = 'Black Knight Medal';
+    battle.lastTurn = {
+      playerDamage: action.playerDamage,
+      bossDamage,
+      heal: healed,
+      skillId: action.skillId,
+      turnNumber,
+      timestamp: new Date().toISOString(),
+    };
+    if (battle.status !== 'active') {
+      this.clearCombo(battle);
+      this.cardCooldowns.delete(battle.id);
+    }
+    return { playerDamage: action.playerDamage, bossDamage, healed };
+  }
 
-      battle.reward = {
-        gold: rewardGold,
-        merit: rewardMerit,
-        item: rewardItem,
-      };
+  /** Grants rewards, emits HP / outcome events and persists the battle. */
+  private async finishTurn(battle: BattleState, outcome: TurnOutcome) {
+    const battleId = battle.id;
 
+    if (battle.status === 'victory' && battle.reward) {
       // Server authoritative player state update
-      await this.grantVictoryRewards(battle.playerId, rewardGold, rewardMerit, battleId);
+      await this.grantVictoryRewards(battle.playerId, battle.reward.gold, battle.reward.merit, battleId);
 
       // Trigger Quest Progress Handler (Battle Result -> Player -> Boss ID -> Quest Progress)
       try {
@@ -196,18 +360,19 @@ export class BattlesService {
       } catch (questErr) {
         this.logger.error(`Failed to update quest progress for player ${battle.playerId}`, questErr);
       }
+    }
 
-      // Emit events: damage -> victory -> reward.received
-      this.eventsService.emitBattleDamage(battle.displayId, {
-        battleId,
-        playerDamageDealt: playerDamage,
-        bossDamageDealt: 0,
-        playerHp: battle.playerHp,
-        playerMaxHp: battle.playerMaxHp,
-        bossHp: 0,
-        bossMaxHp: battle.bossMaxHp,
-      });
+    this.eventsService.emitBattleDamage(battle.displayId, {
+      battleId,
+      playerDamageDealt: outcome.playerDamage,
+      bossDamageDealt: outcome.bossDamage,
+      playerHp: battle.playerHp,
+      playerMaxHp: battle.playerMaxHp,
+      bossHp: battle.bossHp,
+      bossMaxHp: battle.bossMaxHp,
+    });
 
+    if (battle.status === 'victory' && battle.reward) {
       this.eventsService.emitBattleVictory(battle.displayId, {
         battleId,
         playerId: battle.playerId,
@@ -215,64 +380,21 @@ export class BattlesService {
         bossId: battle.bossId,
         bossName: battle.bossName,
       });
-
       this.eventsService.emitRewardReceived(battle.displayId, {
         battleId,
         playerId: battle.playerId,
         playerName: battle.playerName,
-        gold: rewardGold,
-        merit: rewardMerit,
-        item: rewardItem,
+        ...battle.reward,
       });
-    } else {
-      // Boss counter-attacks (12 to 20 damage), reduced by armor defense (min 1)
-      bossDamage = Math.max(1, Math.floor(Math.random() * 9) + 12 - battle.playerDefense);
-      battle.playerHp = Math.max(0, battle.playerHp - bossDamage);
-
-      if (battle.playerHp <= 0) {
-        // Player defeated
-        battle.playerHp = 0;
-        battle.status = 'defeat';
-        battle.endedAt = new Date().toISOString();
-
-        this.eventsService.emitBattleDamage(battle.displayId, {
-          battleId,
-          playerDamageDealt: playerDamage,
-          bossDamageDealt: bossDamage,
-          playerHp: 0,
-          playerMaxHp: battle.playerMaxHp,
-          bossHp: battle.bossHp,
-          bossMaxHp: battle.bossMaxHp,
-        });
-
-        this.eventsService.emitBattleDefeat(battle.displayId, {
-          battleId,
-          playerId: battle.playerId,
-          playerName: battle.playerName,
-          bossId: battle.bossId,
-          bossName: battle.bossName,
-        });
-      } else {
-        // Normal damage exchange
-        this.eventsService.emitBattleDamage(battle.displayId, {
-          battleId,
-          playerDamageDealt: playerDamage,
-          bossDamageDealt: bossDamage,
-          playerHp: battle.playerHp,
-          playerMaxHp: battle.playerMaxHp,
-          bossHp: battle.bossHp,
-          bossMaxHp: battle.bossMaxHp,
-        });
-      }
+    } else if (battle.status === 'defeat') {
+      this.eventsService.emitBattleDefeat(battle.displayId, {
+        battleId,
+        playerId: battle.playerId,
+        playerName: battle.playerName,
+        bossId: battle.bossId,
+        bossName: battle.bossName,
+      });
     }
-
-    const turn: BattleTurn = {
-      playerDamage,
-      bossDamage,
-      turnNumber: currentTurn,
-      timestamp: new Date().toISOString(),
-    };
-    battle.lastTurn = turn;
 
     // Update DB if connected
     try {
@@ -291,8 +413,71 @@ export class BattlesService {
     } catch {
       // Ignored if DB not ready
     }
+  }
 
-    return { ...battle };
+  private scheduleComboExpiry(battle: BattleState, entry: CastSlotEntry) {
+    this.clearComboTimer(battle.id);
+    const timer = setTimeout(() => {
+      this.runExclusive(battle.id, async () => {
+        // A later card may already have resolved this combo
+        if (battle.status !== 'active' || battle.castSlot[0] !== entry) return;
+        this.clearCombo(battle);
+        await this.castSkill(battle, SKILLS['element-bolt'], [entry.type]);
+      }).catch((err) => this.logger.error(`Combo expiry failed for ${battle.id}`, err));
+    }, COMBO_WINDOW_MS);
+    timer.unref?.();
+    this.comboTimers.set(battle.id, timer);
+  }
+
+  private clearCombo(battle: BattleState) {
+    battle.castSlot = [];
+    battle.comboDeadline = null;
+    this.clearComboTimer(battle.id);
+  }
+
+  private clearComboTimer(battleId: string) {
+    const timer = this.comboTimers.get(battleId);
+    if (timer) clearTimeout(timer);
+    this.comboTimers.delete(battleId);
+  }
+
+  private emitCardScanned(battle: BattleState, cardType: ActionCardType, castSlot: ActionCardType[]) {
+    this.eventsService.emitCardScanned(battle.displayId, {
+      battleId: battle.id,
+      playerId: battle.playerId,
+      cardType,
+      castSlot,
+      comboDeadline: battle.comboDeadline,
+    });
+  }
+
+  private toPlayCardResponse(
+    battle: BattleState,
+    result: CardPlayResult,
+    skill: CastSkillView | null,
+  ): PlayCardResponse {
+    return {
+      result,
+      skill,
+      castSlot: battle.castSlot.map(({ type }) => ({ type })),
+      comboDeadline: battle.comboDeadline,
+      battle: { ...battle, castSlot: [...battle.castSlot] },
+    };
+  }
+
+  /**
+   * Serializes actions per battle so a card scan, a button attack and a combo
+   * timeout never resolve the same turn concurrently.
+   */
+  private runExclusive<T>(battleId: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.battleLocks.get(battleId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(task);
+    const tail = run.catch(() => undefined);
+    this.battleLocks.set(battleId, tail);
+    void tail.then(() => {
+      if (this.battleLocks.get(battleId) === tail) this.battleLocks.delete(battleId);
+    });
+    return run;
   }
 
   private async grantVictoryRewards(

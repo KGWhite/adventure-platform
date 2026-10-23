@@ -195,6 +195,7 @@ Represents an authoritative combat session between an Adventurer (Player) and a 
 - `rewardItem`: Text/item reward descriptor (e.g. `Black Knight Medal`)
 - **Runtime Note**: Active battle state is held in API process memory and mirrored to this table; restarting the API ends in-progress battles.
 - **Equipment Stats**: When a battle starts, the player's equipped weapon `attack` and armor `defense` are snapshotted into the in-memory battle state. Player damage is `32–45 + attack`; boss counter damage is `max(1, 12–20 − defense)`. Players without inventory (e.g. in-memory demo fallback) fight with `0 / 0`.
+- **Action Card Combos**: In card mode, each battle keeps an in-memory cast slot (at most one pending element card), a 6-second combo deadline with a server timer, and a 2-second cooldown per physical card. Skills scale the base damage (`element-slash` / `steam-burst` ×1.5, `fire-tornado` ×2) or heal 30 HP (`healing-rain`); `steam-burst` skips the boss counter and a same-element pair fizzles. Rules are code constants in `apps/api/src/battles/skills.ts`; casts are not persisted beyond the battle's HP and status.
 - **Server Authoritative Rule**: Damage, counterattacks, victory, and reward payouts are strictly calculated on the Game Server. Frontend displays and mobile actor terminals act purely as presentation and command triggers.
 
 ### Item (`items` table)
@@ -226,6 +227,15 @@ Immutable audit record of a gold purchase.
 - `requestId`: Unique idempotency key supplied by the terminal; replaying the same key returns the original purchase without charging again
 - `createdAt`: Timestamp
 - **Transaction Rule**: Debit, `PlayerItem` creation and `Purchase` creation run in one transaction. Gold is debited with a conditional update (`gold >= price`), so concurrent purchases can never overdraw an adventurer.
+
+### ActionCard (`action_cards` table)
+A shared venue action card — "what am I doing", as opposed to `Credential` — "who am I". Not owned by any adventurer.
+- `id`: Unique identifier (CUID)
+- `value`: Unique token printed on the physical carrier (QR `adventure://card/<value>` or NFC NDEF record), e.g. `card-fire-001`
+- `type`: Enum `ActionCardType` (`STRIKE`, `FIRE`, `WATER`, `WIND`)
+- `label`: Optional printed label for on-site identification
+- `enabled`: Availability toggle
+- `createdAt`, `updatedAt`: Timestamps
 
 ---
 
@@ -309,6 +319,8 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/battles/scan` | Public (terminal) | Resolve a player and announce the scan to a display |
 | `POST` | `/api/v1/battles` | Public (terminal) | Start a battle |
 | `POST` | `/api/v1/battles/:id/attack` | Public (terminal) | Resolve one attack turn |
+| `POST` | `/api/v1/battles/:id/cards` | Public (terminal) | Play an action card (`charged` / `cast` / `fizzled` / `cooldown`) |
+| `GET` | `/api/v1/action-cards` | Public | List enabled action cards |
 | `GET` | `/api/v1/battles/:id` | Public (terminal) | Get battle state |
 | `GET` | `/api/v1/events/stream` | Public | SSE event stream (WebSocket at `/ws`) |
 | `GET` | `/api/v1/events/status` | Public | Realtime gateway status |
@@ -316,7 +328,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 > [!WARNING]
 > Endpoints marked **Public (terminal)** are used by the on-site `/guild`, `/actor/boss` and `/actor/shop/:shopId` terminals and currently have no authentication.
 >
-> Shop and inventory endpoints have no in-memory fallback: they return `503` (`DATABASE_UNAVAILABLE`) when the database is unreachable. Their error bodies include a machine-readable `code` (e.g., `INSUFFICIENT_GOLD`, `RANK_REQUIRED`, `ALREADY_OWNED`, `ITEM_NOT_AVAILABLE`, `REQUEST_ID_REUSED`, `CREDENTIAL_DISABLED`).
+> Shop, inventory and action card endpoints have no in-memory fallback: they return `503` (`DATABASE_UNAVAILABLE`) when the database is unreachable. Their error bodies include a machine-readable `code` (e.g., `INSUFFICIENT_GOLD`, `RANK_REQUIRED`, `ALREADY_OWNED`, `ITEM_NOT_AVAILABLE`, `REQUEST_ID_REUSED`, `CREDENTIAL_DISABLED`, `BATTLE_NOT_FOUND`, `BATTLE_NOT_ACTIVE`, `CARD_NOT_FOUND`, `CARD_DISABLED`).
 
 > [!IMPORTANT]
 > **Data Exposure Policy**: Password hashes (`passwordHash`) are strictly excluded from all public API outputs via `select` projections and `sanitizeUser` utilities.
@@ -353,4 +365,4 @@ The platform implements a lightweight token-based authentication mechanism desig
 - **Promotions**: `PromotionRequest` model exists; promotion eligibility checking and admin review approval workflows are scheduled for future phases. **No automatic rank-up logic exists.**
 - **Rewards**: `Reward` model exists as an extensible schema skeleton; reward fulfillment, physical dispenser triggers, and animation playback are deliberately not implemented in this phase.
 - **Shop & Equipment**: One shop (`shop-01`) sells weapons and armor; equipping happens at purchase time or at `/guild`. Selling back, consumables, stock limits, quest-unlocked items and admin item management are not implemented. Battle reward items (e.g. `Black Knight Medal`) are not added to the inventory.
-- **Hardware Integration**: QR Codes are scanned with the device camera in the browser (`/guild`, `/actor/boss`, `/actor/shop/:shopId`) or entered manually. No RFID readers or NFC hardware drivers exist yet.
+- **Hardware Integration**: QR Codes are scanned with the device camera in the browser (`/guild`, `/actor/boss`, `/actor/shop/:shopId`) or entered manually. `/actor/boss` card mode can also read NFC tags through Web NFC (Chrome on Android only). No RFID readers, USB / Bluetooth NFC readers or native drivers exist yet.
