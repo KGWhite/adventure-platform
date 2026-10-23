@@ -36,10 +36,8 @@ export function GuildTerminalView() {
         video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      // The <video> element only mounts once cameraActive is true; the effect
+      // below attaches the stream after it renders.
       setCameraActive(true);
       startQrFrameDetection();
     } catch (err: any) {
@@ -110,6 +108,15 @@ export function GuildTerminalView() {
     setCredentialInput(token);
     scanGuildTerminal(token);
   };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!cameraActive || !video || !streamRef.current) return;
+    video.srcObject = streamRef.current;
+    video.play().catch(() => {
+      // autoPlay + muted normally starts playback; ignore interrupted play()
+    });
+  }, [cameraActive]);
 
   useEffect(() => {
     return () => {
