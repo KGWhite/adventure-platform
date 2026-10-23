@@ -9,7 +9,9 @@ export type GameEventType =
   | 'quest.accepted'
   | 'quest.progress_updated'
   | 'quest.completed'
-  | 'quest.reward_claimed';
+  | 'quest.reward_claimed'
+  | 'shop.purchase_completed'
+  | 'equipment.changed';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -39,6 +41,8 @@ export interface BattleStartedData {
     level: number;
     hp: number;
     maxHp: number;
+    attack: number;
+    defense: number;
   };
   boss: {
     id: string;
@@ -121,4 +125,31 @@ export interface QuestRewardClaimedData {
   playerId: string;
   rewardGold: number;
   rewardMerit: number;
+}
+
+export interface ShopPurchaseCompletedData {
+  purchaseId: string;
+  shopId: string;
+  playerId: string;
+  playerName: string;
+  item: {
+    id: string;
+    name: string;
+    type: 'WEAPON' | 'ARMOR';
+    attack: number;
+    defense: number;
+    iconKey: string | null;
+  };
+  price: number;
+  goldAfter: number;
+  equipped: boolean;
+}
+
+export interface EquipmentChangedData {
+  playerId: string;
+  playerName: string;
+  slot: 'WEAPON' | 'ARMOR';
+  equippedItem: { id: string; name: string } | null;
+  attack: number;
+  defense: number;
 }

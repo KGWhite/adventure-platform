@@ -77,14 +77,16 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
    - **Layout Shells**: `src/layouts/` (`UserLayout` featuring mobile-first AppBar + BottomNavigation; `AdminLayout` featuring AppBar + persistent/collapsible Drawer sidebar sharing the same central theme).
    - **Routing & Protection**: Client-side history navigation with role-based route protection:
      - `/login`: Public authentication page with quick demo account buttons.
-     - `/user`: Mobile-first Adventurer Dashboard (Rank badge, Merit progress, Credential status).
+     - `/user`: Mobile-first Adventurer Dashboard (Rank badge, Merit progress, Credential status, read-only equipment and backpack).
      - `/user/profile`: Adventurer detailed profile and credential management.
      - `/user/quests`: Read-only guild quest notices listing `GET /api/v1/quests` with gold / merit rewards; quests are accepted and claimed at `/guild`.
      - `/user/rewards`: Guild merit rewards exchange (Coming soon placeholder).
      - `/admin`: Guild Administration Console (`dashboard`, `adventurers`, `ranks`, `credentials`, and Coming soon tabs).
-     - `/guild`: **Guild Terminal (World Node)**: Adventurer Card scanning, Adventurer status, Quest acceptance, progress tracking, and reward claiming.
+     - `/guild`: **Guild Terminal (World Node)**: Adventurer Card scanning, Adventurer status, Quest acceptance, progress tracking, reward claiming, and equipping / unequipping items.
      - `/actor/boss`: **World Actor Terminal**: Mobile-first Boss battle control terminal.
-     - `/display/:displayId`: **World Display Node** (e.g. `/display/boss-01`; every `/display/*` path currently renders the Boss display): Large-screen RPG HUD with HP animations, sound/vibration effects, and victory settlement.
+     - `/actor/shop/:shopId`: **Shop Keeper Terminal (World Actor)**: Card scanning, per-player offers with lock reasons, purchase confirmation with optional immediate equip.
+     - `/display/shop-*`: **Shop Display Node** (e.g. `/display/shop-01`): Idle item showcase, welcome screen, purchase reveal animation, and equipment change toast.
+     - `/display/:displayId`: **World Display Node** (e.g. `/display/boss-01`; every `/display/*` path other than `/display/shop-*` renders the Boss display): Large-screen RPG HUD with HP animations, sound/vibration effects, and victory settlement.
    - **Local Visual Feedback Architecture**:
      - `src/types/feedback.ts` (`FeedbackEvent`) and `src/components/feedback/` (`GameFeedbackOverlay`, `questCompletionToFeedbackEvent`). No page currently renders the overlay; it is kept as the extension point for local and real-time feedback.
      - **API Flow**: User action ──► API request ──► Backend validation & DB update ──► API success ──► Frontend `FeedbackEvent` ──► Staged animation sequence.
@@ -109,9 +111,11 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `RanksModule`: Database-driven rank tiers (F through S).
      - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC) with in-memory fallback. `POST /credentials` is restricted to `ADMIN`.
      - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
-     - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `GET /battles/:id`).
+     - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `GET /battles/:id`); snapshots equipment stats from `InventoryModule` at battle start.
      - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
-     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455, `/ws`) & SSE streaming (`GET /events/stream`, status at `GET /events/status`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`).
+     - `InventoryModule`: Adventurer inventory and equipment (`GET /players/:playerId/inventory`, `POST /players/:playerId/equipment`, `DELETE /players/:playerId/equipment/:slot`).
+     - `ShopsModule`: Shop catalog, scan and purchase transactions (`GET /shops/:shopId`, `POST /shops/:shopId/scan`, `POST /shops/:shopId/purchases`). Requires the database (no in-memory fallback).
+     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455, `/ws`) & SSE streaming (`GET /events/stream`, status at `GET /events/status`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`, `shop.purchase_completed`, `equipment.changed`).
      - `PrismaModule`: Global Prisma database connection service.
    - **Request Validation**: Global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); request body DTOs declare `class-validator` rules and invalid or unknown fields return `400 Bad Request`.
    - **ORM**: Prisma embedded directly within the API service.
@@ -174,13 +178,13 @@ To support the physical RPG gameplay where real-world spaces represent the game 
    - Core game engines (Battle, Shop, Guild, Quests, Display) depend solely on the resolved `Player` identity and are wholly oblivious to how the credential token was acquired.
 3. **Scanner Abstraction & Migration Boundary**:
    - Target design: all input mechanisms implement a unified `Scanner` interface outputting a standard `AdventureIdentity` token.
-   - *Current implementation*: `/actor/boss` and `/guild` each embed a camera / manual input mode and send the raw `credentialValue` to the API; a shared `Scanner` interface has not been extracted yet.
+   - *Current implementation*: `/actor/boss`, `/guild` and `/actor/shop/:shopId` each offer a camera / manual input mode and send the raw `credentialValue` to the API. `/actor/shop` uses the `useQrScanner` hook; the other two still embed their own camera code, and a shared `Scanner` interface has not been extracted yet.
    - **Future NFC Migration Impact Boundary**:
      - *Modules Affected*: Only the edge input adapter (`QRScanner` replaced or supplemented by `NFCScanner` / Web NFC / serial reader adapter).
      - *Modules Guaranteed Unaffected*: NestJS API, Prisma schema, `User`/`AdventurerProfile` domains, QuestsModule, Battle logic, Shop logic, Rule Engine, WebSocket Gateway, and Display Node views.
 4. **Separation of Control and Presentation**:
    - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands.
-   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01` today; `/display/guild-01` and `/display/shop-01` are planned) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
+   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01` and `/display/shop-01` today; `/display/guild-01` is planned) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
 5. **Command vs Event Transport Separation**:
    - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /api/v1/battles`, `POST /api/v1/battles/:id/attack`, `POST /api/v1/battles/scan`, `POST /api/v1/credentials/validate`).
    - **Realtime Events (Presentations)**: Dispatched asynchronously via Pure Node.js RFC 6455 WebSocket Gateway (and SSE stream fallback `/api/v1/events/stream`) to subscribed Display Nodes. Display nodes remain stateless renderers.
@@ -193,6 +197,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
      - `battle.defeat`: Challenger fallen, displays defeat banner.
      - `reward.received`: Gold and Merit awarded, reflects server ledger update (+120 Gold, +10 Merit, Medal).
      - `quest.accepted`, `quest.progress_updated`, `quest.completed`, `quest.reward_claimed`: Guild quest lifecycle events (currently published to `guild-01`).
+     - `shop.purchase_completed`: Purchase succeeded (item, price, gold after, equipped flag); published to the shop's display (default `shop-01`). Failed purchases emit nothing.
+     - `equipment.changed`: Slot change with new total attack / defense; published to the shop display on purchase-with-equip, or to `guild-01` when changed at the guild.
 
 6. **Generalization to World Output Node (Long-Term)**:
    - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
@@ -203,7 +209,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 
 - **Completed**: Boss Vertical Slice MVP (`/actor/boss` + `/display/boss-01` + BattlesModule + EventsModule + BossesModule)
 - **Completed**: Guild + Quest Vertical Slice MVP (`/guild` + `PlayerQuest` acceptance, progress and reward claim)
-- **Next Candidates**: Shop + Equipment → Rank Up → Guild Status Terminal (`/display/guild-01`)
+- **Completed**: Shop + Equipment Vertical Slice MVP (`/actor/shop/shop-01` + `/display/shop-01` + ShopsModule + InventoryModule; see [Shop + Equipment spec](../specs/shop-equipment.md))
+- **Next Candidates**: Rank Up → Guild Status Terminal (`/display/guild-01`)
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.

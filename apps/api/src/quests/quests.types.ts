@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import type { InventoryView } from '../inventory/inventory.types.js';
 
 export type PlayerQuestStatus = 'accepted' | 'completed' | 'claimed';
 
@@ -68,6 +69,7 @@ export interface GuildScanResult {
   };
   activeQuest: PlayerQuestData | null;
   availableQuests: QuestData[];
+  inventory: InventoryView | null;
 }
 
 export interface ClaimRewardResult {

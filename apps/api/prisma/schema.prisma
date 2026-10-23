@@ -36,6 +36,11 @@ enum PlayerQuestStatus {
   CLAIMED
 }
 
+enum ItemType {
+  WEAPON
+  ARMOR
+}
+
 model User {
   id                String             @id @default(cuid())
   username          String             @unique
@@ -62,30 +67,33 @@ model Rank {
   quests             Quest[]
   promotionsFrom     PromotionRequest[]  @relation("PromotionFrom")
   promotionsTo       PromotionRequest[]  @relation("PromotionTo")
+  shopItems          ShopItem[]
 
   @@map("ranks")
 }
 
 model AdventurerProfile {
-  id                 String              @id @default(cuid())
-  userId             String              @unique
+  id                 String             @id @default(cuid())
+  userId             String             @unique
   displayName        String
   currentRankId      String
-  level              Int                 @default(1)
-  hp                 Int                 @default(100)
-  maxHp              Int                 @default(100)
-  gold               Int                 @default(0)
-  merit              Int                 @default(0)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentRank        Rank                @relation(fields: [currentRankId], references: [id])
+  level              Int                @default(1)
+  hp                 Int                @default(100)
+  maxHp              Int                @default(100)
+  gold               Int                @default(0)
+  merit              Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRank        Rank               @relation(fields: [currentRankId], references: [id])
   credentials        Credential[]
   questCompletions   QuestCompletion[]
   meritLedgerEntries MeritLedger[]
   promotionRequests  PromotionRequest[]
   battles            Battle[]
   playerQuests       PlayerQuest[]
+  playerItems        PlayerItem[]
+  purchases          Purchase[]
 
   @@map("adventurer_profiles")
 }
@@ -229,4 +237,80 @@ model Battle {
   boss        Boss              @relation(fields: [bossId], references: [id], onDelete: Cascade)
 
   @@map("battles")
+}
+
+model Item {
+  id          String       @id
+  name        String
+  description String?
+  type        ItemType
+  attack      Int          @default(0)
+  defense     Int          @default(0)
+  iconKey     String?
+  enabled     Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  shopItems   ShopItem[]
+  playerItems PlayerItem[]
+  purchases   Purchase[]
+
+  @@map("items")
+}
+
+model Shop {
+  id        String     @id
+  name      String
+  enabled   Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     ShopItem[]
+  purchases Purchase[]
+
+  @@map("shops")
+}
+
+model ShopItem {
+  id             String  @id @default(cuid())
+  shopId         String
+  itemId         String
+  price          Int
+  requiredRankId String?
+  sortOrder      Int     @default(0)
+  enabled        Boolean @default(true)
+  shop           Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  item           Item    @relation(fields: [itemId], references: [id])
+  requiredRank   Rank?   @relation(fields: [requiredRankId], references: [id])
+
+  @@unique([shopId, itemId])
+  @@map("shop_items")
+}
+
+model PlayerItem {
+  id         String            @id @default(cuid())
+  playerId   String
+  itemId     String
+  equipped   Boolean           @default(false)
+  acquiredAt DateTime          @default(now())
+  player     AdventurerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  item       Item              @relation(fields: [itemId], references: [id])
+
+  @@unique([playerId, itemId])
+  @@map("player_items")
+}
+
+model Purchase {
+  id         String            @id @default(cuid())
+  playerId   String
+  shopId     String
+  itemId     String
+  price      Int
+  goldBefore Int
+  goldAfter  Int
+  requestId  String            @unique
+  createdAt  DateTime          @default(now())
+  player     AdventurerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  shop       Shop              @relation(fields: [shopId], references: [id])
+  item       Item              @relation(fields: [itemId], references: [id])
+
+  @@map("purchases")
 }

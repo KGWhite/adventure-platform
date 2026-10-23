@@ -9,9 +9,11 @@ import { BossesModule } from './bosses/bosses.module.js';
 import { CredentialsModule } from './credentials/credentials.module.js';
 import { EventsModule } from './events/events.module.js';
 import { HealthModule } from './health/health.module.js';
+import { InventoryModule } from './inventory/inventory.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { QuestsModule } from './quests/quests.module.js';
 import { RanksModule } from './ranks/ranks.module.js';
+import { ShopsModule } from './shops/shops.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -28,9 +30,10 @@ import { UsersModule } from './users/users.module.js';
     EventsModule,
     BossesModule,
     BattlesModule,
+    InventoryModule,
+    ShopsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-

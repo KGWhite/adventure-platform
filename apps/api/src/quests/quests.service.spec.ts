@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CredentialsModule } from '../credentials/credentials.module.js';
 import { EventsModule } from '../events/events.module.js';
 import { EventsService } from '../events/events.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { QuestsService } from './quests.service.js';
@@ -16,6 +17,10 @@ describe('QuestsService (Guild + Quest Vertical Slice)', () => {
       imports: [PrismaModule, EventsModule, CredentialsModule],
       providers: [
         QuestsService,
+        {
+          provide: InventoryService,
+          useValue: { getInventory: vi.fn().mockRejectedValue(new Error('no inventory')) },
+        },
         {
           provide: PrismaService,
           useValue: {

@@ -7,6 +7,7 @@ import {
 import { BossesService } from '../bosses/bosses.service.js';
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { QuestsService } from '../quests/quests.service.js';
 import type {
@@ -28,6 +29,7 @@ export class BattlesService {
     private readonly bossesService: BossesService,
     private readonly eventsService: EventsService,
     private readonly questsService: QuestsService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   async scanPlayer(input: ScanPlayerInput) {
@@ -68,7 +70,12 @@ export class BattlesService {
     // 2. Validate boss
     const boss = await this.bossesService.findById(input.bossId);
 
-    // 3. Create battle instance
+    // 3. Snapshot equipment stats; in-memory demo players have no inventory
+    const equipmentStats = await this.inventoryService
+      .getEquipmentStats(player.id)
+      .catch(() => ({ attack: 0, defense: 0 }));
+
+    // 4. Create battle instance
     const battleId = `battle-${Date.now()}`;
     const battle: BattleState = {
       id: battleId,
@@ -78,6 +85,8 @@ export class BattlesService {
       bossName: boss.name,
       playerHp: player.hp,
       playerMaxHp: player.maxHp,
+      playerAttack: equipmentStats.attack,
+      playerDefense: equipmentStats.defense,
       bossHp: boss.hp,
       bossMaxHp: boss.maxHp,
       status: 'active',
@@ -108,7 +117,7 @@ export class BattlesService {
       // Ignored if DB not ready
     }
 
-    // 4. Emit battle.started event
+    // 5. Emit battle.started event
     this.eventsService.emitBattleStarted(displayId, {
       battleId,
       player: {
@@ -117,6 +126,8 @@ export class BattlesService {
         level: player.level,
         hp: battle.playerHp,
         maxHp: battle.playerMaxHp,
+        attack: battle.playerAttack,
+        defense: battle.playerDefense,
       },
       boss: {
         id: boss.id,
@@ -153,8 +164,8 @@ export class BattlesService {
     });
 
     // 2. Calculate damage
-    // Player deals between 32 and 45 damage
-    const playerDamage = Math.floor(Math.random() * 14) + 32;
+    // Player deals between 32 and 45 damage plus equipped weapon attack
+    const playerDamage = Math.floor(Math.random() * 14) + 32 + battle.playerAttack;
     battle.bossHp = Math.max(0, battle.bossHp - playerDamage);
 
     let bossDamage = 0;
@@ -214,8 +225,8 @@ export class BattlesService {
         item: rewardItem,
       });
     } else {
-      // Boss counter-attacks (12 to 20 damage)
-      bossDamage = Math.floor(Math.random() * 9) + 12;
+      // Boss counter-attacks (12 to 20 damage), reduced by armor defense (min 1)
+      bossDamage = Math.max(1, Math.floor(Math.random() * 9) + 12 - battle.playerDefense);
       battle.playerHp = Math.max(0, battle.playerHp - bossDamage);
 
       if (battle.playerHp <= 0) {

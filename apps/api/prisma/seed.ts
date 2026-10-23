@@ -1,4 +1,4 @@
-import { CredentialType, PrismaClient, Role } from '@prisma/client';
+import { CredentialType, ItemType, PrismaClient, Role } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -293,6 +293,94 @@ async function main() {
       enabled: true,
     },
   });
+
+  // 9. Shop + Equipment Vertical Slice: shop-01 catalogue
+  const rankE = createdRanks['E'];
+  const shopItems = [
+    {
+      item: {
+        id: 'item-wooden-sword',
+        name: '木劍 (Wooden Sword)',
+        description: '新手冒險者的第一把劍，輕巧好揮。',
+        type: ItemType.WEAPON,
+        attack: 3,
+        defense: 0,
+        iconKey: 'sword-wood',
+      },
+      price: 30,
+      requiredRankId: null,
+      sortOrder: 1,
+    },
+    {
+      item: {
+        id: 'item-iron-sword',
+        name: '鐵劍 (Iron Sword)',
+        description: '公會鐵匠打造的制式長劍，需 Rank E 以上才可購買。',
+        type: ItemType.WEAPON,
+        attack: 8,
+        defense: 0,
+        iconKey: 'sword-iron',
+      },
+      price: 100,
+      requiredRankId: rankE.id,
+      sortOrder: 2,
+    },
+    {
+      item: {
+        id: 'item-leather-armor',
+        name: '皮甲 (Leather Armor)',
+        description: '以鞣製皮革縫製的輕甲，能減輕敵人的攻擊。',
+        type: ItemType.ARMOR,
+        attack: 0,
+        defense: 3,
+        iconKey: 'armor-leather',
+      },
+      price: 40,
+      requiredRankId: null,
+      sortOrder: 3,
+    },
+    {
+      item: {
+        id: 'item-chain-mail',
+        name: '鎖子甲 (Chain Mail)',
+        description: '由鐵環編織而成的護甲，需 Rank E 以上才可購買。',
+        type: ItemType.ARMOR,
+        attack: 0,
+        defense: 6,
+        iconKey: 'armor-chain',
+      },
+      price: 120,
+      requiredRankId: rankE.id,
+      sortOrder: 4,
+    },
+  ];
+
+  await prisma.shop.upsert({
+    where: { id: 'shop-01' },
+    update: { name: '冒險者商店 (Adventurer Shop)', enabled: true },
+    create: { id: 'shop-01', name: '冒險者商店 (Adventurer Shop)', enabled: true },
+  });
+
+  for (const entry of shopItems) {
+    const { id, ...itemData } = entry.item;
+    await prisma.item.upsert({
+      where: { id },
+      update: { ...itemData, enabled: true },
+      create: { id, ...itemData, enabled: true },
+    });
+
+    const shopItemData = {
+      price: entry.price,
+      requiredRankId: entry.requiredRankId,
+      sortOrder: entry.sortOrder,
+      enabled: true,
+    };
+    await prisma.shopItem.upsert({
+      where: { shopId_itemId: { shopId: 'shop-01', itemId: id } },
+      update: shopItemData,
+      create: { shopId: 'shop-01', itemId: id, ...shopItemData },
+    });
+  }
 
   console.log('Development seed completed successfully.');
 }

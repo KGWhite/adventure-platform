@@ -30,7 +30,7 @@ The system models an **Adventurer Guild**:
 └──────────────────┘
 ```
 
-> The diagram shows the Phase 4 identity and progression entities. `PlayerQuest` (AdventurerProfile ↔ Quest progress), `Boss`, and `Battle` (AdventurerProfile ↔ Boss) are described in [Core Entities](#2-core-entities).
+> The diagram shows the Phase 4 identity and progression entities. `PlayerQuest` (AdventurerProfile ↔ Quest progress), `Boss`, `Battle` (AdventurerProfile ↔ Boss), and the Shop + Equipment entities (`Item`, `Shop`, `ShopItem`, `PlayerItem`, `Purchase`) are described in [Core Entities](#2-core-entities).
 
 ### Intended MVP Gameplay & Progression Loop
 The end-to-end progression loop designed for the MVP is:
@@ -194,7 +194,38 @@ Represents an authoritative combat session between an Adventurer (Player) and a 
 - `rewardMerit`: Guild merit granted upon victory (column default `0`; the battle service currently grants `10` on victory)
 - `rewardItem`: Text/item reward descriptor (e.g. `Black Knight Medal`)
 - **Runtime Note**: Active battle state is held in API process memory and mirrored to this table; restarting the API ends in-progress battles.
+- **Equipment Stats**: When a battle starts, the player's equipped weapon `attack` and armor `defense` are snapshotted into the in-memory battle state. Player damage is `32–45 + attack`; boss counter damage is `max(1, 12–20 − defense)`. Players without inventory (e.g. in-memory demo fallback) fight with `0 / 0`.
 - **Server Authoritative Rule**: Damage, counterattacks, victory, and reward payouts are strictly calculated on the Game Server. Frontend displays and mobile actor terminals act purely as presentation and command triggers.
+
+### Item (`items` table)
+Catalog definition of an equippable item.
+- `id`: Stable slug (e.g., `item-wooden-sword`)
+- `name`, `description`: Display text
+- `type`: Enum `ItemType` (`WEAPON`, `ARMOR`); also determines the equipment slot
+- `attack`, `defense`: Stat bonuses while equipped
+- `iconKey`: Optional frontend icon key
+- `enabled`: Availability toggle
+- `createdAt`, `updatedAt`: Timestamps
+
+### Shop (`shops` table) & ShopItem (`shop_items` table)
+A shop World Node and its listings.
+- `Shop`: `id` (e.g., `shop-01`), `name`, `enabled`, timestamps
+- `ShopItem`: `shopId` (cascade delete), `itemId`, `price` (gold), optional `requiredRankId` (compared by `Rank.order`), `sortOrder`, `enabled`; unique per (`shopId`, `itemId`)
+
+### PlayerItem (`player_items` table)
+An adventurer's owned item and whether it is equipped.
+- `playerId`: Foreign key to `AdventurerProfile` (cascade delete)
+- `itemId`: Foreign key to `Item`; unique per (`playerId`, `itemId`), so equipment cannot be owned twice
+- `equipped`: At most one equipped item per `ItemType`. Enforced in the service by locking the adventurer row (`SELECT … FOR UPDATE`) before unequipping the slot and equipping the new item.
+- `acquiredAt`: Acquisition timestamp
+
+### Purchase (`purchases` table)
+Immutable audit record of a gold purchase.
+- `playerId`, `shopId`, `itemId`: References
+- `price`, `goldBefore`, `goldAfter`: Gold movement
+- `requestId`: Unique idempotency key supplied by the terminal; replaying the same key returns the original purchase without charging again
+- `createdAt`: Timestamp
+- **Transaction Rule**: Debit, `PlayerItem` creation and `Purchase` creation run in one transaction. Gold is debited with a conditional update (`gold >= price`), so concurrent purchases can never overdraw an adventurer.
 
 ---
 
@@ -209,7 +240,7 @@ While the current UI theme is styled as an **Adventurer Guild**, all backend dat
     - *Actor Control*: Live staff mobile operation terminal (`Actor Mode`).
     - *Output*: Presentation endpoints (`Display Node`, expanding to `World Output Node` with audio/light/mechanics).
   - **Interaction & Rule**: Implemented today via Guild quest acceptance / reward claiming and server-authoritative Boss battles. Future nodes will support dynamic interactions (purchases, Boss duels, buff acquisitions) evaluated by a dynamic Rule Engine.
-  - **Dual-Track Economy**: `MeritLedger` models enduring status (**Merit**). Expendable currency (**Coins**) is stored as `AdventurerProfile.gold` and granted by battles and quests; shop and minigame spending is not implemented yet.
+  - **Dual-Track Economy**: `MeritLedger` models enduring status (**Merit**). Expendable currency (**Coins**) is stored as `AdventurerProfile.gold`, granted by battles and quests and spent at shops (each spend recorded in `Purchase`); minigame spending is not implemented yet.
 - Core business logic and database tables remain reusable for future alternative game templates (e.g., sci-fi, corporate onboarding, school treasure hunts, live camp RPGs).
 
 ---
@@ -266,7 +297,13 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/player-quests` | Public (terminal) | Accept a quest by `credentialValue` or `playerId` |
 | `GET` | `/api/v1/player-quests/player/:playerId` | Public (terminal) | Get the player's active quest |
 | `POST` | `/api/v1/player-quests/:id/claim` | Public (terminal) | Claim a completed quest's reward |
-| `POST` | `/api/v1/guild/scan` | Public (terminal) | Guild terminal scan: player, active quest, available quests |
+| `POST` | `/api/v1/guild/scan` | Public (terminal) | Guild terminal scan: player, active quest, available quests, inventory |
+| `GET` | `/api/v1/shops/:shopId` | Public | Shop catalog (items, price, required rank) |
+| `POST` | `/api/v1/shops/:shopId/scan` | Public (terminal) | Shop scan: player, equipment, offers with `lockedReason` |
+| `POST` | `/api/v1/shops/:shopId/purchases` | Public (terminal) | Buy an item by `credentialValue` + `requestId`, optionally equipping it |
+| `GET` | `/api/v1/players/:playerId/inventory` | Public | Inventory, equipment and total attack / defense |
+| `POST` | `/api/v1/players/:playerId/equipment` | Public (terminal) | Equip a `playerItemId`, replacing the same slot |
+| `DELETE` | `/api/v1/players/:playerId/equipment/:slot` | Public (terminal) | Unequip `WEAPON` or `ARMOR` |
 | `GET` | `/api/v1/bosses` | Public | List bosses |
 | `GET` | `/api/v1/bosses/:id` | Public | Get boss details |
 | `POST` | `/api/v1/battles/scan` | Public (terminal) | Resolve a player and announce the scan to a display |
@@ -277,7 +314,9 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `GET` | `/api/v1/events/status` | Public | Realtime gateway status |
 
 > [!WARNING]
-> Endpoints marked **Public (terminal)** are used by the on-site `/guild` and `/actor/boss` terminals and currently have no authentication.
+> Endpoints marked **Public (terminal)** are used by the on-site `/guild`, `/actor/boss` and `/actor/shop/:shopId` terminals and currently have no authentication.
+>
+> Shop and inventory endpoints have no in-memory fallback: they return `503` (`DATABASE_UNAVAILABLE`) when the database is unreachable. Their error bodies include a machine-readable `code` (e.g., `INSUFFICIENT_GOLD`, `RANK_REQUIRED`, `ALREADY_OWNED`, `ITEM_NOT_AVAILABLE`, `REQUEST_ID_REUSED`, `CREDENTIAL_DISABLED`).
 
 > [!IMPORTANT]
 > **Data Exposure Policy**: Password hashes (`passwordHash`) are strictly excluded from all public API outputs via `select` projections and `sanitizeUser` utilities.
@@ -287,10 +326,10 @@ The platform implements a lightweight token-based authentication mechanism desig
 ## 5. Web Routes & Protected Layouts
 
 - `/login`: Public login form with quick demo autofill buttons.
-- `/user`: Mobile-first Adventurer Dashboard. Displays display name, rank, guild merit, and credential status.
+- `/user`: Mobile-first Adventurer Dashboard. Displays display name, rank, guild merit, credential status, and read-only equipment / backpack.
 - `/user/profile`, `/user/quests`, `/user/rewards`: Adventurer sub-pages (rewards is Coming soon).
 - `/admin`: Guild Administration Console with sidebar navigation for Dashboard, Adventurers, Ranks, Credentials, Quests (Coming soon), Promotions (Coming soon), and Rewards (Coming soon).
-- `/guild`, `/actor/boss`, `/display/:displayId`: Public on-site terminals (no login required).
+- `/guild`, `/actor/boss`, `/actor/shop/:shopId`, `/display/:displayId`: Public on-site terminals (no login required).
 
 ### Routing Guard Logic
 - Unauthenticated users accessing `/user` or `/admin` are automatically redirected to `/login`.
@@ -312,4 +351,5 @@ The platform implements a lightweight token-based authentication mechanism desig
 - **Guild Merit Ledger**: Battle victories and quest claims write `MeritLedger` entries and increment the cached `AdventurerProfile.merit`.
 - **Promotions**: `PromotionRequest` model exists; promotion eligibility checking and admin review approval workflows are scheduled for future phases. **No automatic rank-up logic exists.**
 - **Rewards**: `Reward` model exists as an extensible schema skeleton; reward fulfillment, physical dispenser triggers, and animation playback are deliberately not implemented in this phase.
-- **Hardware Integration**: QR Codes are scanned with the device camera in the browser (`/guild`, `/actor/boss`) or entered manually. No RFID readers or NFC hardware drivers exist yet.
+- **Shop & Equipment**: One shop (`shop-01`) sells weapons and armor; equipping happens at purchase time or at `/guild`. Selling back, consumables, stock limits, quest-unlocked items and admin item management are not implemented. Battle reward items (e.g. `Black Knight Medal`) are not added to the inventory.
+- **Hardware Integration**: QR Codes are scanned with the device camera in the browser (`/guild`, `/actor/boss`, `/actor/shop/:shopId`) or entered manually. No RFID readers or NFC hardware drivers exist yet.

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AcceptQuestDto,
@@ -40,6 +41,7 @@ export class QuestsService {
     private readonly prisma: PrismaService,
     private readonly credentialsService: CredentialsService,
     private readonly eventsService: EventsService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   async findAll(): Promise<QuestData[]> {
@@ -478,7 +480,10 @@ export class QuestsService {
     // 3. Find available quests
     const availableQuests = await this.findAll();
 
-    // 4. Emit player.scanned to Guild display
+    // 4. Load inventory; in-memory demo players have none
+    const inventory = await this.inventoryService.getInventory(player.id).catch(() => null);
+
+    // 5. Emit player.scanned to Guild display
     this.eventsService.emitPlayerScanned(displayId, {
       player: {
         id: player.id,
@@ -506,6 +511,7 @@ export class QuestsService {
       },
       activeQuest,
       availableQuests,
+      inventory,
     };
   }
 }
