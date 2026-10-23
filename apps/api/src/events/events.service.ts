@@ -6,6 +6,7 @@ import type {
   BattleDefeatData,
   BattleStartedData,
   BattleVictoryData,
+  EquipmentChangedData,
   GameEvent,
   GameEventType,
   PlayerScannedData,
@@ -14,6 +15,7 @@ import type {
   QuestProgressUpdatedData,
   QuestRewardClaimedData,
   RewardReceivedData,
+  ShopPurchaseCompletedData,
 } from './events.types.js';
 import { PureWebSocketServer } from './websocket.server.js';
 
@@ -118,5 +120,13 @@ export class EventsService {
 
   emitQuestRewardClaimed(displayId: string, data: QuestRewardClaimedData) {
     return this.emit('quest.reward_claimed', displayId, data);
+  }
+
+  emitShopPurchaseCompleted(displayId: string, data: ShopPurchaseCompletedData) {
+    return this.emit('shop.purchase_completed', displayId, data);
+  }
+
+  emitEquipmentChanged(displayId: string, data: EquipmentChangedData) {
+    return this.emit('equipment.changed', displayId, data);
   }
 }

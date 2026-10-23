@@ -37,6 +37,9 @@ pnpm --filter @adventure-platform/api start:dev
 # 單元測試
 pnpm --filter @adventure-platform/api test
 
+# 整合測試 (需已遷移並 seed 的獨立測試資料庫；會重設 Aria 的金幣、階級與背包)
+DATABASE_URL=<test-database-url> pnpm --filter @adventure-platform/api test:e2e
+
 # 建置
 pnpm --filter @adventure-platform/api build
 

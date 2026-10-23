@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useNavigation } from '../router/Router.js';
 import type { Rank } from '../types/auth.js';
-import { RankBadge, MeritProgress, CredentialStatusCard } from './adventurer/index.js';
+import { RankBadge, MeritProgress, CredentialStatusCard, InventoryCard } from './adventurer/index.js';
 import { PageHeader } from './common/index.js';
 
 export function AdventurerView() {
@@ -167,6 +167,9 @@ export function AdventurerView() {
           <CredentialStatusCard credentials={credentials} />
         </Grid>
       </Grid>
+
+      {/* Equipment & Backpack (read-only) */}
+      <InventoryCard apiUrl={apiUrl} playerId={profile?.id} />
 
       {/* Guild Bulletin Notice */}
       <Card

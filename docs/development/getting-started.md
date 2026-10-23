@@ -177,6 +177,12 @@ You can run services individually using pnpm workspace filtering:
   # or
   pnpm --filter @adventure-platform/api test
   ```
+- **API Integration Tests** (Shop + Equipment, requires a migrated and seeded database):
+  ```bash
+  DATABASE_URL=postgresql://adventure_user:adventure_password@localhost:5432/adventure_platform_test \
+    pnpm --filter @adventure-platform/api test:e2e
+  ```
+  > The suite resets the demo adventurer Aria (`cred-demo-001`): gold, rank, inventory and purchases. Point `DATABASE_URL` at a dedicated test database, never at data you want to keep.
 
 ### 6. Building Packages
 - **Build all packages**:

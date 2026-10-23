@@ -6,18 +6,24 @@ import { EventsModule } from '../events/events.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EventsService } from '../events/events.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import { QuestsService } from '../quests/quests.service.js';
 
 describe('BattlesService (Vertical Slice MVP)', () => {
   let battlesService: BattlesService;
   let eventsService: EventsService;
   let questsService: QuestsService;
+  let inventoryService: { getEquipmentStats: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    inventoryService = {
+      getEquipmentStats: vi.fn().mockResolvedValue({ attack: 0, defense: 0 }),
+    };
     const module: TestingModule = await Test.createTestingModule({
       imports: [PrismaModule, EventsModule, CredentialsModule, BossesModule],
       providers: [
         BattlesService,
+        { provide: InventoryService, useValue: inventoryService },
         {
           provide: QuestsService,
           useValue: {
@@ -109,5 +115,71 @@ describe('BattlesService (Vertical Slice MVP)', () => {
       expect(currentBattle.reward?.merit).toBe(10);
       expect(currentBattle.reward?.item).toBe('Black Knight Medal');
     }
+  });
+
+  describe('equipment stats', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    async function firstTurnWith(stats: { attack: number; defense: number }, roll: number) {
+      inventoryService.getEquipmentStats.mockResolvedValue(stats);
+      const battle = await battlesService.createBattle({
+        credentialValue: 'cred-demo-001',
+        bossId: 'boss-01',
+        displayId: 'boss-01',
+      });
+      vi.spyOn(Math, 'random').mockReturnValue(roll);
+      const updated = await battlesService.attack(battle.id);
+      return { battle, turn: updated.lastTurn! };
+    }
+
+    it('keeps base damage ranges without equipment', async () => {
+      expect((await firstTurnWith({ attack: 0, defense: 0 }, 0)).turn).toMatchObject({
+        playerDamage: 32,
+        bossDamage: 12,
+      });
+      expect((await firstTurnWith({ attack: 0, defense: 0 }, 0.9999)).turn).toMatchObject({
+        playerDamage: 45,
+        bossDamage: 20,
+      });
+    });
+
+    it('adds weapon attack and subtracts armor defense', async () => {
+      const low = await firstTurnWith({ attack: 3, defense: 3 }, 0);
+      expect(low.turn).toMatchObject({ playerDamage: 35, bossDamage: 9 });
+      expect(low.battle).toMatchObject({ playerAttack: 3, playerDefense: 3 });
+
+      const high = await firstTurnWith({ attack: 3, defense: 3 }, 0.9999);
+      expect(high.turn).toMatchObject({ playerDamage: 48, bossDamage: 17 });
+    });
+
+    it('never lets boss damage drop below 1', async () => {
+      const { turn } = await firstTurnWith({ attack: 0, defense: 50 }, 0.9999);
+      expect(turn.bossDamage).toBe(1);
+    });
+
+    it('includes equipment stats in battle.started', async () => {
+      const emitSpy = vi.spyOn(eventsService, 'emitBattleStarted');
+      inventoryService.getEquipmentStats.mockResolvedValue({ attack: 8, defense: 6 });
+      await battlesService.createBattle({
+        credentialValue: 'cred-demo-001',
+        bossId: 'boss-01',
+        displayId: 'boss-01',
+      });
+      expect(emitSpy).toHaveBeenCalledWith('boss-01', expect.objectContaining({
+        player: expect.objectContaining({ attack: 8, defense: 6 }),
+      }));
+    });
+
+    it('falls back to zero stats when inventory is unavailable', async () => {
+      inventoryService.getEquipmentStats.mockRejectedValue(new Error('db down'));
+      const battle = await battlesService.createBattle({
+        credentialValue: 'cred-demo-001',
+        bossId: 'boss-01',
+        displayId: 'boss-01',
+      });
+      expect(battle).toMatchObject({ playerAttack: 0, playerDefense: 0 });
+    });
   });
 });

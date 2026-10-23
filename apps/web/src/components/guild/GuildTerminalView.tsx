@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GuildScanResponse, PlayerQuest, Quest } from '../../types/quest.js';
+import type { Inventory } from '../../types/shop.js';
+import { GuildEquipmentPanel } from './GuildEquipmentPanel.js';
 import './GuildTerminalView.css';
 
 const DEMO_PRESETS = [
@@ -21,6 +23,7 @@ export function GuildTerminalView() {
   const [playerData, setPlayerData] = useState<GuildScanResponse['player'] | null>(null);
   const [activeQuest, setActiveQuest] = useState<PlayerQuest | null>(null);
   const [availableQuests, setAvailableQuests] = useState<Quest[]>([]);
+  const [inventory, setInventory] = useState<Inventory | null>(null);
   const [claimCelebration, setClaimCelebration] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -152,6 +155,7 @@ export function GuildTerminalView() {
       setPlayerData(data.player);
       setActiveQuest(data.activeQuest);
       setAvailableQuests(data.availableQuests);
+      setInventory(data.inventory);
       setSuccessNotice(`歡迎冒險者 ${data.player.name}！已連線公會伺服器。`);
     } catch (err: any) {
       setErrorMsg(err.message || '掃描時發生錯誤，請重試。');
@@ -295,6 +299,7 @@ export function GuildTerminalView() {
   const handleReset = () => {
     setPlayerData(null);
     setActiveQuest(null);
+    setInventory(null);
     setErrorMsg(null);
     setSuccessNotice(null);
     setClaimCelebration(false);
@@ -318,6 +323,9 @@ export function GuildTerminalView() {
           </a>
           <a href="/display/boss-01" className="guild-nav-link" target="_blank" rel="noreferrer">
             開啟 Boss 大螢幕 ➔
+          </a>
+          <a href="/actor/shop/shop-01" className="guild-nav-link" target="_blank" rel="noreferrer">
+            前往商店終端 ➔
           </a>
         </div>
       </header>
@@ -472,6 +480,15 @@ export function GuildTerminalView() {
                   </div>
                 </div>
               </div>
+
+              <GuildEquipmentPanel
+                inventory={inventory}
+                onChange={(next) => {
+                  setInventory(next);
+                  setErrorMsg(null);
+                }}
+                onError={setErrorMsg}
+              />
 
               <div className="credential-tag">
                 憑證卡號：<code>{playerData.credentialValue || credentialInput}</code>

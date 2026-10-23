@@ -41,6 +41,8 @@ export interface BattleState {
   bossName: string;
   playerHp: number;
   playerMaxHp: number;
+  playerAttack: number;
+  playerDefense: number;
   bossHp: number;
   bossMaxHp: number;
   status: BattleStatus;
@@ -63,7 +65,9 @@ export type GameEventType =
   | 'quest.accepted'
   | 'quest.progress_updated'
   | 'quest.completed'
-  | 'quest.reward_claimed';
+  | 'quest.reward_claimed'
+  | 'shop.purchase_completed'
+  | 'equipment.changed';
 
 export interface GameEvent<T = any> {
   type: GameEventType;

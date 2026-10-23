@@ -12,7 +12,9 @@ import { AdventurerQuestsView } from './components/AdventurerQuestsView.js';
 import { AdventurerRewardsView } from './components/AdventurerRewardsView.js';
 import { AdminView } from './components/AdminView.js';
 import { BossActorView } from './components/actor/BossActorView.js';
+import { ShopActorView } from './components/actor/ShopActorView.js';
 import { BossDisplayView } from './components/display/BossDisplayView.js';
+import { ShopDisplayView } from './components/display/ShopDisplayView.js';
 import { GuildTerminalView } from './components/guild/GuildTerminalView.js';
 import './App.css';
 
@@ -32,12 +34,18 @@ function UserRouter({ path }: { path: string }) {
 function MainRouter() {
   const { path } = useNavigation();
 
-  // 1. World Node: Boss Display Node (/display/boss-01)
+  // 1. World Node: Display Nodes (/display/shop-01, /display/boss-01)
+  if (path.startsWith('/display/shop')) {
+    return <ShopDisplayView />;
+  }
   if (path.startsWith('/display')) {
     return <BossDisplayView />;
   }
 
-  // 2. World Node: Boss Actor Terminal (/actor/boss)
+  // 2. World Node: Actor Terminals (/actor/shop/shop-01, /actor/boss)
+  if (path.startsWith('/actor/shop')) {
+    return <ShopActorView />;
+  }
   if (path.startsWith('/actor')) {
     return <BossActorView />;
   }

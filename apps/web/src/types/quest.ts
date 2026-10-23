@@ -1,3 +1,5 @@
+import type { Inventory } from './shop.js';
+
 export type PlayerQuestStatus = 'accepted' | 'completed' | 'claimed';
 
 export interface Quest {
@@ -41,6 +43,7 @@ export interface GuildScanResponse {
   };
   activeQuest: PlayerQuest | null;
   availableQuests: Quest[];
+  inventory: Inventory | null;
 }
 
 export interface ClaimRewardResponse {

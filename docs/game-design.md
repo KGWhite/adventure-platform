@@ -343,6 +343,9 @@ GM (最高管理員)
 ## 7. 具體設施玩法範例 (World Node Scenarios)
 
 ### 7.1 商店玩法（第一階段 QR Code MVP 流程）
+> [!NOTE]
+> 以下為概念流程。已實作的 API、資料模型與驗收標準以 [docs/specs/shop-equipment.md](specs/shop-equipment.md) 為準：第 4 步實作為 `POST /shops/:shopId/scan`，目前僅支援依階級鎖定的商品（任務解鎖與隱藏商品尚未實作）。
+
 1. 工作人員以手機開啟 Actor Web，切換至 `Weapon Shop` 模式。
 2. 冒險者出示 Adventure Card，店主以手機鏡頭掃描卡片 QR Code。
 3. 取得 `credentialToken`，Game Server 驗證解析出該冒險者身分。
@@ -513,12 +516,16 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
   - **Server 決定權威與解耦架構**：Boss 戰鬥模組、Boss Actor 與 Boss Display 完全不涉及 Quest 規則；戰鬥勝利經由 Domain Handler 依據 Player ID 與 Boss ID 自動更新任務進度並推播 WebSocket 事件。
   - **獎勵所有權明確切分 (Reward Ownership)**：明確劃分 Battle Reward（討伐黑騎士勝利發放）與 Quest Reward（公會委託達成領取）。
   - **防重複領獎機制**：以 `PlayerQuest` 狀態（`completed` → `claimed`）檢查防止重複完成與重複 Claim；目前尚未以資料庫條件更新保證並行請求下的安全性。
+- [x] **Shop + Equipment Vertical Slice MVP (首個金幣消費閉環)**：
+  - 完整閉環：**戰鬥／任務取得金幣 → 店主 `/actor/shop/shop-01` 掃卡 → 依階級、金幣與持有狀態顯示可購清單 → 確認購買（可立即裝備）→ `/display/shop-01` 播放購得動效 → 於 `/guild` 換裝 → 下一場 Boss 戰套用武器攻擊與防具防禦**。
+  - **交易安全**：條件扣款防止超扣、`requestId` 冪等鍵防止重複扣款，每筆交易寫入 `Purchase` 稽核紀錄。
+  - **Demo 商品**：木劍、皮甲（無階級限制）；鐵劍、鎖子甲（需 Rank E）。
+  - 詳細規格：[docs/specs/shop-equipment.md](specs/shop-equipment.md)。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Shop + Equipment 垂直切片**：武器店／防具店／道具店 World Node，使用戰鬥與任務獲得之金幣購買裝備，並提供冒險者裝備與背包檢視。
-2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
-3. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
+1. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
+2. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。
