@@ -280,7 +280,7 @@ adventure-platform/
 │   │       └── main.ts
 │   └── web/                      # React + TypeScript + Vite + PWA 前端
 │       ├── Dockerfile
-│       ├── public/               # PWA Icons 與靜態資產
+│       ├── public/               # 公會盾徽 Logo (favicon.svg)、PWA 安裝圖示與靜態資產
 │       ├── src/
 │       │   ├── components/
 │       │   │   ├── actor/               # 世界角色終端 (/actor/boss、/actor/shop/:shopId)
