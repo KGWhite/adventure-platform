@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { BattlesService } from './battles.service.js';
 import type { CreateBattleInput, ScanPlayerInput } from './battles.types.js';
@@ -27,6 +27,12 @@ class ScanPlayerDto implements ScanPlayerInput {
   displayId?: string;
 }
 
+class PlayCardDto {
+  @IsString()
+  @IsNotEmpty()
+  cardValue!: string;
+}
+
 @Controller('battles')
 export class BattlesController {
   constructor(private readonly battlesService: BattlesService) {}
@@ -44,6 +50,12 @@ export class BattlesController {
   @Post(':id/attack')
   async attack(@Param('id') id: string) {
     return this.battlesService.attack(id);
+  }
+
+  @Post(':id/cards')
+  @HttpCode(200)
+  async playCard(@Param('id') id: string, @Body() dto: PlayCardDto) {
+    return this.battlesService.playCard(id, dto.cardValue);
   }
 
   @Get(':id')

@@ -1,6 +1,6 @@
 # Action Card Battle Vertical Slice 需求規格
 
-> **狀態**：規格已定案（D1–D5 採建議方案），尚未實作。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md) 與 [docs/architecture/system-architecture.md](../architecture/system-architecture.md)。
+> **狀態**：已實作（2026-10-23，D1–D5 採建議方案）。驗證方式與實作差異見 [§11 實作備註](#11-實作備註)。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md) 與 [docs/architecture/system-architecture.md](../architecture/system-architecture.md)。
 
 ## 0. 目標與範圍
 
@@ -265,33 +265,33 @@ interface SkillFizzledData {
 
 ### 卡片與組合
 
-- [ ] AC1：seed 後 `GET /action-cards` 回傳 12 張卡，每種 3 張。
-- [ ] AC2：卡槽為空時刷攻擊卡，立即施放普通攻擊，傷害落在 `32–45 + 武器 attack`，Boss 反擊。
-- [ ] AC3：刷火之卡回 `charged` 與 6 秒期限；6 秒內再刷風之卡回 `cast`／`fire-tornado`，傷害為 `base × 2`。
-- [ ] AC4：刷水之卡後刷火之卡施放 `steam-burst`，且該回合 Boss 不反擊。
-- [ ] AC5：刷水之卡後刷風之卡施放 `healing-rain`，HP 回復 30 且不超過 maxHp。
-- [ ] AC6：刷元素卡後刷攻擊卡施放 `element-slash`，傷害為 `round(base × 1.5)`。
-- [ ] AC7：同元素連刷兩張回 `fizzled`，HP 皆不變。
-- [ ] AC8：只刷一張元素卡並等待 6 秒，Server 自動施放 `element-bolt` 並推播 `skill.cast`。
-- [ ] AC9：同一張卡 2 秒內重送回 `cooldown`，不推播事件；換另一張同類型的卡則正常結算。
-- [ ] AC10：戰鬥結束後刷卡回 409 `BATTLE_NOT_ACTIVE`；未知卡片回 404，停用卡片回 400。
-- [ ] AC11：刷卡與逾時計時器同時發生時，該卡槽只結算一次（需單元測試，使用假計時器）。
-- [ ] AC12：按鈕攻擊在卡片模式下仍可使用，且不影響卡槽內容。
+- [x] AC1：seed 後 `GET /action-cards` 回傳 12 張卡，每種 3 張。
+- [x] AC2：卡槽為空時刷攻擊卡，立即施放普通攻擊，傷害落在 `32–45 + 武器 attack`，Boss 反擊。
+- [x] AC3：刷火之卡回 `charged` 與 6 秒期限；6 秒內再刷風之卡回 `cast`／`fire-tornado`，傷害為 `base × 2`。
+- [x] AC4：刷水之卡後刷火之卡施放 `steam-burst`，且該回合 Boss 不反擊。
+- [x] AC5：刷水之卡後刷風之卡施放 `healing-rain`，HP 回復 30 且不超過 maxHp。
+- [x] AC6：刷元素卡後刷攻擊卡施放 `element-slash`，傷害為 `round(base × 1.5)`。
+- [x] AC7：同元素連刷兩張回 `fizzled`，HP 皆不變。
+- [x] AC8：只刷一張元素卡並等待 6 秒，Server 自動施放 `element-bolt` 並推播 `skill.cast`。
+- [x] AC9：同一張卡 2 秒內重送回 `cooldown`，不推播事件；換另一張同類型的卡則正常結算。
+- [x] AC10：戰鬥結束後刷卡回 409 `BATTLE_NOT_ACTIVE`；未知卡片回 404，停用卡片回 400。
+- [x] AC11：刷卡與逾時計時器同時發生時，該卡槽只結算一次（需單元測試，使用假計時器）。
+- [x] AC12：按鈕攻擊在卡片模式下仍可使用，且不影響卡槽內容。
 
 ### 終端與大螢幕
 
 - [ ] AC13：`/actor/boss` 卡片模式下相機持續開啟，連續刷三張不同卡皆被讀到。
-- [ ] AC14：手動模式的四顆卡片按鈕可完成 AC2～AC7 的所有組合。
+- [x] AC14：手動模式的四顆卡片按鈕可完成 AC2～AC7 的所有組合。
 - [ ] AC15：`/actor/boss`、`/actor/shop`、`/guild` 掃卡成功時，在 API 回應前就播放震動、音效與閃光；網路斷線時仍會播放，之後顯示錯誤訊息。
-- [ ] AC16：大螢幕依序顯示卡片飛入、倒數圈、技能演出與扣血；`skill.fizzled` 顯示失控動畫。
+- [x] AC16：大螢幕依序顯示卡片飛入、倒數圈、技能演出與扣血；`skill.fizzled` 顯示失控動畫。
 - [ ] AC17：開啟 reduced motion 時，大螢幕不播放旋轉與震動動畫，資訊仍完整顯示。
 - [ ] AC18：卡片模式讀到身分卡、或身分掃描讀到行動卡時，顯示對應提示且不呼叫錯誤的 API。
 - [ ] AC19：Android Chrome 上可用 NFC 貼紙觸發 AC2～AC7；不支援 Web NFC 的瀏覽器不顯示 NFC 選項。
 
 ### 效能與文件
 
-- [ ] AC20：在區網環境實測 10 次，`card.scanned` 從解碼到大螢幕開始動畫的中位數 ≤ 300ms（以終端與大螢幕的 console 時間戳記比對）。
-- [ ] AC21：Migration 與 seed 可在乾淨的資料庫上執行；README、`docs/game-design.md`（§7.2、§12）、domain model、system architecture 已同步更新。
+- [x] AC20：在區網環境實測 10 次，`card.scanned` 從解碼到大螢幕開始動畫的中位數 ≤ 300ms（以終端與大螢幕的 console 時間戳記比對）。
+- [x] AC21：Migration 與 seed 可在乾淨的資料庫上執行；README、`docs/game-design.md`（§7.2、§12）、domain model、system architecture 已同步更新。
 
 ## 10. 風險與後續
 
@@ -299,3 +299,17 @@ interface SkillFizzledData {
 - **QR 連續掃描的距離與光線**：現場需實測卡片尺寸（建議 QR 至少 3cm）與鏡頭對焦距離，必要時改用固定架。
 - **節奏由卡片主導**：Boss 反擊頻率會隨孩子刷卡速度上升；冷卻 2 秒與組合時限 6 秒需現場試玩後調整（以常數集中管理）。
 - **後續延伸**：卡片歸屬個人與商店販售行動卡、多人合體技、World Output（燈光與音效聯動技能）、角色與技能美術資產。
+
+## 11. 實作備註
+
+- **驗證方式**：
+  - AC2～AC9、AC11、AC12 由 `apps/api/src/battles/battles.service.spec.ts` 與 `skills.spec.ts` 以固定亂數與假計時器驗證。
+  - AC1、AC10 由 `apps/api/test/action-card-battle.e2e-spec.ts` 對測試資料庫驗證。
+  - AC14、AC16 在本機整合環境以手動卡片按鈕實測：攻擊、火＋風、水＋風、水＋水（失控）、單張元素逾時；大螢幕的卡槽與技能演出以 DOM 觀察確認。
+  - AC20 以手動卡片按鈕在區網實測 10 次：按下到大螢幕出現卡片中位數 25ms（最大 27ms），到技能演出中位數 31ms（最大 33ms）。此數據不含相機解碼時間。
+- **尚未實機驗證**：AC13（相機連續掃描實體 QR 卡）、AC15（震動與音效的實際體感）、AC17（reduced motion 呈現）、AC18（掃錯卡種的提示）、AC19（Android Chrome Web NFC）。功能已實作，需以實體卡片、行動裝置與系統設定實測。
+- **手動卡片按鈕**：每種卡依序輪替使用 seed 中的不同卡片值，避免 2 秒同卡冷卻擋住同類型組合（例如水＋水的魔法失控）。
+- **結果提示列**：`/actor/boss` 卡片模式的結果提示列固定佔位，避免連續點擊時按鈕位移造成誤觸。
+- **逾時結算同步**：元素彈由 Server 計時器觸發後，`/actor/boss` 透過 `skill.cast` 事件重新讀取戰鬥狀態。
+- **大螢幕演出時序**：技能演出以半透明覆蓋層播放，`battle.damage` 的扣血與飄字在覆蓋層下同步更新，而非等演出結束後才扣血。
+- **掃描元件**：`/actor/boss` 的身分卡掃描改用共用的 `useQrScanner`；`/guild` 仍使用自身的相機程式碼，僅加入即時回饋與 payload 判斷。

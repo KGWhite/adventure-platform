@@ -6,6 +6,7 @@ import { EventsModule } from '../events/events.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EventsService } from '../events/events.service.js';
+import { ActionCardsService } from '../action-cards/action-cards.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { QuestsService } from '../quests/quests.service.js';
 
@@ -14,8 +15,16 @@ describe('BattlesService (Vertical Slice MVP)', () => {
   let eventsService: EventsService;
   let questsService: QuestsService;
   let inventoryService: { getEquipmentStats: ReturnType<typeof vi.fn> };
+  let actionCardsService: { resolve: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    actionCardsService = {
+      resolve: vi.fn().mockImplementation(async (value: string) => ({
+        value,
+        type: value.split('-')[1].toUpperCase(),
+        enabled: true,
+      })),
+    };
     inventoryService = {
       getEquipmentStats: vi.fn().mockResolvedValue({ attack: 0, defense: 0 }),
     };
@@ -24,6 +33,7 @@ describe('BattlesService (Vertical Slice MVP)', () => {
       providers: [
         BattlesService,
         { provide: InventoryService, useValue: inventoryService },
+        { provide: ActionCardsService, useValue: actionCardsService },
         {
           provide: QuestsService,
           useValue: {
@@ -180,6 +190,135 @@ describe('BattlesService (Vertical Slice MVP)', () => {
         displayId: 'boss-01',
       });
       expect(battle).toMatchObject({ playerAttack: 0, playerDefense: 0 });
+    });
+  });
+
+  describe('action cards', () => {
+    let battleId: string;
+    let emitSpy: ReturnType<typeof vi.spyOn>;
+
+    const play = (cardValue: string) => battlesService.playCard(battleId, cardValue);
+    const emittedTypes = () => emitSpy.mock.calls.map(([type]) => type);
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+      const battle = await battlesService.createBattle({
+        credentialValue: 'cred-demo-001',
+        bossId: 'boss-01',
+        displayId: 'boss-01',
+      });
+      battleId = battle.id;
+      vi.spyOn(Math, 'random').mockReturnValue(0); // base damage 32, boss counter 12
+      emitSpy = vi.spyOn(eventsService, 'emit');
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
+    it('casts a normal attack immediately for a strike card', async () => {
+      const res = await play('card-strike-001');
+      expect(res).toMatchObject({
+        result: 'cast',
+        skill: { id: 'strike', damage: 32, bossCountered: true },
+        castSlot: [],
+      });
+      expect(res.battle).toMatchObject({ bossHp: 118, playerHp: 88 });
+      expect(emittedTypes()).toEqual(['card.scanned', 'skill.cast', 'battle.damage']);
+    });
+
+    it('charges an element card and combines fire + wind into fire tornado', async () => {
+      const charged = await play('card-fire-001');
+      expect(charged).toMatchObject({ result: 'charged', skill: null, castSlot: [{ type: 'FIRE' }] });
+      expect(new Date(charged.comboDeadline!).getTime() - Date.now()).toBe(6000);
+
+      const cast = await play('card-wind-001');
+      expect(cast).toMatchObject({ result: 'cast', skill: { id: 'fire-tornado', damage: 64 }, castSlot: [] });
+      expect(cast.comboDeadline).toBeNull();
+    });
+
+    it('steam burst skips the boss counter', async () => {
+      await play('card-water-001');
+      const res = await play('card-fire-001');
+      expect(res.skill).toMatchObject({ id: 'steam-burst', damage: 48, bossCountered: false });
+      expect(res.battle.lastTurn).toMatchObject({ bossDamage: 0 });
+      expect(res.battle.playerHp).toBe(100);
+    });
+
+    it('healing rain restores HP up to maxHp', async () => {
+      await play('card-strike-001'); // player 100 -> 88
+      await play('card-water-001');
+      const res = await play('card-wind-001');
+      expect(res.skill).toMatchObject({ id: 'healing-rain', damage: 0, heal: 12 });
+      expect(res.battle).toMatchObject({ bossHp: 118, playerHp: 88 }); // healed to 100, countered 12
+    });
+
+    it('element followed by strike casts element slash', async () => {
+      await play('card-wind-002');
+      const res = await play('card-strike-002');
+      expect(res.skill).toMatchObject({ id: 'element-slash', damage: 48 });
+    });
+
+    it('two cards of the same element fizzle without any HP change', async () => {
+      await play('card-fire-001');
+      const res = await play('card-fire-002');
+      expect(res).toMatchObject({ result: 'fizzled', skill: null, castSlot: [] });
+      expect(res.battle).toMatchObject({ bossHp: 150, playerHp: 100 });
+      expect(emittedTypes()).toEqual(['card.scanned', 'card.scanned', 'skill.fizzled']);
+    });
+
+    it('casts element bolt when the combo window expires', async () => {
+      await play('card-fire-001');
+      emitSpy.mockClear();
+      await vi.advanceTimersByTimeAsync(6000);
+
+      expect(emittedTypes()).toEqual(['skill.cast', 'battle.damage']);
+      expect(emitSpy.mock.calls[0][2]).toMatchObject({ skillId: 'element-bolt', damage: 32, cards: ['FIRE'] });
+      const battle = await battlesService.getBattle(battleId);
+      expect(battle).toMatchObject({ castSlot: [], comboDeadline: null, bossHp: 118 });
+    });
+
+    it('ignores the same card within the cooldown but accepts another card of the same type', async () => {
+      await play('card-strike-001');
+      emitSpy.mockClear();
+
+      const repeat = await play('card-strike-001');
+      expect(repeat.result).toBe('cooldown');
+      expect(emitSpy).not.toHaveBeenCalled();
+
+      expect((await play('card-strike-002')).result).toBe('cast');
+      await vi.advanceTimersByTimeAsync(2000);
+      expect((await play('card-strike-001')).result).toBe('cast');
+    });
+
+    it('resolves a combo only once when a card and the timeout race', async () => {
+      await play('card-fire-001');
+      await vi.advanceTimersByTimeAsync(5999);
+      emitSpy.mockClear();
+
+      const pending = play('card-wind-001');
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(emittedTypes().filter((type) => type === 'skill.cast')).toHaveLength(1);
+      const battle = await battlesService.getBattle(battleId);
+      expect(battle.castSlot).toEqual([]);
+    });
+
+    it('rejects cards after the battle has ended', async () => {
+      (battlesService as any).battles.get(battleId).status = 'victory';
+      await expect(play('card-strike-001')).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'BATTLE_NOT_ACTIVE' }),
+      });
+    });
+
+    it('keeps the cast slot when the button attack is used', async () => {
+      await play('card-fire-001');
+      const battle = await battlesService.attack(battleId);
+      expect(battle.castSlot.map((entry) => entry.type)).toEqual(['FIRE']);
+      expect(battle.bossHp).toBe(118);
     });
   });
 });

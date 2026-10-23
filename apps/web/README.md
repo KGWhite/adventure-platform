@@ -60,11 +60,14 @@ src/
 │   └── Router.tsx                # 路由與角色守衛 (RouteGuard)
 ├── hooks/
 │   ├── useGameEvents.ts          # WebSocket / SSE 即時事件訂閱
-│   └── useQrScanner.ts           # 相機 QR 掃描 (目前用於 /actor/shop)
+│   ├── useNfcScanner.ts          # Web NFC 行動卡讀取 (Android Chrome)
+│   └── useQrScanner.ts           # 相機 QR 掃描 (/actor/boss、/actor/shop；支援連續掃描)
 ├── types/                        # 型別定義 (auth、battle、feedback、quest、shop)
 ├── utils/
 │   ├── audioEffects.ts           # 戰鬥音效
-│   └── itemIcons.ts              # 物品圖示與數值標籤
+│   ├── itemIcons.ts              # 物品圖示與數值標籤
+│   ├── scanFeedback.ts           # 刷卡即時回饋 (震動、音效、閃光)
+│   └── scanPayload.ts            # 身分卡／行動卡 payload 解析
 ├── App.tsx                       # 應用程式進入點與子路徑路由
 └── main.tsx                      # React DOM 渲染進入點
 ```
@@ -97,7 +100,7 @@ src/
 | 路徑 | 說明 | 狀態 |
 | :--- | :--- | :--- |
 | `/guild` | 公會實體終端機：掃卡、冒險者狀態、接取任務、領取報酬、裝備與卸下 | 已完成 |
-| `/actor/boss` | Boss 世界角色終端：掃卡、發起戰鬥、攻擊 | 已完成 |
+| `/actor/boss` | Boss 世界角色終端：掃卡、發起戰鬥、按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） | 已完成 |
 | `/actor/shop/:shopId` | 商店店主終端：掃卡、可購清單、確認購買與立即裝備 | 已完成 |
 | `/display/shop-*` | 商店大螢幕：商品輪播、歡迎、購得動效、裝備提示 | 已完成 |
 | `/display/:displayId` | 大螢幕呈現終端：以 `displayId` 訂閱即時事件（`/display/shop-*` 以外皆為 Boss 畫面） | 已完成 |

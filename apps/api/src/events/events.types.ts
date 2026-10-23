@@ -11,7 +11,10 @@ export type GameEventType =
   | 'quest.completed'
   | 'quest.reward_claimed'
   | 'shop.purchase_completed'
-  | 'equipment.changed';
+  | 'equipment.changed'
+  | 'card.scanned'
+  | 'skill.cast'
+  | 'skill.fizzled';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -152,4 +155,31 @@ export interface EquipmentChangedData {
   equippedItem: { id: string; name: string } | null;
   attack: number;
   defense: number;
+}
+
+export type ActionCardKind = 'STRIKE' | 'FIRE' | 'WATER' | 'WIND';
+
+export interface CardScannedData {
+  battleId: string;
+  playerId: string;
+  cardType: ActionCardKind;
+  castSlot: ActionCardKind[];
+  comboDeadline: string | null;
+}
+
+export interface SkillCastData {
+  battleId: string;
+  playerId: string;
+  skillId: string;
+  skillName: string;
+  cards: ActionCardKind[];
+  damage: number;
+  heal: number;
+  bossCountered: boolean;
+}
+
+export interface SkillFizzledData {
+  battleId: string;
+  playerId: string;
+  cards: ActionCardKind[];
 }

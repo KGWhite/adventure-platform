@@ -1,10 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameEvents } from '../../hooks/useGameEvents.js';
-import type { BattleReward, GameEvent } from '../../types/battle.js';
+import type {
+  ActionCardKind,
+  BattleReward,
+  CardScannedData,
+  GameEvent,
+  SkillCastData,
+  SkillFizzledData,
+} from '../../types/battle.js';
 import { sfx } from '../../utils/audioEffects.js';
 import './BossDisplayView.css';
 
 type DisplayState = 'IDLE' | 'SCANNED' | 'BATTLE' | 'VICTORY' | 'DEFEAT';
+
+type CardEffect =
+  | { id: number; kind: 'cast'; data: SkillCastData }
+  | { id: number; kind: 'fizzle'; data: SkillFizzledData };
+
+const CARD_ICONS: Record<ActionCardKind, string> = {
+  STRIKE: '⚔️',
+  FIRE: '🔥',
+  WATER: '💧',
+  WIND: '🌪️',
+};
+
+const SKILL_ICONS: Record<string, string> = {
+  strike: '⚔️',
+  'element-bolt': '✨',
+  'element-slash': '🗡️',
+  'fire-tornado': '🔥🌪️',
+  'steam-burst': '♨️',
+  'healing-rain': '🌧️💚',
+};
+
+const CAST_EFFECT_MS = 2000;
+const FIZZLE_EFFECT_MS = 1000;
 
 interface ChallengerData {
   id: string;
@@ -43,6 +73,11 @@ export function BossDisplayView() {
   const [isShaking, setIsShaking] = useState(false);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [cardSlot, setCardSlot] = useState<ActionCardKind[]>([]);
+  const [combo, setCombo] = useState<{ deadline: string; remainingMs: number } | null>(null);
+  const [currentEffect, setCurrentEffect] = useState<CardEffect | null>(null);
+  const effectQueueRef = useRef<CardEffect[]>([]);
+  const effectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -72,7 +107,34 @@ export function BossDisplayView() {
     resetTimerRef.current = interval as any;
   };
 
+  const clearCards = () => {
+    setCardSlot([]);
+    setCombo(null);
+  };
+
+  // Play queued skill / fizzle effects one at a time
+  const playNextEffect = () => {
+    const next = effectQueueRef.current.shift() ?? null;
+    setCurrentEffect(next);
+    effectTimerRef.current = next
+      ? setTimeout(playNextEffect, next.kind === 'cast' ? CAST_EFFECT_MS : FIZZLE_EFFECT_MS)
+      : null;
+  };
+
+  const enqueueEffect = (effect: Omit<CardEffect, 'id'>) => {
+    effectQueueRef.current.push({ ...effect, id: Date.now() + Math.random() } as CardEffect);
+    if (!effectTimerRef.current) playNextEffect();
+  };
+
+  useEffect(
+    () => () => {
+      if (effectTimerRef.current) clearTimeout(effectTimerRef.current);
+    },
+    [],
+  );
+
   const resetToIdle = () => {
+    clearCards();
     if (resetTimerRef.current) clearInterval(resetTimerRef.current);
     setDisplayState('IDLE');
     setChallenger(null);
@@ -145,7 +207,38 @@ export function BossDisplayView() {
         break;
       }
 
+      case 'card.scanned': {
+        const d = event.data as CardScannedData;
+        setCardSlot(d.castSlot);
+        setCombo(
+          d.comboDeadline
+            ? { deadline: d.comboDeadline, remainingMs: Math.max(0, new Date(d.comboDeadline).getTime() - Date.now()) }
+            : null,
+        );
+        if (audioEnabled) sfx.playScan();
+        break;
+      }
+
+      case 'skill.cast': {
+        const d = event.data as SkillCastData;
+        clearCards();
+        enqueueEffect({ kind: 'cast', data: d });
+        const effect = d.heal > 0 ? `restored ${d.heal} HP` : `dealt ${d.damage} damage`;
+        addFeed(`✨ ${battleData?.playerName || 'Player'} cast ${d.skillName} and ${effect}!`);
+        if (audioEnabled && d.heal > 0) sfx.playVictory();
+        break;
+      }
+
+      case 'skill.fizzled': {
+        clearCards();
+        enqueueEffect({ kind: 'fizzle', data: event.data as SkillFizzledData });
+        addFeed('💨 The spell fizzled! Matching elements cancelled out.');
+        if (audioEnabled) sfx.playDefeat();
+        break;
+      }
+
       case 'battle.victory': {
+        clearCards();
         setDisplayState('VICTORY');
         addFeed(`🏆 VICTORY! The Black Knight has been defeated!`);
         if (audioEnabled) sfx.playVictory();
@@ -165,6 +258,7 @@ export function BossDisplayView() {
       }
 
       case 'battle.defeat': {
+        clearCards();
         setDisplayState('DEFEAT');
         addFeed(`💀 DEFEAT! Challenger fell in battle...`);
         if (audioEnabled) sfx.playDefeat();
@@ -332,6 +426,62 @@ export function BossDisplayView() {
                 )}
               </div>
             </div>
+
+            {/* Action Card Slot */}
+            <div className="card-slot-stage">
+              {[0, 1].map((index) => {
+                const card = cardSlot[index];
+                return (
+                  <div
+                    key={card ? `${index}-${card}-${combo?.deadline ?? 'resolved'}` : `empty-${index}`}
+                    className={`display-card-slot ${card ? `filled card-${card.toLowerCase()}` : ''}`}
+                  >
+                    {card ? CARD_ICONS[card] : ''}
+                  </div>
+                );
+              })}
+              {combo && (
+                <div className="combo-ring" key={combo.deadline}>
+                  <svg viewBox="0 0 36 36" aria-hidden="true">
+                    <circle className="combo-ring-track" cx="18" cy="18" r="16" />
+                    <circle
+                      className="combo-ring-fill"
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      style={{
+                        animationDuration: `${combo.remainingMs}ms`,
+                      }}
+                    />
+                  </svg>
+                  <span className="combo-ring-label">COMBO</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Skill / fizzle effect overlay */}
+        {currentEffect?.kind === 'cast' && (
+          <div key={currentEffect.id} className={`skill-effect-overlay skill-${currentEffect.data.skillId}`}>
+            <div className="skill-effect-icon">{SKILL_ICONS[currentEffect.data.skillId] ?? '✨'}</div>
+            <div className="skill-effect-name">{currentEffect.data.skillName}</div>
+            <div className="skill-effect-value">
+              {currentEffect.data.heal > 0
+                ? `+${currentEffect.data.heal} HP`
+                : `${currentEffect.data.damage} DAMAGE`}
+            </div>
+            <div className="skill-effect-cards">
+              {currentEffect.data.cards.map((card, i) => (
+                <span key={i}>{CARD_ICONS[card]}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {currentEffect?.kind === 'fizzle' && (
+          <div key={currentEffect.id} className="skill-effect-overlay skill-fizzle">
+            <div className="skill-effect-icon">💨</div>
+            <div className="skill-effect-name">魔法失控！</div>
           </div>
         )}
 

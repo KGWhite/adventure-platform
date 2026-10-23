@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ActionCardsModule } from './action-cards/action-cards.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AdventurersModule } from './adventurers/adventurers.module.js';
 import { AppController } from './app.controller.js';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module.js';
     BattlesModule,
     InventoryModule,
     ShopsModule,
+    ActionCardsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

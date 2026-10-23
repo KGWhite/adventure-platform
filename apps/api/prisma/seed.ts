@@ -1,4 +1,4 @@
-import { CredentialType, ItemType, PrismaClient, Role } from '@prisma/client';
+import { ActionCardType, CredentialType, ItemType, PrismaClient, Role } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -380,6 +380,26 @@ async function main() {
       update: shopItemData,
       create: { shopId: 'shop-01', itemId: id, ...shopItemData },
     });
+  }
+
+  // 10. Action Card Battle Vertical Slice: shared venue action cards
+  const actionCardLabels: Record<ActionCardType, string> = {
+    [ActionCardType.STRIKE]: '攻擊卡',
+    [ActionCardType.FIRE]: '火之卡',
+    [ActionCardType.WATER]: '水之卡',
+    [ActionCardType.WIND]: '風之卡',
+  };
+
+  for (const type of Object.values(ActionCardType)) {
+    for (let n = 1; n <= 3; n++) {
+      const value = `card-${type.toLowerCase()}-${String(n).padStart(3, '0')}`;
+      const label = `${actionCardLabels[type]} #${n}`;
+      await prisma.actionCard.upsert({
+        where: { value },
+        update: { type, label, enabled: true },
+        create: { value, type, label, enabled: true },
+      });
+    }
   }
 
   console.log('Development seed completed successfully.');

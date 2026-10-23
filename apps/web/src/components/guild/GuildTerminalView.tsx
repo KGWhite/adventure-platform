@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GuildScanResponse, PlayerQuest, Quest } from '../../types/quest.js';
 import type { Inventory } from '../../types/shop.js';
+import { playScanFeedback } from '../../utils/scanFeedback.js';
+import { WRONG_CARD_FOR_IDENTITY, parseScanPayload } from '../../utils/scanPayload.js';
 import { GuildEquipmentPanel } from './GuildEquipmentPanel.js';
 import './GuildTerminalView.css';
 
@@ -104,12 +106,14 @@ export function GuildTerminalView() {
 
   const handleDetectedCode = (code: string) => {
     stopCamera();
-    let token = code.trim();
-    if (token.startsWith('adventure://player/')) {
-      token = token.replace('adventure://player/', '');
+    playScanFeedback();
+    const payload = parseScanPayload(code);
+    if (payload.kind === 'card') {
+      setErrorMsg(WRONG_CARD_FOR_IDENTITY);
+      return;
     }
-    setCredentialInput(token);
-    scanGuildTerminal(token);
+    setCredentialInput(payload.value);
+    scanGuildTerminal(payload.value);
   };
 
   useEffect(() => {
@@ -395,6 +399,7 @@ export function GuildTerminalView() {
                       type="button"
                       className="preset-chip"
                       onClick={() => {
+                        playScanFeedback();
                         setCredentialInput(p.cred);
                         scanGuildTerminal(p.cred);
                       }}
@@ -416,7 +421,10 @@ export function GuildTerminalView() {
                     type="button"
                     className="action-btn gold-btn"
                     disabled={isLoading}
-                    onClick={() => scanGuildTerminal()}
+                    onClick={() => {
+                      playScanFeedback();
+                      scanGuildTerminal();
+                    }}
                   >
                     {isLoading ? '驗證中...' : '掃描登錄 ➔'}
                   </button>

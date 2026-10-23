@@ -6,6 +6,7 @@ import type {
   BattleDefeatData,
   BattleStartedData,
   BattleVictoryData,
+  CardScannedData,
   EquipmentChangedData,
   GameEvent,
   GameEventType,
@@ -16,6 +17,8 @@ import type {
   QuestRewardClaimedData,
   RewardReceivedData,
   ShopPurchaseCompletedData,
+  SkillCastData,
+  SkillFizzledData,
 } from './events.types.js';
 import { PureWebSocketServer } from './websocket.server.js';
 
@@ -128,5 +131,17 @@ export class EventsService {
 
   emitEquipmentChanged(displayId: string, data: EquipmentChangedData) {
     return this.emit('equipment.changed', displayId, data);
+  }
+
+  emitCardScanned(displayId: string, data: CardScannedData) {
+    return this.emit('card.scanned', displayId, data);
+  }
+
+  emitSkillCast(displayId: string, data: SkillCastData) {
+    return this.emit('skill.cast', displayId, data);
+  }
+
+  emitSkillFizzled(displayId: string, data: SkillFizzledData) {
+    return this.emit('skill.fizzled', displayId, data);
   }
 }
