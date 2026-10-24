@@ -732,6 +732,40 @@
   color: #fbbf24;
 }
 
+/* Level up on the victory screen */
+.victory-level-up {
+  margin-top: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  border: 2px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  text-align: center;
+  animation: skill-icon-burst 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.victory-level-up-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fde047;
+  text-shadow: 0 0 25px rgba(253, 224, 71, 0.8);
+}
+
+.victory-level-up-skill {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.skill-effect-locked {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
 /* Skill effect overlay */
 .skill-effect-overlay {
   position: absolute;

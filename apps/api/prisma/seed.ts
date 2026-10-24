@@ -72,6 +72,7 @@ async function main() {
       displayName: 'Rookie Adventurer',
       currentRankId: rankF.id,
       level: 1,
+      lastSeenLevel: 1,
       hp: 100,
       maxHp: 100,
       gold: 0,
@@ -82,6 +83,7 @@ async function main() {
       displayName: 'Rookie Adventurer',
       currentRankId: rankF.id,
       level: 1,
+      lastSeenLevel: 1,
       hp: 100,
       maxHp: 100,
       gold: 0,
@@ -90,6 +92,7 @@ async function main() {
   });
 
   // 4. Seed Demo Players (Aria & Leon)
+  // Levels follow merit (see src/progression/levels.ts): Aria 20 -> Lv2, Leon 50 -> Lv3
   const ariaUser = await prisma.user.upsert({
     where: { username: 'aria' },
     update: {
@@ -108,7 +111,8 @@ async function main() {
     update: {
       displayName: 'Aria',
       currentRankId: rankF.id,
-      level: 1,
+      level: 2,
+      lastSeenLevel: 2,
       hp: 100,
       maxHp: 100,
       gold: 50,
@@ -118,7 +122,8 @@ async function main() {
       userId: ariaUser.id,
       displayName: 'Aria',
       currentRankId: rankF.id,
-      level: 1,
+      level: 2,
+      lastSeenLevel: 2,
       hp: 100,
       maxHp: 100,
       gold: 50,
@@ -144,7 +149,8 @@ async function main() {
     update: {
       displayName: 'Leon',
       currentRankId: rankF.id,
-      level: 2,
+      level: 3,
+      lastSeenLevel: 3,
       hp: 120,
       maxHp: 120,
       gold: 100,
@@ -154,7 +160,8 @@ async function main() {
       userId: leonUser.id,
       displayName: 'Leon',
       currentRankId: rankF.id,
-      level: 2,
+      level: 3,
+      lastSeenLevel: 3,
       hp: 120,
       maxHp: 120,
       gold: 100,

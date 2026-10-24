@@ -527,12 +527,15 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
   - **行動卡技能組合**：攻擊卡立即攻擊；火／水／風元素卡在 6 秒內組合為火焰龍捲、蒸氣爆發、治癒之雨或元素斬，同元素為魔法失控，單張逾時自動施放元素彈。
   - **輸入方式**：相機連續掃描、Android Chrome Web NFC（選配）、手動卡片按鈕；按鈕攻擊保留為備援。
   - 詳細規格：[docs/specs/action-card-battle.md](specs/action-card-battle.md)。
+- [x] **Adventurer Progression Vertical Slice MVP (等級成長與技能解鎖)**：
+  - **獎勵循環**：發給小朋友冒險者 ID 卡 → 解任務、打王累積功績 → 等級自動提升（Lv2 20、Lv3 50、Lv4 100、Lv5 160）→ 學會新技能並領取實體技能卡 → 打王時只能施放已學會的組合（未學會改放元素彈並提示）。
+  - **`/status` 自助終端**：小朋友刷 ID 卡看等級、升級進度與技能卡牆；升級後第一次刷卡播放 LEVEL UP 演出並標示 NEW。
+  - 詳細規格：[docs/specs/adventurer-progression.md](specs/adventurer-progression.md)。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Adventurer Progression 垂直切片**：等級由累積功績換算，升級解鎖技能並發放實體技能卡，Boss 戰只能施放已學會的組合；新增 `/status` 讓小朋友刷 ID 卡看自己的等級與技能。需求規格已定案：[docs/specs/adventurer-progression.md](specs/adventurer-progression.md)。
-2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
-3. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
+1. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
+2. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。

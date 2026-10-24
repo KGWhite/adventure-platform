@@ -41,6 +41,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
                                │  ├── BossesModule       │
                                │  ├── BattlesModule      │
                                │  ├── ActionCardsModule  │
+                               │  ├── ProgressionModule  │
                                │  ├── InventoryModule    │
                                │  ├── ShopsModule        │
                                │  ├── EventsModule       │
@@ -86,6 +87,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `/user/rewards`: Guild merit rewards exchange (Coming soon placeholder).
      - `/admin`: Guild Administration Console (`dashboard`, `adventurers`, `ranks`, `credentials`, and Coming soon tabs).
      - `/guild`: **Guild Terminal (World Node)**: Adventurer Card scanning, Adventurer status, Quest acceptance, progress tracking, reward claiming, and equipping / unequipping items.
+     - `/status`: **Adventurer Status Terminal**: Kid-facing kiosk; scanning an ID card shows level, progress to the next level, and learned / locked skill cards, with a LEVEL UP celebration for newly unlocked skills.
      - `/actor/boss`: **World Actor Terminal**: Mobile-first Boss battle control terminal with button attack or action card mode (continuous camera scanning, optional Web NFC, manual card buttons).
      - `/actor/shop/:shopId`: **Shop Keeper Terminal (World Actor)**: Card scanning, per-player offers with lock reasons, purchase confirmation with optional immediate equip.
      - `/display/shop-*`: **Shop Display Node** (e.g. `/display/shop-01`): Idle item showcase, welcome screen, purchase reveal animation, and equipment change toast.
@@ -116,6 +118,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
      - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `POST /battles/:id/cards`, `GET /battles/:id`); snapshots equipment stats from `InventoryModule` at battle start. Action card combos (`battles/skills.ts`), the 6s combo timer and the 2s per-card cooldown live in API memory; actions on one battle are serialized.
      - `ActionCardsModule`: Shared venue action cards (`GET /action-cards`) and card value resolution for battles. Requires the database.
+     - `ProgressionModule`: Merit-based levels and skill unlocks (`apps/api/src/progression/levels.ts`), level sync after merit gains (used by battles and quests), and the `/status` kiosk scan (`POST /status/scan`). Requires the database.
      - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
      - `InventoryModule`: Adventurer inventory and equipment (`GET /players/:playerId/inventory`, `POST /players/:playerId/equipment`, `DELETE /players/:playerId/equipment/:slot`).
      - `ShopsModule`: Shop catalog, scan and purchase transactions (`GET /shops/:shopId`, `POST /shops/:shopId/scan`, `POST /shops/:shopId/purchases`). Requires the database (no in-memory fallback).
@@ -204,7 +207,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
      - `shop.purchase_completed`: Purchase succeeded (item, price, gold after, equipped flag); published to the shop's display (default `shop-01`). Failed purchases emit nothing.
      - `equipment.changed`: Slot change with new total attack / defense; published to the shop display on purchase-with-equip, or to `guild-01` when changed at the guild.
      - `card.scanned`: An action card was accepted for a battle (card type, cast slot, combo deadline); emitted before the turn resolves so the display can react immediately. Cooldown repeats emit nothing.
-     - `skill.cast`, `skill.fizzled`: Combo outcome (skill, cards, damage / heal, whether the boss countered); followed by the usual `battle.damage` and outcome events when HP changes.
+     - `skill.cast`, `skill.fizzled`: Combo outcome (skill, cards, damage / heal, whether the boss countered, `lockedSkill` when an unlearned combo fell back to element bolt); followed by the usual `battle.damage` and outcome events when HP changes.
+     - `adventurer.level_up`: Merit gain raised the level (from / to, unlocked skills, source); published to the battle's display after `reward.received`, or to `guild-01` after a quest claim.
 
 6. **Generalization to World Output Node (Long-Term)**:
    - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
@@ -217,7 +221,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 - **Completed**: Guild + Quest Vertical Slice MVP (`/guild` + `PlayerQuest` acceptance, progress and reward claim)
 - **Completed**: Shop + Equipment Vertical Slice MVP (`/actor/shop/shop-01` + `/display/shop-01` + ShopsModule + InventoryModule; see [Shop + Equipment spec](../specs/shop-equipment.md))
 - **Completed**: Action Card Battle Vertical Slice MVP (instant scan feedback, `/actor/boss` card mode, ActionCardsModule, card slot and skill effects on `/display/boss-01`; see [Action Card Battle spec](../specs/action-card-battle.md))
-- **Next Candidates**: Adventurer Progression ([spec](../specs/adventurer-progression.md)) → Rank Up → Guild Status Terminal (`/display/guild-01`)
+- **Completed**: Adventurer Progression Vertical Slice MVP (merit-based levels, skill unlocks and battle locks, `/status` kiosk, ProgressionModule; see [Adventurer Progression spec](../specs/adventurer-progression.md))
+- **Next Candidates**: Rank Up → Guild Status Terminal (`/display/guild-01`)
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.

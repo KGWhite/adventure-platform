@@ -1,13 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { MockInstance } from 'vitest';
 import { BattlesService } from './battles.service.js';
 import { BossesModule } from '../bosses/bosses.module.js';
 import { CredentialsModule } from '../credentials/credentials.module.js';
+import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsModule } from '../events/events.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EventsService } from '../events/events.service.js';
 import { ActionCardsService } from '../action-cards/action-cards.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
+import { ProgressionService } from '../progression/progression.service.js';
 import { QuestsService } from '../quests/quests.service.js';
 
 describe('BattlesService (Vertical Slice MVP)', () => {
@@ -16,6 +19,8 @@ describe('BattlesService (Vertical Slice MVP)', () => {
   let questsService: QuestsService;
   let inventoryService: { getEquipmentStats: ReturnType<typeof vi.fn> };
   let actionCardsService: { resolve: ReturnType<typeof vi.fn> };
+  let progressionService: { syncLevel: ReturnType<typeof vi.fn>; emitLevelUp: ReturnType<typeof vi.fn> };
+  let credentialsService: CredentialsService;
 
   beforeEach(async () => {
     actionCardsService = {
@@ -25,6 +30,7 @@ describe('BattlesService (Vertical Slice MVP)', () => {
         enabled: true,
       })),
     };
+    progressionService = { syncLevel: vi.fn().mockResolvedValue(null), emitLevelUp: vi.fn() };
     inventoryService = {
       getEquipmentStats: vi.fn().mockResolvedValue({ attack: 0, defense: 0 }),
     };
@@ -34,6 +40,7 @@ describe('BattlesService (Vertical Slice MVP)', () => {
         BattlesService,
         { provide: InventoryService, useValue: inventoryService },
         { provide: ActionCardsService, useValue: actionCardsService },
+        { provide: ProgressionService, useValue: progressionService },
         {
           provide: QuestsService,
           useValue: {
@@ -65,6 +72,7 @@ describe('BattlesService (Vertical Slice MVP)', () => {
 
     battlesService = module.get<BattlesService>(BattlesService);
     eventsService = module.get<EventsService>(EventsService);
+    credentialsService = module.get<CredentialsService>(CredentialsService);
   });
 
   it('should scan and resolve player identity from demo credential', async () => {
@@ -195,10 +203,10 @@ describe('BattlesService (Vertical Slice MVP)', () => {
 
   describe('action cards', () => {
     let battleId: string;
-    let emitSpy: ReturnType<typeof vi.spyOn>;
+    let emitSpy: MockInstance<EventsService['emit']>;
 
     const play = (cardValue: string) => battlesService.playCard(battleId, cardValue);
-    const emittedTypes = () => emitSpy.mock.calls.map(([type]) => type);
+    const emittedTypes = () => emitSpy.mock.calls.map((call) => call[0]);
 
     beforeEach(async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
@@ -208,6 +216,8 @@ describe('BattlesService (Vertical Slice MVP)', () => {
         displayId: 'boss-01',
       });
       battleId = battle.id;
+      // Combo rules are tested with every skill learned; level locks are tested below
+      (battlesService as any).battles.get(battleId).playerLevel = 5;
       vi.spyOn(Math, 'random').mockReturnValue(0); // base damage 32, boss counter 12
       emitSpy = vi.spyOn(eventsService, 'emit');
     });
@@ -319,6 +329,109 @@ describe('BattlesService (Vertical Slice MVP)', () => {
       const battle = await battlesService.attack(battleId);
       expect(battle.castSlot.map((entry) => entry.type)).toEqual(['FIRE']);
       expect(battle.bossHp).toBe(118);
+    });
+  });
+
+  describe('skill level locks', () => {
+    const start = async (credentialValue: string) => {
+      const battle = await battlesService.createBattle({ credentialValue, bossId: 'boss-01', displayId: 'boss-01' });
+      return battle.id;
+    };
+
+    beforeEach(() => {
+      vi.spyOn(Math, 'random').mockReturnValue(0); // base damage 32, boss counter 12
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('snapshots the level from merit and includes it in battle.started', async () => {
+      const startedSpy = vi.spyOn(eventsService, 'emitBattleStarted');
+      const battleId = await start('cred-demo-002'); // Leon, merit 50
+      expect((await battlesService.getBattle(battleId)).playerLevel).toBe(3);
+      expect(startedSpy).toHaveBeenCalledWith('boss-01', expect.objectContaining({
+        player: expect.objectContaining({ level: 3 }),
+      }));
+    });
+
+    it('replaces an unlearned combo with element bolt and reports the locked skill', async () => {
+      const castSpy = vi.spyOn(eventsService, 'emitSkillCast');
+      const battleId = await start('ADV-DEV-001-QR'); // Rookie, merit 0 -> Lv1
+      await battlesService.playCard(battleId, 'card-fire-001');
+      const res = await battlesService.playCard(battleId, 'card-wind-001');
+
+      expect(res.skill).toMatchObject({
+        id: 'element-bolt',
+        damage: 32,
+        lockedSkill: { id: 'fire-tornado', name: '火焰龍捲', requiredLevel: 3 },
+      });
+      expect(castSpy).toHaveBeenCalledWith('boss-01', expect.objectContaining({
+        skillId: 'element-bolt',
+        cards: ['FIRE', 'WIND'],
+        lockedSkill: expect.objectContaining({ id: 'fire-tornado' }),
+      }));
+
+      await battlesService.playCard(battleId, 'card-water-001');
+      const slash = await battlesService.playCard(battleId, 'card-strike-001');
+      expect(slash.skill).toMatchObject({ id: 'element-bolt', lockedSkill: { id: 'element-slash', requiredLevel: 2 } });
+    });
+
+    it('keeps strike, fizzle and timeout bolt available at Lv1', async () => {
+      const battleId = await start('ADV-DEV-001-QR');
+      expect((await battlesService.playCard(battleId, 'card-strike-001')).skill).toMatchObject({
+        id: 'strike',
+        lockedSkill: null,
+      });
+      await battlesService.playCard(battleId, 'card-fire-001');
+      expect((await battlesService.playCard(battleId, 'card-fire-002')).result).toBe('fizzled');
+    });
+
+    it('allows learned combos and locks higher ones at Lv3', async () => {
+      const battleId = await start('cred-demo-002'); // Leon, Lv3
+      await battlesService.playCard(battleId, 'card-fire-001');
+      expect((await battlesService.playCard(battleId, 'card-wind-001')).skill).toMatchObject({
+        id: 'fire-tornado',
+        lockedSkill: null,
+      });
+      await battlesService.playCard(battleId, 'card-water-001');
+      expect((await battlesService.playCard(battleId, 'card-wind-002')).skill).toMatchObject({
+        id: 'element-bolt',
+        lockedSkill: { id: 'healing-rain', requiredLevel: 4 },
+      });
+    });
+
+    it('does not change the level snapshot when merit grows mid-battle', async () => {
+      const battleId = await start('ADV-DEV-001-QR');
+      credentialsService.updateInMemoryPlayerRewards('adv-rookie', 0, 500);
+      await battlesService.playCard(battleId, 'card-fire-001');
+      const res = await battlesService.playCard(battleId, 'card-wind-001');
+      expect(res.skill?.lockedSkill?.id).toBe('fire-tornado');
+    });
+
+    it('reports a level up from a boss victory', async () => {
+      const levelUp = {
+        from: 2,
+        to: 3,
+        unlockedSkills: [{ id: 'fire-tornado', name: '火焰龍捲', cards: ['FIRE', 'WIND'], requiredLevel: 3 }],
+      };
+      progressionService.syncLevel.mockResolvedValue(levelUp);
+      vi.spyOn(Math, 'random').mockReturnValue(0.9999); // 45 damage per turn
+      const battleId = await start('cred-demo-001');
+
+      let battle = await battlesService.getBattle(battleId);
+      while (battle.status === 'active') {
+        battle = await battlesService.attack(battleId);
+      }
+
+      expect(battle.status).toBe('victory');
+      expect(battle.reward?.levelUp).toEqual(levelUp);
+      expect(progressionService.emitLevelUp).toHaveBeenCalledWith(
+        'boss-01',
+        expect.objectContaining({ name: 'Aria' }),
+        levelUp,
+        'BATTLE_VICTORY',
+      );
     });
   });
 });

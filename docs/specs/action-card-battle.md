@@ -313,3 +313,4 @@ interface SkillFizzledData {
 - **逾時結算同步**：元素彈由 Server 計時器觸發後，`/actor/boss` 透過 `skill.cast` 事件重新讀取戰鬥狀態。
 - **大螢幕演出時序**：技能演出以半透明覆蓋層播放，`battle.damage` 的扣血與飄字在覆蓋層下同步更新，而非等演出結束後才扣血。
 - **掃描元件**：`/actor/boss` 的身分卡掃描改用共用的 `useQrScanner`；`/guild` 仍使用自身的相機程式碼，僅加入即時回饋與 payload 判斷。
+- **技能等級限制（Adventurer Progression 切片）**：技能依冒險者等級解鎖，開戰時快照等級；尚未學會的組合改放元素彈並回報 `lockedSkill`。詳見 [adventurer-progression.md](adventurer-progression.md)。

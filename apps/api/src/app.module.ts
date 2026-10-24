@@ -12,6 +12,7 @@ import { EventsModule } from './events/events.module.js';
 import { HealthModule } from './health/health.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ProgressionModule } from './progression/progression.module.js';
 import { QuestsModule } from './quests/quests.module.js';
 import { RanksModule } from './ranks/ranks.module.js';
 import { ShopsModule } from './shops/shops.module.js';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module.js';
     InventoryModule,
     ShopsModule,
     ActionCardsModule,
+    ProgressionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

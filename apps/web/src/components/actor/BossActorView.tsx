@@ -191,7 +191,11 @@ export function BossActorView() {
       } else if (result.skill) {
         const effect =
           result.skill.heal > 0 ? `回復 ${result.skill.heal} HP` : `造成 ${result.skill.damage} 傷害`;
-        setLastCardMessage(`✨ ${result.skill.name}！${effect}`);
+        setLastCardMessage(
+          result.skill.lockedSkill
+            ? `🔒 還沒學會${result.skill.lockedSkill.name}（Lv${result.skill.lockedSkill.requiredLevel}），先用${result.skill.name}！${effect}`
+            : `✨ ${result.skill.name}！${effect}`,
+        );
       }
       addLog(`Card ${cardValue}: ${result.result}${result.skill ? ` (${result.skill.name})` : ''}`);
 

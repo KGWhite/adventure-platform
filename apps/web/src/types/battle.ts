@@ -1,3 +1,5 @@
+import type { LevelUp } from './progression.js';
+
 export type BattleStatus = 'active' | 'victory' | 'defeat';
 
 export type ActionCardKind = 'STRIKE' | 'FIRE' | 'WATER' | 'WIND';
@@ -26,6 +28,7 @@ export interface BattleReward {
   gold: number;
   merit: number;
   item: string;
+  levelUp?: LevelUp | null;
 }
 
 export interface BattleTurn {
@@ -47,6 +50,7 @@ export interface BattleState {
   playerMaxHp: number;
   playerAttack: number;
   playerDefense: number;
+  playerLevel: number;
   bossHp: number;
   bossMaxHp: number;
   status: BattleStatus;
@@ -71,6 +75,7 @@ export interface CastSkill {
   damage: number;
   heal: number;
   bossCountered: boolean;
+  lockedSkill: { id: string; name: string; requiredLevel: number } | null;
 }
 
 export interface PlayCardResponse {
@@ -98,6 +103,7 @@ export interface SkillCastData {
   damage: number;
   heal: number;
   bossCountered: boolean;
+  lockedSkill: { id: string; name: string; requiredLevel: number } | null;
 }
 
 export interface SkillFizzledData {
@@ -123,7 +129,8 @@ export type GameEventType =
   | 'equipment.changed'
   | 'card.scanned'
   | 'skill.cast'
-  | 'skill.fizzled';
+  | 'skill.fizzled'
+  | 'adventurer.level_up';
 
 export interface GameEvent<T = any> {
   type: GameEventType;

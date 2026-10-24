@@ -75,7 +75,8 @@ Represents the guild adventurer persona linked to a user account.
 - `userId`: Foreign key to `User` (1-to-1 relationship, cascade delete)
 - `displayName`: Character / adventurer name
 - `currentRankId`: Foreign key to `Rank` (initial default is Rank F)
-- `level`: Adventurer progression level (default: `1`)
+- `level`: Adventurer level, a cache derived from accumulated `merit` (Lv1 0 / Lv2 20 / Lv3 50 / Lv4 100 / Lv5 160). Recomputed in the same transaction whenever merit increases (battle victory, quest claim); never decreases.
+- `lastSeenLevel`: Level the adventurer last saw at `/status` (default: `1`); skills unlocked above it are shown as NEW once
 - `hp`: Current health points (default: `100`)
 - `maxHp`: Maximum health points (default: `100`)
 - `gold`: Circulating coins currency (default: `0`)
@@ -196,6 +197,7 @@ Represents an authoritative combat session between an Adventurer (Player) and a 
 - **Runtime Note**: Active battle state is held in API process memory and mirrored to this table; restarting the API ends in-progress battles.
 - **Equipment Stats**: When a battle starts, the player's equipped weapon `attack` and armor `defense` are snapshotted into the in-memory battle state. Player damage is `32–45 + attack`; boss counter damage is `max(1, 12–20 − defense)`. Players without inventory (e.g. in-memory demo fallback) fight with `0 / 0`.
 - **Action Card Combos**: In card mode, each battle keeps an in-memory cast slot (at most one pending element card), a 6-second combo deadline with a server timer, and a 2-second cooldown per physical card. Skills scale the base damage (`element-slash` / `steam-burst` ×1.5, `fire-tornado` ×2) or heal 30 HP (`healing-rain`); `steam-burst` skips the boss counter and a same-element pair fizzles. Rules are code constants in `apps/api/src/battles/skills.ts`; casts are not persisted beyond the battle's HP and status.
+- **Skill Level Locks**: The adventurer's level is snapshotted at battle start (`playerLevel`). Each skill has a required level (`apps/api/src/progression/levels.ts`); a combo the adventurer has not learned is cast as `element-bolt` instead and reported as `lockedSkill`. Strike, element bolt and fizzles are always available.
 - **Server Authoritative Rule**: Damage, counterattacks, victory, and reward payouts are strictly calculated on the Game Server. Frontend displays and mobile actor terminals act purely as presentation and command triggers.
 
 ### Item (`items` table)
@@ -321,6 +323,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/battles/:id/attack` | Public (terminal) | Resolve one attack turn |
 | `POST` | `/api/v1/battles/:id/cards` | Public (terminal) | Play an action card (`charged` / `cast` / `fizzled` / `cooldown`) |
 | `GET` | `/api/v1/action-cards` | Public | List enabled action cards |
+| `POST` | `/api/v1/status/scan` | Public (terminal) | `/status` kiosk scan: level progress, learned / locked skills, NEW flags; marks the level as seen |
 | `GET` | `/api/v1/battles/:id` | Public (terminal) | Get battle state |
 | `GET` | `/api/v1/events/stream` | Public | SSE event stream (WebSocket at `/ws`) |
 | `GET` | `/api/v1/events/status` | Public | Realtime gateway status |
@@ -341,11 +344,11 @@ The platform implements a lightweight token-based authentication mechanism desig
 - `/user`: Mobile-first Adventurer Dashboard. Displays display name, rank, guild merit, credential status, and read-only equipment / backpack.
 - `/user/profile`, `/user/quests`, `/user/rewards`: Adventurer sub-pages (rewards is Coming soon).
 - `/admin`: Guild Administration Console with sidebar navigation for Dashboard, Adventurers, Ranks, Credentials, Quests (Coming soon), Promotions (Coming soon), and Rewards (Coming soon).
-- `/guild`, `/actor/boss`, `/actor/shop/:shopId`, `/display/:displayId`: Public on-site terminals (no login required).
+- `/guild`, `/status`, `/actor/boss`, `/actor/shop/:shopId`, `/display/:displayId`: Public on-site terminals (no login required).
 
 ### Routing Guard Logic
 - Unauthenticated users accessing `/user` or `/admin` are automatically redirected to `/login`.
-- `/guild`, `/actor/*`, and `/display/*` bypass the login guard.
+- `/guild`, `/status`, `/actor/*`, and `/display/*` bypass the login guard.
 - Authenticated `USER` users accessing `/admin` are forbidden and redirected to `/user`.
 - Authenticated users accessing `/login` or `/` are routed to their respective role home (`/user` or `/admin`).
 
@@ -362,6 +365,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 ### Known Limitations & Scope Discipline
 - **Quest Workflow**: Acceptance, boss-defeat progress, and reward claiming are implemented through `PlayerQuest` at `/guild`. Admin quest management UI and `QuestCompletion` review are not implemented. `/user/quests` is a read-only quest list.
 - **Guild Merit Ledger**: Battle victories and quest claims write `MeritLedger` entries and increment the cached `AdventurerProfile.merit`.
+- **Levels vs Ranks**: Levels rise automatically with merit and unlock battle skills; ranks still require promotion review. Physical skill card handout is not tracked.
 - **Promotions**: `PromotionRequest` model exists; promotion eligibility checking and admin review approval workflows are scheduled for future phases. **No automatic rank-up logic exists.**
 - **Rewards**: `Reward` model exists as an extensible schema skeleton; reward fulfillment, physical dispenser triggers, and animation playback are deliberately not implemented in this phase.
 - **Shop & Equipment**: One shop (`shop-01`) sells weapons and armor; equipping happens at purchase time or at `/guild`. Selling back, consumables, stock limits, quest-unlocked items and admin item management are not implemented. Battle reward items (e.g. `Black Knight Medal`) are not added to the inventory.
