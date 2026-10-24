@@ -48,7 +48,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **Server 權威**：卡槽、組合計時器與同卡 2 秒冷卻由後端記憶體管理，同一場戰鬥的刷卡、按鈕攻擊與逾時結算依序處理。
   - **大螢幕**：`/display/boss-01` 新增卡槽、組合倒數圈與技能／失控演出（支援 `prefers-reduced-motion`）。
 - **下一步候選**：
-  - Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
+  - Adventurer Progression（功績換算等級、升級解鎖技能、`/status` 刷卡看自己的等級與技能，規格已定案：[docs/specs/adventurer-progression.md](docs/specs/adventurer-progression.md)）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
 ---
 
@@ -334,6 +334,7 @@ adventure-platform/
     ├── game-design.md            # 實體 RPG 遊戲平台設計規格書 (World Node, Actor Mode, 雙軌資源)
     ├── specs/                    # Vertical Slice 需求規格
     │   ├── action-card-battle.md
+    │   ├── adventurer-progression.md
     │   └── shop-equipment.md
     ├── architecture/             # 架構與領域模型技術文件
     │   ├── domain-model.md
@@ -562,6 +563,7 @@ pnpm --filter @adventure-platform/api db:seed
 - 系統架構詳細說明：[docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
 - Shop + Equipment 需求規格：[docs/specs/shop-equipment.md](docs/specs/shop-equipment.md)
 - Action Card Battle 需求規格：[docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)
+- Adventurer Progression 需求規格：[docs/specs/adventurer-progression.md](docs/specs/adventurer-progression.md)
 - 本地開發完整指引：[docs/development/getting-started.md](docs/development/getting-started.md)
 - 依賴與版本策略規範：[docs/development/dependency-policy.md](docs/development/dependency-policy.md)
 - Agent 開發規範：[AGENTS.md](AGENTS.md)
