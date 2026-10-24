@@ -217,7 +217,7 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 - **Completed**: Guild + Quest Vertical Slice MVP (`/guild` + `PlayerQuest` acceptance, progress and reward claim)
 - **Completed**: Shop + Equipment Vertical Slice MVP (`/actor/shop/shop-01` + `/display/shop-01` + ShopsModule + InventoryModule; see [Shop + Equipment spec](../specs/shop-equipment.md))
 - **Completed**: Action Card Battle Vertical Slice MVP (instant scan feedback, `/actor/boss` card mode, ActionCardsModule, card slot and skill effects on `/display/boss-01`; see [Action Card Battle spec](../specs/action-card-battle.md))
-- **Next Candidates**: Rank Up → Guild Status Terminal (`/display/guild-01`)
+- **Next Candidates**: Adventurer Progression ([spec](../specs/adventurer-progression.md)) → Rank Up → Guild Status Terminal (`/display/guild-01`)
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.
