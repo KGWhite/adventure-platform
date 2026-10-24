@@ -85,6 +85,7 @@ model AdventurerProfile {
   displayName        String
   currentRankId      String
   level              Int                @default(1)
+  lastSeenLevel      Int                @default(1)
   hp                 Int                @default(100)
   maxHp              Int                @default(100)
   gold               Int                @default(0)

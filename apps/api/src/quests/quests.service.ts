@@ -7,6 +7,8 @@ import {
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
+import type { LevelUp } from '../progression/levels.js';
+import { ProgressionService } from '../progression/progression.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AcceptQuestDto,
@@ -42,6 +44,7 @@ export class QuestsService {
     private readonly credentialsService: CredentialsService,
     private readonly eventsService: EventsService,
     private readonly inventoryService: InventoryService,
+    private readonly progressionService: ProgressionService,
   ) {}
 
   async findAll(): Promise<QuestData[]> {
@@ -385,8 +388,9 @@ export class QuestsService {
       rewardMerit,
     );
 
+    let levelUp: LevelUp | null = null;
     try {
-      await (this.prisma as any).$transaction(async (tx: any) => {
+      levelUp = await (this.prisma as any).$transaction(async (tx: any) => {
         // Update PlayerQuest
         await (tx as any).playerQuest?.update?.({
           where: { id: playerQuestId },
@@ -415,6 +419,9 @@ export class QuestsService {
             sourceId: playerQuestId,
           },
         });
+
+        // Merit drives the adventurer level
+        return this.progressionService.syncLevel(playerQuest!.playerId, tx);
       });
     } catch {
       // Fallback
@@ -457,6 +464,15 @@ export class QuestsService {
       // Fallback
     }
 
+    if (levelUp) {
+      this.progressionService.emitLevelUp(
+        'guild-01',
+        { id: playerState.id, name: playerState.name },
+        levelUp,
+        'QUEST_REWARD',
+      );
+    }
+
     return {
       success: true,
       playerQuest: { ...playerQuest },
@@ -464,6 +480,7 @@ export class QuestsService {
         gold: rewardGold,
         merit: rewardMerit,
       },
+      levelUp: levelUp ?? null,
       player: playerState,
     };
   }

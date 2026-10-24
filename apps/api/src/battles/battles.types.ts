@@ -1,4 +1,5 @@
 import type { ActionCardType } from '@prisma/client';
+import type { LevelUp } from '../progression/levels.js';
 import type { SkillId } from './skills.js';
 
 export type BattleStatus = 'active' | 'victory' | 'defeat';
@@ -7,6 +8,7 @@ export interface BattleReward {
   gold: number;
   merit: number;
   item: string;
+  levelUp?: LevelUp | null;
 }
 
 export interface BattleTurn {
@@ -28,6 +30,8 @@ export interface BattleState {
   playerMaxHp: number;
   playerAttack: number;
   playerDefense: number;
+  /** Level snapshot at battle start; decides which card skills can be cast */
+  playerLevel: number;
   bossHp: number;
   bossMaxHp: number;
   status: BattleStatus;
@@ -54,6 +58,8 @@ export interface CastSkillView {
   damage: number;
   heal: number;
   bossCountered: boolean;
+  /** Set when the combo was not learned yet and element bolt was cast instead */
+  lockedSkill: { id: SkillId; name: string; requiredLevel: number } | null;
 }
 
 export interface PlayCardResponse {

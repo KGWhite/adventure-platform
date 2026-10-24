@@ -49,6 +49,7 @@ src/
 │   ├── display/                  # 世界呈現終端 (BossDisplayView、ShopDisplayView /display/shop-*)
 │   ├── feedback/                 # 遊戲回饋覆蓋層 (GameFeedbackOverlay、FeedbackEvent 轉換器)
 │   ├── guild/                    # 公會實體終端機 (GuildTerminalView、GuildEquipmentPanel, /guild)
+│   ├── status/                   # 冒險者狀態終端 (StatusTerminalView, /status)
 │   ├── LoginView.tsx             # 身分驗證頁面
 │   ├── AdventurerView.tsx        # 冒險者儀表板 (/user)
 │   ├── AdventurerProfileView.tsx # 冒險者個人檔案 (/user/profile)
@@ -63,7 +64,7 @@ src/
 │   ├── useGameEvents.ts          # WebSocket / SSE 即時事件訂閱
 │   ├── useNfcScanner.ts          # Web NFC 行動卡讀取 (Android Chrome)
 │   └── useQrScanner.ts           # 相機 QR 掃描 (/actor/boss、/actor/shop；支援連續掃描)
-├── types/                        # 型別定義 (auth、battle、feedback、quest、shop)
+├── types/                        # 型別定義 (auth、battle、feedback、progression、quest、shop)
 ├── utils/
 │   ├── audioEffects.ts           # 戰鬥音效
 │   ├── itemIcons.ts              # 物品圖示與數值標籤
@@ -101,6 +102,7 @@ src/
 | 路徑 | 說明 | 狀態 |
 | :--- | :--- | :--- |
 | `/guild` | 公會實體終端機：掃卡、冒險者狀態、接取任務、領取報酬、裝備與卸下 | 已完成 |
+| `/status` | 冒險者狀態終端：小朋友刷 ID 卡看等級、升級進度與技能卡牆，升級後播放 LEVEL UP | 已完成 |
 | `/actor/boss` | Boss 世界角色終端：掃卡、發起戰鬥、按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） | 已完成 |
 | `/actor/shop/:shopId` | 商店店主終端：掃卡、可購清單、確認購買與立即裝備 | 已完成 |
 | `/display/shop-*` | 商店大螢幕：商品輪播、歡迎、購得動效、裝備提示 | 已完成 |

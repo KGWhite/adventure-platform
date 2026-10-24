@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GuildScanResponse, PlayerQuest, Quest } from '../../types/quest.js';
+import type { ClaimRewardResponse, GuildScanResponse, PlayerQuest, Quest } from '../../types/quest.js';
 import type { Inventory } from '../../types/shop.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
 import { WRONG_CARD_FOR_IDENTITY, parseScanPayload } from '../../utils/scanPayload.js';
@@ -277,7 +277,7 @@ export function GuildTerminalView() {
         throw new Error(errData.message || `領取獎勵失敗 (${res.status})`);
       }
 
-      const result = await res.json();
+      const result: ClaimRewardResponse = await res.json();
       setActiveQuest(result.playerQuest);
       if (playerData) {
         setPlayerData({
@@ -288,8 +288,13 @@ export function GuildTerminalView() {
       }
 
       setClaimCelebration(true);
+      const levelUpNotice = result.levelUp
+        ? ` ⭐ 升到 Lv${result.levelUp.to}！學會 ${result.levelUp.unlockedSkills
+            .map((skill) => skill.name)
+            .join('、')}，請發給冒險者新的技能卡。`
+        : '';
       setSuccessNotice(
-        `🏆 獎勵已發放！獲得 ${result.reward.gold} Gold 與 ${result.reward.merit} Merit！`,
+        `🏆 獎勵已發放！獲得 ${result.reward.gold} Gold 與 ${result.reward.merit} Merit！${levelUpNotice}`,
       );
       setTimeout(() => setClaimCelebration(false), 5000);
     } catch (err: any) {

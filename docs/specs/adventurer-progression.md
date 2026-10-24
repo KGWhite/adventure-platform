@@ -1,6 +1,6 @@
 # Adventurer Progression Vertical Slice 需求規格
 
-> **狀態**：規格已定案（D1–D6），尚未實作。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/specs/action-card-battle.md](action-card-battle.md)。
+> **狀態**：已實作（2026-10-24，D1–D6）。驗證方式與實作差異見 [§10 實作備註](#10-實作備註)。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/specs/action-card-battle.md](action-card-battle.md)。
 
 ## 0. 目標與範圍
 
@@ -182,33 +182,46 @@ interface AdventurerLevelUpData {
 
 ### 等級與技能
 
-- [ ] AC1：功績 0／19／20／49／50／100／160／999 分別對應 Lv1／1／2／2／3／4／5／5。
-- [ ] AC2：Migration 後既有冒險者的 `level` 依功績回填，`lastSeenLevel` 等於回填後的等級。
-- [ ] AC3：擊敗 Boss 讓 Aria 功績 20 → 30（Lv2 不變），不發送 `adventurer.level_up`；再領任務獎勵 30 → 50，升到 Lv3 並發送一次 `adventurer.level_up`（`unlockedSkills` 為火焰龍捲）。
-- [ ] AC4：一次跨越兩個等級時，`unlockedSkills` 包含兩個等級的技能。
+- [x] AC1：功績 0／19／20／49／50／100／160／999 分別對應 Lv1／1／2／2／3／4／5／5。
+- [x] AC2：Migration 後既有冒險者的 `level` 依功績回填，`lastSeenLevel` 等於回填後的等級。
+- [x] AC3：擊敗 Boss 讓 Aria 功績 20 → 30（Lv2 不變），不發送 `adventurer.level_up`；再領任務獎勵 30 → 50，升到 Lv3 並發送一次 `adventurer.level_up`（`unlockedSkills` 為火焰龍捲）。
+- [x] AC4：一次跨越兩個等級時，`unlockedSkills` 包含兩個等級的技能。
 
 ### `/status`
 
-- [ ] AC5：刷 Leon 的卡顯示 Lv3、「再 50 功績升到 Lv4」，普通攻擊、元素彈、元素斬、火焰龍捲為已學會，治癒之雨與蒸氣爆發為剪影並標示解鎖等級。
-- [ ] AC6：升級後第一次刷卡播放 LEVEL UP 演出，新技能帶 NEW；同一張卡再刷一次不再出現 NEW。
+- [x] AC5：刷 Leon 的卡顯示 Lv3、「再 50 功績升到 Lv4」，普通攻擊、元素彈、元素斬、火焰龍捲為已學會，治癒之雨與蒸氣爆發為剪影並標示解鎖等級。
+- [x] AC6：升級後第一次刷卡播放 LEVEL UP 演出，新技能帶 NEW；同一張卡再刷一次不再出現 NEW。
 - [ ] AC7：20 秒無操作回到待機畫面；刷行動卡顯示提示且不呼叫 API；停用卡顯示錯誤。
-- [ ] AC8：滿級（Lv5）顯示 MAX，所有技能已學會。
+- [x] AC8：滿級（Lv5）顯示 MAX，所有技能已學會。
 
 ### Boss 戰
 
-- [ ] AC9：Lv1 冒險者刷火＋風，施放元素彈（基本傷害），回應與事件帶 `lockedSkill: 火焰龍捲`，終端與大螢幕顯示提示。
-- [ ] AC10：Lv3 冒險者刷火＋風正常施放火焰龍捲；刷水＋風仍被替換為元素彈（治癒之雨需 Lv4）。
-- [ ] AC11：普通攻擊、單張元素逾時、同元素失控在 Lv1 仍照原規則結算。
-- [ ] AC12：戰鬥中途升級（例如同一位冒險者在別處領獎）不影響進行中戰鬥的技能快照。
+- [x] AC9：Lv1 冒險者刷火＋風，施放元素彈（基本傷害），回應與事件帶 `lockedSkill: 火焰龍捲`，終端與大螢幕顯示提示。
+- [x] AC10：Lv3 冒險者刷火＋風正常施放火焰龍捲；刷水＋風仍被替換為元素彈（治癒之雨需 Lv4）。
+- [x] AC11：普通攻擊、單張元素逾時、同元素失控在 Lv1 仍照原規則結算。
+- [x] AC12：戰鬥中途升級（例如同一位冒險者在別處領獎）不影響進行中戰鬥的技能快照。
 - [ ] AC13：擊敗 Boss 導致升級時，Boss 大螢幕勝利畫面顯示 LEVEL UP 與新技能。
 
 ### 文件與品質
 
-- [ ] AC14：Migration 與 seed 可在乾淨資料庫執行；Demo 冒險者等級為 Aria Lv2、Leon Lv3、Rookie Lv1。
-- [ ] AC15：README、`docs/game-design.md`、domain model、system architecture 與 `action-card-battle.md`（技能限制）已同步更新。
+- [x] AC14：Migration 與 seed 可在乾淨資料庫執行；Demo 冒險者等級為 Aria Lv2、Leon Lv3、Rookie Lv1。
+- [x] AC15：README、`docs/game-design.md`、domain model、system architecture 與 `action-card-battle.md`（技能限制）已同步更新。
 
 ## 9. 風險與後續
 
 - **功績同時決定等級與階級**：若之後調整功績獎勵，兩者節奏會一起變動；必要時再拆出獨立的經驗值。
 - **實體卡與帳號狀態不一致**：孩子可能拿著別人的技能卡；本切片以帳號解鎖狀態為準，畫面提示即可，不阻擋刷卡。
 - **後續延伸**：技能卡發放紀錄與補發、`/status` 顯示近期戰績、公會大廳看板顯示當日升級的冒險者。
+
+## 10. 實作備註
+
+- **驗證方式**：
+  - AC1、AC4 由 `apps/api/src/progression/levels.spec.ts` 驗證。
+  - AC9～AC12 由 `apps/api/src/battles/battles.service.spec.ts` 以 demo 冒險者（Rookie Lv1、Leon Lv3）與固定亂數驗證。
+  - AC3、AC5、AC6、AC8 與 AC7 的停用卡與未知卡由 `apps/api/test/adventurer-progression.e2e-spec.ts` 對測試資料庫驗證。
+  - 本機整合環境實測：`/status` 待機畫面、刷 Leon 顯示 Lv3 與技能卡牆、提高功績後刷卡播放 LEVEL UP 並出現 NEW；以 API 對 Rookie 實測火＋風被替換為元素彈。
+  - AC2、AC14：migration 回填與 seed 於測試資料庫與本機開發資料庫執行，Aria Lv2、Leon Lv3、Rookie Lv1。
+- **尚未驗證**：AC7 的 20 秒自動回到待機與刷到行動卡的提示、AC9 在終端與大螢幕上的提示文字（API 與事件內容已驗證）、AC13 Boss 大螢幕勝利畫面的 LEVEL UP 顯示，只經過型別檢查與建置，未在瀏覽器實測。
+- **等級同步**：功績增加後由 `ProgressionService.syncLevel` 在同一筆交易內以條件更新（`level < 新等級`）寫入，確保同一次升級只回報一次。`/status` 掃卡時也會順便補正等級快取。
+- **整合測試**：多個 e2e 檔案共用同一個資料庫並重設同一位 demo 冒險者，`vitest.config.e2e.ts` 改為依序執行檔案（`fileParallelism: false`）。
+- **技能卡圖示**：API 以 `ELEMENT` 表示「任一元素卡」（元素彈、元素斬），前端顯示為 ✨。

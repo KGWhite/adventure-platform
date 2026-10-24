@@ -16,6 +16,7 @@ import { ShopActorView } from './components/actor/ShopActorView.js';
 import { BossDisplayView } from './components/display/BossDisplayView.js';
 import { ShopDisplayView } from './components/display/ShopDisplayView.js';
 import { GuildTerminalView } from './components/guild/GuildTerminalView.js';
+import { StatusTerminalView } from './components/status/StatusTerminalView.js';
 import './App.css';
 
 function UserRouter({ path }: { path: string }) {
@@ -51,6 +52,10 @@ function MainRouter() {
   }
 
   // 3. World Node: Guild Terminal (/guild)
+  if (path.startsWith('/status')) {
+    return <StatusTerminalView />;
+  }
+
   if (path.startsWith('/guild')) {
     return <GuildTerminalView />;
   }

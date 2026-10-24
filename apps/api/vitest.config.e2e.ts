@@ -7,5 +7,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // Suites share one database and reset the same demo adventurers
+    fileParallelism: false,
   },
 });

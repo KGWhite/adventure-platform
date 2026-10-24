@@ -14,7 +14,8 @@ export type GameEventType =
   | 'equipment.changed'
   | 'card.scanned'
   | 'skill.cast'
-  | 'skill.fizzled';
+  | 'skill.fizzled'
+  | 'adventurer.level_up';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -176,10 +177,20 @@ export interface SkillCastData {
   damage: number;
   heal: number;
   bossCountered: boolean;
+  lockedSkill: { id: string; name: string; requiredLevel: number } | null;
 }
 
 export interface SkillFizzledData {
   battleId: string;
   playerId: string;
   cards: ActionCardKind[];
+}
+
+export interface AdventurerLevelUpData {
+  playerId: string;
+  playerName: string;
+  fromLevel: number;
+  toLevel: number;
+  unlockedSkills: { id: string; name: string; cards: string[]; requiredLevel: number }[];
+  source: 'BATTLE_VICTORY' | 'QUEST_REWARD';
 }

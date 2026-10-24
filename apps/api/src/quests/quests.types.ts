@@ -1,5 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import type { InventoryView } from '../inventory/inventory.types.js';
+import type { LevelUp } from '../progression/levels.js';
 
 export type PlayerQuestStatus = 'accepted' | 'completed' | 'claimed';
 
@@ -79,6 +80,7 @@ export interface ClaimRewardResult {
     gold: number;
     merit: number;
   };
+  levelUp: LevelUp | null;
   player: {
     id: string;
     name: string;

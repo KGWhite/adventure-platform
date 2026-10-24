@@ -29,7 +29,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - 驗證完整實體遊戲閉環：**QR Adventure Card → Boss Actor 掃描 → Game Server 辨識玩家 → 建立 Battle → Boss Actor 操作戰鬥 → Server 計算結果 → WebSocket 推送事件 → Boss Display 即時顯示 → Battle 結束 → 更新 Player State → 發放 Gold / Merit**。
   - **世界角色終端 (World Actor)**：`/actor/boss`（支援相機 QR 掃描與 Manual Credential Input 雙模式，大按鈕單手操作）。
   - **世界呈現終端 (Display Node)**：`/display/boss-01`（TV / 大螢幕沉浸式 RPG HUD、HP 動畫、受擊震動、飄字、勝利結算與獎勵顯示、自動重置計時器）。
-  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.*`、`reward.*`、`quest.*`（Shop 切片新增 `shop.purchase_completed`、`equipment.changed`；Action Card 切片新增 `card.scanned`、`skill.cast`、`skill.fizzled`）。
+  - **即時通訊中樞**：純 Node.js RFC 6455 雙向 WebSocket Gateway + SSE 備援串流，統一規格推播 `player.scanned`、`battle.*`、`reward.*`、`quest.*`（Shop 切片新增 `shop.purchase_completed`、`equipment.changed`；Action Card 切片新增 `card.scanned`、`skill.cast`、`skill.fizzled`；Progression 切片新增 `adventurer.level_up`）。
   - **Server 決定權威**：戰鬥數值、HP 扣減、勝負判定、金幣與功績發放均由後端權威計算與寫入資料庫及 MeritLedger。
 - **已完成：Guild + Quest Vertical Slice MVP (首個完整 RPG Gameplay Loop)**：
   - 串起第一個端到端可玩遊戲循環：**Adventure Card → 公會掃 QR (`/guild`) → 顯示角色狀態 → 接任務 (`POST /api/v1/player-quests`) → 前往 Boss 討伐場 (`/actor/boss` + `/display/boss-01`) → 擊敗黑騎士 → Server 權威自動累加進度並切換至 `completed` (`quest.completed`) → 回公會再次掃卡 (`POST /api/v1/guild/scan`) → 顯示 QUEST COMPLETE → 點擊 Claim Reward (`POST /api/v1/player-quests/:id/claim`) → 獲得 Gold / Merit / MeritLedger 寫入**。
@@ -47,8 +47,12 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **行動卡戰鬥**：`/actor/boss` 新增「卡片攻擊」模式（相機連續掃描、Android Chrome Web NFC 選配、手動卡片按鈕）。攻擊卡立即攻擊；元素卡（火／水／風）在 6 秒內與第二張卡組合為技能（火焰龍捲、蒸氣爆發、治癒之雨、元素斬），同元素兩張為魔法失控，單張逾時自動施放元素彈。
   - **Server 權威**：卡槽、組合計時器與同卡 2 秒冷卻由後端記憶體管理，同一場戰鬥的刷卡、按鈕攻擊與逾時結算依序處理。
   - **大螢幕**：`/display/boss-01` 新增卡槽、組合倒數圈與技能／失控演出（支援 `prefers-reduced-motion`）。
+- **已完成：Adventurer Progression Vertical Slice MVP (等級成長與技能解鎖)**：規格見 [docs/specs/adventurer-progression.md](docs/specs/adventurer-progression.md)。
+  - **等級由功績換算**：Lv1 0、Lv2 20、Lv3 50、Lv4 100、Lv5 160；擊敗 Boss 與領取任務獎勵時同步更新，升級時發送 `adventurer.level_up`，Boss 大螢幕與公會終端顯示 LEVEL UP 與新技能。
+  - **技能依等級解鎖**：元素斬 Lv2、火焰龍捲 Lv3、治癒之雨 Lv4、蒸氣爆發 Lv5。Boss 戰開戰時快照等級，尚未學會的組合改放元素彈並提示。
+  - **`/status` 自助終端**：小朋友刷 ID 卡看等級、升級進度、已學會與未解鎖的技能卡；升級後第一次刷卡播放 LEVEL UP 演出並標示 NEW。
 - **下一步候選**：
-  - Adventurer Progression（功績換算等級、升級解鎖技能、`/status` 刷卡看自己的等級與技能，規格已定案：[docs/specs/adventurer-progression.md](docs/specs/adventurer-progression.md)）→ Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
+  - Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
 
 ---
 
@@ -144,6 +148,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/user/quests` | `USER` | 公會委託告示欄（唯讀）：讀取 `GET /api/v1/quests` 顯示任務與金幣／功績報酬，並提示前往 `/guild` 掃卡接取與領獎 |
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
+| `/status` | 公開 / 現場 | **冒險者狀態終端 (Status Terminal)**：給小朋友自助刷 ID 卡的平板／大螢幕畫面，顯示等級徽章、升級進度、技能卡牆（已學會／未解鎖），升級後播放 LEVEL UP 演出；20 秒無操作回到待機 |
 | `/guild` | 公開 / 現場 | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算、裝備與卸下裝備 |
 | `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥；可切換按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） |
 | `/actor/shop/:shopId` | 公開 / 店主 | **商店店主終端 (World Actor)**：店主手機掃卡（預設 `shop-01`），顯示可購清單與鎖定原因、確認購買並可立即裝備 |
@@ -280,6 +285,7 @@ adventure-platform/
 │   │       ├── inventory/        # 冒險者背包、裝備與卸下、裝備數值計算模組
 │   │       ├── prisma/           # PrismaService / PrismaModule
 │   │       ├── quests/           # 任務查詢、接取、進度更新與報酬領取模組
+│   │       ├── progression/      # 等級換算、技能解鎖與 /status 掃卡模組
 │   │       ├── ranks/            # 階級模組 (F..S)
 │   │       ├── shops/            # 商店目錄、掃卡可購清單與購買交易模組
 │   │       ├── users/            # 使用者與身分模組 (USER, ADMIN)
@@ -297,6 +303,7 @@ adventure-platform/
 │       │   │   ├── display/             # 世界呈現終端 (Boss / Shop Display)
 │       │   │   ├── feedback/            # 遊戲即時回饋覆蓋層 (GameFeedbackOverlay)
 │       │   │   ├── guild/               # 公會實體終端機 (/guild，含裝備面板)
+│       │   │   ├── status/              # 冒險者狀態終端 (/status)
 │       │   │   ├── AdminView.tsx        # 公會管理員控制台版面
 │       │   │   ├── Adventurer*View.tsx  # 冒險者儀表板、檔案、任務、獎勵頁
 │       │   │   └── LoginView.tsx        # 公會身分驗證登入介面
@@ -310,7 +317,7 @@ adventure-platform/
 │       │   ├── router/
 │       │   │   └── Router.tsx           # 路由提供者與權限跳轉守衛
 │       │   ├── theme/                   # MUI 主題 (palette、typography)
-│       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、quest、shop)
+│       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、progression、quest、shop)
 │       │   ├── utils/
 │       │   │   ├── audioEffects.ts      # 戰鬥音效
 │       │   │   ├── itemIcons.ts         # 物品圖示與數值標籤
@@ -466,7 +473,8 @@ Host Network (Debian 13)
 | **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
 | **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`)；行動卡刷入 `POST /battles/:id/cards` |
 | **Action Cards API** | [https://localhost/api/v1/action-cards](https://localhost/api/v1/action-cards) | 查詢啟用中的行動卡（手動模式與列印 QR 使用） |
-| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`） |
+| **Status Scan API** | `POST https://localhost/api/v1/status/scan` | `/status` 終端刷卡：等級進度、已學會與未解鎖技能、NEW 標記 |
+| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`, `adventurer.level_up`） |
 | **PostgreSQL** | 內部 `postgres:5432` | 資料庫連接埠（Docker 整合環境僅限內部存取；本機原始碼模式可按需暴露） |
 
 > **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。

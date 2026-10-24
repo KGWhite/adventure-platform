@@ -8,6 +8,7 @@ import type {
   SkillCastData,
   SkillFizzledData,
 } from '../../types/battle.js';
+import type { AdventurerLevelUpData } from '../../types/progression.js';
 import { sfx } from '../../utils/audioEffects.js';
 import './BossDisplayView.css';
 
@@ -75,6 +76,7 @@ export function BossDisplayView() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [cardSlot, setCardSlot] = useState<ActionCardKind[]>([]);
   const [combo, setCombo] = useState<{ deadline: string; remainingMs: number } | null>(null);
+  const [levelUp, setLevelUp] = useState<AdventurerLevelUpData | null>(null);
   const [currentEffect, setCurrentEffect] = useState<CardEffect | null>(null);
   const effectQueueRef = useRef<CardEffect[]>([]);
   const effectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +142,7 @@ export function BossDisplayView() {
     setChallenger(null);
     setBattleData(null);
     setRewards(null);
+    setLevelUp(null);
     setResetCountdown(null);
     addFeed('Chamber reset. Waiting for new challenger...');
   };
@@ -254,6 +257,13 @@ export function BossDisplayView() {
           item: r.item,
         });
         addFeed(`🎁 Rewards distributed: +${r.gold} Gold, +${r.merit} Merit!`);
+        break;
+      }
+
+      case 'adventurer.level_up': {
+        const d = event.data as AdventurerLevelUpData;
+        setLevelUp(d);
+        addFeed(`⭐ ${d.playerName} reached Lv${d.toLevel}!`);
         break;
       }
 
@@ -476,6 +486,12 @@ export function BossDisplayView() {
                 <span key={i}>{CARD_ICONS[card]}</span>
               ))}
             </div>
+            {currentEffect.data.lockedSkill && (
+              <div className="skill-effect-locked">
+                🔒 還沒學會{currentEffect.data.lockedSkill.name}（Lv{currentEffect.data.lockedSkill.requiredLevel}），先用
+                {currentEffect.data.skillName}！
+              </div>
+            )}
           </div>
         )}
         {currentEffect?.kind === 'fizzle' && (
@@ -509,6 +525,16 @@ export function BossDisplayView() {
                 </div>
               </div>
               <div className="reward-db-sync-text">✓ Player Ledger and Gold balance updated on Server</div>
+              {levelUp && (
+                <div className="victory-level-up">
+                  <div className="victory-level-up-title">⭐ LEVEL UP！Lv{levelUp.toLevel}</div>
+                  {levelUp.unlockedSkills.map((skill) => (
+                    <div key={skill.id} className="victory-level-up-skill">
+                      學會了 {skill.name}！
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {resetCountdown !== null && (

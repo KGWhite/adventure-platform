@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Response } from 'express';
 import type {
+  AdventurerLevelUpData,
   BattleAttackData,
   BattleDamageData,
   BattleDefeatData,
@@ -143,5 +144,9 @@ export class EventsService {
 
   emitSkillFizzled(displayId: string, data: SkillFizzledData) {
     return this.emit('skill.fizzled', displayId, data);
+  }
+
+  emitAdventurerLevelUp(displayId: string, data: AdventurerLevelUpData) {
+    return this.emit('adventurer.level_up', displayId, data);
   }
 }

@@ -1,3 +1,4 @@
+import type { LevelUp } from './progression.js';
 import type { Inventory } from './shop.js';
 
 export type PlayerQuestStatus = 'accepted' | 'completed' | 'claimed';
@@ -53,6 +54,7 @@ export interface ClaimRewardResponse {
     gold: number;
     merit: number;
   };
+  levelUp: LevelUp | null;
   player: {
     id: string;
     name: string;

@@ -11,8 +11,11 @@ import { BossesService } from '../bosses/bosses.service.js';
 import { CredentialsService } from '../credentials/credentials.service.js';
 import { EventsService } from '../events/events.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
+import { SKILL_REQUIRED_LEVEL, isSkillUnlocked, levelForMerit } from '../progression/levels.js';
+import { ProgressionService } from '../progression/progression.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { QuestsService } from '../quests/quests.service.js';
+import type { LevelUp } from '../progression/levels.js';
 import type {
   BattleState,
   CardPlayResult,
@@ -62,6 +65,7 @@ export class BattlesService {
     private readonly questsService: QuestsService,
     private readonly inventoryService: InventoryService,
     private readonly actionCardsService: ActionCardsService,
+    private readonly progressionService: ProgressionService,
   ) {}
 
   async scanPlayer(input: ScanPlayerInput) {
@@ -75,7 +79,7 @@ export class BattlesService {
       player: {
         id: player.id,
         name: player.name,
-        level: player.level,
+        level: levelForMerit(player.merit),
         hp: player.hp,
         maxHp: player.maxHp,
         gold: player.gold,
@@ -119,6 +123,7 @@ export class BattlesService {
       playerMaxHp: player.maxHp,
       playerAttack: equipmentStats.attack,
       playerDefense: equipmentStats.defense,
+      playerLevel: levelForMerit(player.merit),
       bossHp: boss.hp,
       bossMaxHp: boss.maxHp,
       status: 'active',
@@ -157,7 +162,7 @@ export class BattlesService {
       player: {
         id: player.id,
         name: player.name,
-        level: player.level,
+        level: battle.playerLevel,
         hp: battle.playerHp,
         maxHp: battle.playerMaxHp,
         attack: battle.playerAttack,
@@ -261,7 +266,10 @@ export class BattlesService {
         return this.toPlayCardResponse(battle, 'fizzled', null);
       }
 
-      const skill = await this.castSkill(battle, outcome.skill, cards);
+      // Combos the adventurer has not learned yet fall back to element bolt
+      const skill = isSkillUnlocked(outcome.skill.id, battle.playerLevel)
+        ? await this.castSkill(battle, outcome.skill, cards)
+        : await this.castSkill(battle, SKILLS['element-bolt'], cards, outcome.skill);
       return this.toPlayCardResponse(battle, 'cast', skill);
     });
   }
@@ -275,7 +283,11 @@ export class BattlesService {
     battle: BattleState,
     skill: SkillDefinition,
     cards: ActionCardType[],
+    replacedSkill: SkillDefinition | null = null,
   ): Promise<CastSkillView> {
+    const lockedSkill = replacedSkill
+      ? { id: replacedSkill.id, name: replacedSkill.name, requiredLevel: SKILL_REQUIRED_LEVEL[replacedSkill.id] }
+      : null;
     const playerDamage =
       skill.damageMultiplier > 0 ? Math.round(this.rollBaseDamage(battle) * skill.damageMultiplier) : 0;
     const outcome = this.applyTurn(battle, {
@@ -290,6 +302,7 @@ export class BattlesService {
       damage: outcome.playerDamage,
       heal: outcome.healed,
       bossCountered: outcome.bossDamage > 0,
+      lockedSkill,
     };
 
     this.eventsService.emitSkillCast(battle.displayId, {
@@ -301,6 +314,7 @@ export class BattlesService {
       damage: view.damage,
       heal: view.heal,
       bossCountered: view.bossCountered,
+      lockedSkill,
     });
     await this.finishTurn(battle, outcome);
     this.logger.log(`${battle.playerName} cast ${skill.name} (${cards.join('+')}) in ${battle.id}`);
@@ -352,7 +366,12 @@ export class BattlesService {
 
     if (battle.status === 'victory' && battle.reward) {
       // Server authoritative player state update
-      await this.grantVictoryRewards(battle.playerId, battle.reward.gold, battle.reward.merit, battleId);
+      battle.reward.levelUp = await this.grantVictoryRewards(
+        battle.playerId,
+        battle.reward.gold,
+        battle.reward.merit,
+        battleId,
+      );
 
       // Trigger Quest Progress Handler (Battle Result -> Player -> Boss ID -> Quest Progress)
       try {
@@ -380,12 +399,21 @@ export class BattlesService {
         bossId: battle.bossId,
         bossName: battle.bossName,
       });
+      const { levelUp, ...reward } = battle.reward;
       this.eventsService.emitRewardReceived(battle.displayId, {
         battleId,
         playerId: battle.playerId,
         playerName: battle.playerName,
-        ...battle.reward,
+        ...reward,
       });
+      if (levelUp) {
+        this.progressionService.emitLevelUp(
+          battle.displayId,
+          { id: battle.playerId, name: battle.playerName },
+          levelUp,
+          'BATTLE_VICTORY',
+        );
+      }
     } else if (battle.status === 'defeat') {
       this.eventsService.emitBattleDefeat(battle.displayId, {
         battleId,
@@ -485,13 +513,13 @@ export class BattlesService {
     gold: number,
     merit: number,
     battleId: string,
-  ) {
+  ): Promise<LevelUp | null> {
     // 1. Update in-memory player
     this.credentialsService.updateInMemoryPlayerRewards(playerId, gold, merit);
 
     // 2. Update DB if connected
     try {
-      await (this.prisma as any).$transaction(async (tx: any) => {
+      return await (this.prisma as any).$transaction(async (tx: any) => {
         // Update AdventurerProfile
         await (tx as any).adventurerProfile?.update?.({
           where: { id: playerId },
@@ -511,9 +539,13 @@ export class BattlesService {
             sourceId: battleId,
           },
         });
+
+        // Merit drives the adventurer level
+        return this.progressionService.syncLevel(playerId, tx);
       });
     } catch {
       // Ignored if DB not active
+      return null;
     }
   }
 
