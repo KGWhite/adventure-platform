@@ -52,7 +52,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **技能依等級解鎖**：元素斬 Lv2、火焰龍捲 Lv3、治癒之雨 Lv4、蒸氣爆發 Lv5。Boss 戰開戰時快照等級，尚未學會的組合改放元素彈並提示。
   - **`/status` 自助終端**：小朋友刷 ID 卡看等級、升級進度、已學會與未解鎖的技能卡；升級後第一次刷卡播放 LEVEL UP 演出並標示 NEW。
 - **下一步候選**：
-  - Rank Up（階級晉升考核）→ Guild Status 大螢幕看板。
+  - Staff Console（一位工作人員以手機總控台 `/staff` 扮演公會、商店、Boss 與狀態查詢，跟隨模式大螢幕 `/display` 同步切換，新增 `STAFF` 角色與公會大螢幕，規格已定案：[docs/specs/staff-console.md](docs/specs/staff-console.md)）→ Rank Up（階級晉升考核）。
 
 ---
 
@@ -342,7 +342,8 @@ adventure-platform/
     ├── specs/                    # Vertical Slice 需求規格
     │   ├── action-card-battle.md
     │   ├── adventurer-progression.md
-    │   └── shop-equipment.md
+    │   ├── shop-equipment.md
+    │   └── staff-console.md
     ├── architecture/             # 架構與領域模型技術文件
     │   ├── domain-model.md
     │   └── system-architecture.md
@@ -572,6 +573,7 @@ pnpm --filter @adventure-platform/api db:seed
 - Shop + Equipment 需求規格：[docs/specs/shop-equipment.md](docs/specs/shop-equipment.md)
 - Action Card Battle 需求規格：[docs/specs/action-card-battle.md](docs/specs/action-card-battle.md)
 - Adventurer Progression 需求規格：[docs/specs/adventurer-progression.md](docs/specs/adventurer-progression.md)
+- Staff Console 需求規格：[docs/specs/staff-console.md](docs/specs/staff-console.md)
 - 本地開發完整指引：[docs/development/getting-started.md](docs/development/getting-started.md)
 - 依賴與版本策略規範：[docs/development/dependency-policy.md](docs/development/dependency-policy.md)
 - Agent 開發規範：[AGENTS.md](AGENTS.md)

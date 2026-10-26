@@ -534,8 +534,8 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
-2. **Guild Status Terminal 大螢幕 (`/display/guild-01`)**：公會大廳冒險者名冊與即時看板。
+1. **Staff Console 垂直切片**：一位工作人員以一支手機登入總控台 `/staff`，切換扮演公會、商店、Boss 與狀態查詢崗位；跟隨模式大螢幕 `/display` 依目前崗位同步切換，並新增公會大螢幕 `/display/guild-01` 與 `STAFF` 角色。需求規格已定案：[docs/specs/staff-console.md](specs/staff-console.md)。
+2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。
