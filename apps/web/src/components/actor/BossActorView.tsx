@@ -10,6 +10,7 @@ import type {
   PlayCardResponse,
   PlayerInfo,
 } from '../../types/battle.js';
+import { apiFetch } from '../../utils/apiFetch.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
 import {
   WRONG_CARD_FOR_ACTION,
@@ -44,11 +45,19 @@ const CARD_ICONS: Record<ActionCardKind, string> = {
   WIND: '🌪️',
 };
 
-export function BossActorView() {
+interface BossActorViewProps {
+  // Fixed boss post when embedded in the /staff console
+  nodeId?: string;
+  embedded?: boolean;
+  // False while another /staff station is shown: cameras and NFC are released
+  active?: boolean;
+}
+
+export function BossActorView({ nodeId, embedded = false, active = true }: BossActorViewProps = {}) {
   const [bosses, setBosses] = useState<BossOption[]>(DEFAULT_BOSSES);
-  const [selectedBossId, setSelectedBossId] = useState<string>('boss-01');
+  const [selectedBossId, setSelectedBossId] = useState<string>(nodeId ?? 'boss-01');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
-  const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
+  const [scannerMode, setScannerMode] = useState<'manual' | 'camera' | 'nfc'>('manual');
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -117,7 +126,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/v1/battles/scan', {
+      const res = await apiFetch('/api/v1/battles/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,13 +150,7 @@ export function BossActorView() {
     }
   };
 
-  const {
-    videoRef: identityVideoRef,
-    cameraActive: identityCameraActive,
-    cameraError: identityCameraError,
-    startCamera: startIdentityCamera,
-    stopCamera: stopIdentityCamera,
-  } = useQrScanner((raw) => {
+  const handleIdentityPayload = (raw: string) => {
     const payload = parseScanPayload(raw);
     if (payload.kind === 'card') {
       setErrorMsg(WRONG_CARD_FOR_IDENTITY);
@@ -155,7 +158,28 @@ export function BossActorView() {
     }
     setCredentialInput(payload.value);
     validateAndScan(payload.value);
-  });
+  };
+
+  const {
+    videoRef: identityVideoRef,
+    cameraActive: identityCameraActive,
+    cameraError: identityCameraError,
+    startCamera: startIdentityCamera,
+    stopCamera: stopIdentityCamera,
+  } = useQrScanner(handleIdentityPayload);
+  // Identity cards by NFC before the battle; action cards use their own reader
+  const {
+    nfcSupported: identityNfcSupported,
+    nfcActive: identityNfcActive,
+    nfcError: identityNfcError,
+    startNfc: startIdentityNfc,
+    stopNfc: stopIdentityNfc,
+  } = useNfcScanner(handleIdentityPayload, 3000);
+
+  // One challenger per battle: stop identity NFC once a player is recognized
+  useEffect(() => {
+    if (scannedPlayer) stopIdentityNfc();
+  }, [scannedPlayer, stopIdentityNfc]);
 
   const applyBattle = (battle: BattleState) => {
     setActiveBattle(battle);
@@ -172,7 +196,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/v1/battles/${activeBattle.id}/cards`, {
+      const res = await apiFetch(`/api/v1/battles/${activeBattle.id}/cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cardValue }),
@@ -232,6 +256,16 @@ export function BossActorView() {
     stopNfc();
   }
 
+  // Release cameras and NFC while another /staff station is shown
+  useEffect(() => {
+    if (!active) {
+      stopIdentityCamera();
+      stopIdentityNfc();
+      stopCardCamera();
+      stopNfc();
+    }
+  }, [active, stopIdentityCamera, stopIdentityNfc, stopCardCamera, stopNfc]);
+
   // Tick the combo countdown while an element card is charged
   useEffect(() => {
     if (!comboDeadline) return;
@@ -263,7 +297,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/v1/battles', {
+      const res = await apiFetch('/api/v1/battles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,7 +331,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/v1/battles/${activeBattle.id}/attack`, {
+      const res = await apiFetch(`/api/v1/battles/${activeBattle.id}/attack`, {
         method: 'POST',
       });
 
@@ -346,19 +380,21 @@ export function BossActorView() {
   return (
     <div className="boss-actor-root">
       {/* Top App Bar */}
-      <header className="actor-topbar">
-        <div className="topbar-branding">
-          <span className="branding-icon">⚔️</span>
-          <div>
-            <h1 className="branding-title">BOSS ACTOR TERMINAL</h1>
-            <span className="branding-subtitle">World Node Field Controller</span>
+      {!embedded && (
+        <header className="actor-topbar">
+          <div className="topbar-branding">
+            <span className="branding-icon">⚔️</span>
+            <div>
+              <h1 className="branding-title">BOSS ACTOR TERMINAL</h1>
+              <span className="branding-subtitle">World Node Field Controller</span>
+            </div>
           </div>
-        </div>
 
-        <a href={`/display/${selectedBossId}`} target="_blank" rel="noreferrer" className="open-display-link">
-          📺 Open Display
-        </a>
-      </header>
+          <a href={`/display/${selectedBossId}`} target="_blank" rel="noreferrer" className="open-display-link">
+            📺 Open Display
+          </a>
+        </header>
+      )}
 
       <main className="actor-main-content">
         {/* Error Alert */}
@@ -382,7 +418,7 @@ export function BossActorView() {
               className="actor-select"
               value={selectedBossId}
               onChange={(e) => setSelectedBossId(e.target.value)}
-              disabled={!!activeBattle && activeBattle.status === 'active'}
+              disabled={embedded || (!!activeBattle && activeBattle.status === 'active')}
             >
               {bosses.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -405,6 +441,7 @@ export function BossActorView() {
                   onClick={() => {
                     setScannerMode('manual');
                     stopIdentityCamera();
+                    stopIdentityNfc();
                   }}
                 >
                   ⌨️ Manual Input
@@ -414,13 +451,40 @@ export function BossActorView() {
                   className={`tab-pill ${scannerMode === 'camera' ? 'active' : ''}`}
                   onClick={() => {
                     setScannerMode('camera');
+                    stopIdentityNfc();
                     startIdentityCamera();
                   }}
                 >
                   📷 Camera Scan
                 </button>
+                {identityNfcSupported && (
+                  <button
+                    type="button"
+                    className={`tab-pill ${scannerMode === 'nfc' ? 'active' : ''}`}
+                    onClick={() => {
+                      setScannerMode('nfc');
+                      stopIdentityCamera();
+                      startIdentityNfc();
+                    }}
+                  >
+                    📶 NFC
+                  </button>
+                )}
               </div>
             </div>
+
+            {scannerMode === 'nfc' && (
+              <div className="nfc-identity-box">
+                {identityNfcActive ? (
+                  <p className="nfc-identity-hint">📶 請將冒險者卡靠近手機背面⋯</p>
+                ) : (
+                  <button type="button" onClick={startIdentityNfc} className="actor-btn actor-btn-sm">
+                    開始 NFC 感應
+                  </button>
+                )}
+                {identityNfcError && <p className="card-reader-error">{identityNfcError}</p>}
+              </div>
+            )}
 
             {/* Camera Viewfinder */}
             {scannerMode === 'camera' && (

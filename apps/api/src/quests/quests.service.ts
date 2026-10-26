@@ -514,7 +514,7 @@ export class QuestsService {
       },
     });
 
-    return {
+    const result: GuildScanResult = {
       player: {
         id: player.id,
         name: player.name,
@@ -530,5 +530,9 @@ export class QuestsService {
       availableQuests,
       inventory,
     };
+
+    // Mirror the counter view (status, quests, equipment) to the guild display
+    this.eventsService.emitGuildScanned(displayId, result);
+    return result;
   }
 }

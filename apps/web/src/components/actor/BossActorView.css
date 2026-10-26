@@ -680,3 +680,23 @@
 .card-strike {
   border-color: rgba(226, 232, 240, 0.6);
 }
+
+/* NFC identity card reading (Android Chrome) for boss and shop terminals */
+.nfc-identity-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.nfc-identity-hint {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fbbf24;
+  text-align: center;
+}

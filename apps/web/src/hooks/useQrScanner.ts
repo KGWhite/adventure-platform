@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import jsQR from 'jsqr';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { playScanFeedback } from '../utils/scanFeedback.js';
 
 interface QrScannerOptions {
@@ -11,7 +12,9 @@ interface QrScannerOptions {
 }
 
 /**
- * Camera QR scanning for World Node terminals. The returned videoRef must be
+ * Camera QR scanning for World Node terminals. Uses the browser's native
+ * BarcodeDetector where available (Android Chrome) and decodes frames with
+ * jsQR elsewhere (iPhone Safari, desktop browsers). The returned videoRef must be
  * attached to a <video> rendered only while cameraActive is true; the stream
  * is attached after that element mounts. onDetected receives the raw payload
  * (see utils/scanPayload.ts) right after local scan feedback has played.
@@ -33,7 +36,8 @@ export function useQrScanner(
     onDetectedRef.current = onDetected;
   });
 
-  const stopCamera = () => {
+  // Stable so callers can release the camera from an effect
+  const stopCamera = useCallback(() => {
     if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
     scanIntervalRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -42,7 +46,7 @@ export function useQrScanner(
       videoRef.current.srcObject = null;
     }
     setCameraActive(false);
-  };
+  }, []);
 
   const handleDetection = (payload: string) => {
     const now = Date.now();
@@ -65,10 +69,23 @@ export function useQrScanner(
         detector = null;
       }
     }
-    if (!detector) {
-      setCameraError('此瀏覽器不支援 QR 自動辨識，請改用手動輸入。');
-      return;
-    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const detect = async (video: HTMLVideoElement): Promise<string | null> => {
+      if (detector) {
+        const barcodes = await detector.detect(video);
+        return barcodes.length > 0 ? String(barcodes[0].rawValue) : null;
+      }
+      if (!ctx || !video.videoWidth) return null;
+      // jsQR cost grows with pixel count; a card fills enough of a 640px frame
+      const scale = Math.min(1, 640 / video.videoWidth);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      return jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' })?.data ?? null;
+    };
 
     let detecting = false;
     scanIntervalRef.current = setInterval(async () => {
@@ -76,9 +93,9 @@ export function useQrScanner(
       if (detecting || !video || video.readyState < 2) return;
       detecting = true;
       try {
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          handleDetection(String(barcodes[0].rawValue).trim());
+        const payload = await detect(video);
+        if (payload) {
+          handleDetection(payload.trim());
         }
       } catch {
         // ignore detector error
@@ -111,7 +128,7 @@ export function useQrScanner(
     });
   }, [cameraActive]);
 
-  useEffect(() => stopCamera, []);
+  useEffect(() => stopCamera, [stopCamera]);
 
   return { videoRef, cameraActive, cameraError, startCamera, stopCamera };
 }

@@ -16,6 +16,7 @@ import { ProgressionModule } from './progression/progression.module.js';
 import { QuestsModule } from './quests/quests.module.js';
 import { RanksModule } from './ranks/ranks.module.js';
 import { ShopsModule } from './shops/shops.module.js';
+import { StageModule } from './stage/stage.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module.js';
     ShopsModule,
     ActionCardsModule,
     ProgressionModule,
+    StageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

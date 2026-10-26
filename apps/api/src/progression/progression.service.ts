@@ -119,7 +119,7 @@ export class ProgressionService {
         },
       });
 
-      return {
+      const result: StatusScanResult = {
         player: {
           id: player.id,
           name: player.displayName,
@@ -136,6 +136,10 @@ export class ProgressionService {
         equipment: inventory.equipment,
         leveledUpSinceLastSeen: level > lastSeenLevel,
       };
+
+      // Lets the status big screen show the same result as the scanning device
+      this.eventsService.emitStatusViewed(displayId, result);
+      return result;
     });
   }
 }

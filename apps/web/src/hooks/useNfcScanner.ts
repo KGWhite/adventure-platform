@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { playScanFeedback } from '../utils/scanFeedback.js';
 
 /** Web NFC is only available in Chrome on Android over HTTPS. */
@@ -28,11 +28,12 @@ export function useNfcScanner(onDetected: (payload: string) => void, dedupeMs = 
     onDetectedRef.current = onDetected;
   });
 
-  const stopNfc = () => {
+  // Stable so callers can release the reader from an effect
+  const stopNfc = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setNfcActive(false);
-  };
+  }, []);
 
   const startNfc = async () => {
     if (!isWebNfcSupported()) {
@@ -63,7 +64,7 @@ export function useNfcScanner(onDetected: (payload: string) => void, dedupeMs = 
     }
   };
 
-  useEffect(() => stopNfc, []);
+  useEffect(() => stopNfc, [stopNfc]);
 
   return { nfcSupported: isWebNfcSupported(), nfcActive, nfcError, startNfc, stopNfc };
 }

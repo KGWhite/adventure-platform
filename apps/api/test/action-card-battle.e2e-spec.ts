@@ -5,10 +5,12 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import { staffAuthHeader } from './helpers/staff-auth.js';
 
 // Requires a migrated and seeded database at DATABASE_URL.
 describe('Action Card Battle (e2e)', () => {
   let app: INestApplication<App>;
+  let staff: Record<string, string>;
   let prisma: PrismaService;
 
   const DISABLED = 'card-e2e-disabled';
@@ -16,13 +18,17 @@ describe('Action Card Battle (e2e)', () => {
   const startBattle = async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/battles')
+      .set(staff)
       .send({ credentialValue: 'cred-demo-002', bossId: 'boss-01', displayId: 'boss-e2e' })
       .expect(201);
     return res.body.id as string;
   };
 
   const playCard = (battleId: string, cardValue: string) =>
-    request(app.getHttpServer()).post(`/api/v1/battles/${battleId}/cards`).send({ cardValue });
+    request(app.getHttpServer())
+      .post(`/api/v1/battles/${battleId}/cards`)
+      .set(staff)
+      .send({ cardValue });
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -32,6 +38,7 @@ describe('Action Card Battle (e2e)', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     await app.init();
+    staff = await staffAuthHeader(app);
     prisma = app.get(PrismaService);
     await prisma.actionCard.upsert({
       where: { value: DISABLED },
@@ -73,6 +80,7 @@ describe('Action Card Battle (e2e)', () => {
     );
     await request(app.getHttpServer())
       .post(`/api/v1/battles/${battleId}/cards`)
+      .set(staff)
       .send({})
       .expect(400);
   });

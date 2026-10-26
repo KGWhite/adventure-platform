@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 import type { EquipmentView, ItemView } from '../inventory/inventory.types.js';
 
 export type ShopLockedReason = 'ALREADY_OWNED' | 'RANK_REQUIRED' | 'INSUFFICIENT_GOLD';
@@ -56,6 +56,18 @@ export class ShopScanDto {
   @IsString()
   @IsNotEmpty()
   credentialValue!: string;
+
+  @IsOptional()
+  @IsString()
+  displayId?: string;
+}
+
+export class PreviewItemDto {
+  // null closes the preview on the shop display
+  @ValidateIf((dto: PreviewItemDto) => dto.itemId !== null)
+  @IsString()
+  @IsNotEmpty()
+  itemId!: string | null;
 
   @IsOptional()
   @IsString()

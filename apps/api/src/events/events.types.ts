@@ -15,7 +15,13 @@ export type GameEventType =
   | 'card.scanned'
   | 'skill.cast'
   | 'skill.fizzled'
-  | 'adventurer.level_up';
+  | 'adventurer.level_up'
+  | 'stage.changed'
+  | 'status.viewed'
+  | 'shop.scanned'
+  | 'shop.item_previewed'
+  | 'guild.scanned'
+  | 'station.cleared';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -193,4 +199,19 @@ export interface AdventurerLevelUpData {
   toLevel: number;
   unlockedSkills: { id: string; name: string; cards: string[]; requiredLevel: number }[];
   source: 'BATTLE_VICTORY' | 'QUEST_REWARD';
+}
+
+export interface StageChangedData {
+  nodeId: string | null;
+  previousNodeId: string | null;
+}
+
+export interface ShopItemPreviewedData {
+  shopId: string;
+  // null when the shopkeeper closes the confirmation
+  itemId: string | null;
+}
+
+export interface StationClearedData {
+  nodeId: string;
 }

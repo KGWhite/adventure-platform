@@ -1,0 +1,437 @@
+/* Guild Display Node (TV / large screen) */
+
+.guild-display-root {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 30%, #1e2a4a 0%, #0d1424 65%, #070b14 100%);
+  color: #f8fafc;
+  font-family: 'Cinzel', 'Noto Serif TC', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.guild-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.45);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.guild-hud-title {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #f5d77a;
+}
+
+.guild-hud-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.guild-hud-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #fde68a;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.guild-hud-pill {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+}
+
+.guild-hud-pill.online {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.guild-hud-pill.offline {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.guild-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.guild-hint {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  color: #cbd5e1;
+  animation: guild-breathe 2.4s ease-in-out infinite;
+}
+
+/* Idle: quest board */
+
+.guild-board {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.guild-board-title {
+  font-size: 3rem;
+  margin: 0 0 2rem;
+  color: #f5d77a;
+  letter-spacing: 0.08em;
+}
+
+.guild-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.guild-board-note {
+  background: linear-gradient(160deg, #f4e4c1 0%, #e2c98f 100%);
+  color: #3b2a14;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  transform: rotate(-1deg);
+  text-align: left;
+}
+
+.guild-board-note:nth-child(even) {
+  transform: rotate(1.2deg);
+}
+
+.guild-board-note-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.guild-board-note-desc {
+  font-size: 1.1rem;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.guild-board-note-rewards {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.guild-board-empty {
+  font-size: 1.5rem;
+  color: #94a3b8;
+}
+
+/* Adventurer at the counter: mirrors the guild phone */
+
+.guild-counter {
+  width: 100%;
+  max-width: 1400px;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(20rem, 34%) 1fr;
+  gap: 1.5rem;
+  text-align: left;
+  animation: guild-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.guild-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+}
+
+.guild-panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f5d77a;
+}
+
+.guild-status-head {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.guild-status-level {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fde68a;
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+}
+
+.guild-status-level span {
+  font-size: 1.6rem;
+}
+
+.guild-status-name {
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.guild-status-rank {
+  font-size: 1.2rem;
+  color: #cbd5e1;
+}
+
+.guild-status-hp {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.guild-meter {
+  height: 0.9rem;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.guild-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  transition: width 0.6s ease;
+}
+
+.guild-meter-fill.hp {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.guild-meter-fill.complete {
+  background: linear-gradient(90deg, #22c55e, #fde68a);
+}
+
+.guild-status-resources {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.25rem;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.guild-equipment {
+  margin-top: 1.75rem;
+}
+
+.guild-equipment-stats {
+  font-size: 1.1rem;
+  color: #7dd3fc;
+}
+
+.guild-equipment-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.guild-equipment-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: #94a3b8;
+}
+
+.guild-equipment-slot.filled {
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  color: #f8fafc;
+}
+
+.guild-equipment-label {
+  font-size: 1rem;
+}
+
+.guild-equipment-icon {
+  font-size: 2.5rem;
+  line-height: 1.2;
+}
+
+.guild-equipment-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.guild-equipment-item-stats {
+  font-size: 1rem;
+  color: #7dd3fc;
+}
+
+.guild-quest-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guild-quest-badge {
+  align-self: flex-start;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #bae6fd;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.guild-quest-active.completed .guild-quest-badge {
+  background: rgba(212, 175, 55, 0.25);
+  color: #fde68a;
+}
+
+.guild-quest-active.claimed .guild-quest-badge {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+}
+
+.guild-quest-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+}
+
+.guild-quest-target {
+  font-size: 1.3rem;
+  color: #cbd5e1;
+}
+
+.guild-quest-progress {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.guild-quest-rewards {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.guild-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.guild-quest-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.25rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(160deg, rgba(244, 228, 193, 0.12) 0%, rgba(226, 201, 143, 0.08) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+
+.guild-quest-entry-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+/* Quest accepted / reward / level up moments */
+
+.guild-moment {
+  animation: guild-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.guild-moment-banner {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #f5d77a;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 40px rgba(212, 175, 55, 0.7);
+}
+
+.guild-moment-title {
+  margin-top: 1.5rem;
+  font-size: 3rem;
+  font-weight: 800;
+}
+
+.guild-moment-sub {
+  margin-top: 1.5rem;
+  font-size: 2rem;
+  color: #cbd5e1;
+}
+
+.guild-moment-rewards {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  font-size: 4rem;
+  font-weight: 900;
+}
+
+.guild-moment-level {
+  margin-top: 1rem;
+  font-size: 9rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fde68a;
+}
+
+.guild-moment-skill {
+  margin-top: 1rem;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #86efac;
+}
+
+@keyframes guild-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes guild-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guild-display-root * {
+    animation: none !important;
+  }
+}
