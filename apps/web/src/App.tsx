@@ -14,8 +14,12 @@ import { AdminView } from './components/AdminView.js';
 import { BossActorView } from './components/actor/BossActorView.js';
 import { ShopActorView } from './components/actor/ShopActorView.js';
 import { BossDisplayView } from './components/display/BossDisplayView.js';
+import { FollowDisplayView } from './components/display/FollowDisplayView.js';
+import { GuildDisplayView } from './components/display/GuildDisplayView.js';
 import { ShopDisplayView } from './components/display/ShopDisplayView.js';
+import { StatusDisplayView } from './components/display/StatusDisplayView.js';
 import { GuildTerminalView } from './components/guild/GuildTerminalView.js';
+import { StaffConsoleView } from './components/staff/StaffConsoleView.js';
 import { StatusTerminalView } from './components/status/StatusTerminalView.js';
 import './App.css';
 
@@ -35,7 +39,17 @@ function UserRouter({ path }: { path: string }) {
 function MainRouter() {
   const { path } = useNavigation();
 
-  // 1. World Node: Display Nodes (/display/shop-01, /display/boss-01)
+  // 1. World Node: Display Nodes (/display follows the staff console;
+  //    /display/guild-01, /display/shop-01, /display/status-01, /display/boss-01)
+  if (path === '/display' || path === '/display/') {
+    return <FollowDisplayView />;
+  }
+  if (path.startsWith('/display/guild')) {
+    return <GuildDisplayView />;
+  }
+  if (path.startsWith('/display/status')) {
+    return <StatusDisplayView />;
+  }
   if (path.startsWith('/display/shop')) {
     return <ShopDisplayView />;
   }
@@ -43,7 +57,12 @@ function MainRouter() {
     return <BossDisplayView />;
   }
 
-  // 2. World Node: Actor Terminals (/actor/shop/shop-01, /actor/boss)
+  // 2. Staff Console: one phone operating every station (/staff)
+  if (path.startsWith('/staff')) {
+    return <StaffConsoleView />;
+  }
+
+  // World Node: Actor Terminals (/actor/shop/shop-01, /actor/boss)
   if (path.startsWith('/actor/shop')) {
     return <ShopActorView />;
   }

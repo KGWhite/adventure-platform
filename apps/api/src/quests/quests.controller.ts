@@ -5,6 +5,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
+import { StaffOnly } from '../auth/decorators/staff-only.decorator.js';
 import { QuestsService } from './quests.service.js';
 import {
   AcceptQuestDto,
@@ -28,6 +29,7 @@ export class QuestsController {
   }
 
   // 3. Accept quest -> creates PlayerQuest instance
+  @StaffOnly()
   @Post('player-quests')
   async acceptQuest(@Body() dto: AcceptQuestDto) {
     return this.questsService.acceptQuest(dto);
@@ -40,12 +42,14 @@ export class QuestsController {
   }
 
   // 5. Claim reward for completed quest
+  @StaffOnly()
   @Post('player-quests/:id/claim')
   async claimReward(@Param('id') id: string) {
     return this.questsService.claimReward(id);
   }
 
   // 6. Guild Terminal Scan (Card scan -> Player + Active Quest + Available Quests)
+  @StaffOnly()
   @Post('guild/scan')
   async scanGuild(@Body() dto: GuildScanDto) {
     return this.questsService.scanGuild(dto.credentialValue, dto.displayId);

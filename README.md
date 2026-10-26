@@ -51,8 +51,13 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **等級由功績換算**：Lv1 0、Lv2 20、Lv3 50、Lv4 100、Lv5 160；擊敗 Boss 與領取任務獎勵時同步更新，升級時發送 `adventurer.level_up`，Boss 大螢幕與公會終端顯示 LEVEL UP 與新技能。
   - **技能依等級解鎖**：元素斬 Lv2、火焰龍捲 Lv3、治癒之雨 Lv4、蒸氣爆發 Lv5。Boss 戰開戰時快照等級，尚未學會的組合改放元素彈並提示。
   - **`/status` 自助終端**：小朋友刷 ID 卡看等級、升級進度、已學會與未解鎖的技能卡；升級後第一次刷卡播放 LEVEL UP 演出並標示 NEW。
+- **已完成：Staff Console Vertical Slice MVP (一人一機扮演所有崗位)**：規格見 [docs/specs/staff-console.md](docs/specs/staff-console.md)。
+  - **工作人員總控台 `/staff`**：`STAFF` 帳號登入後，以手機切換扮演公會、商店、Boss 與狀態查詢四個崗位，各崗位沿用既有操作畫面並內建測試卡，同時作為統一測試入口。
+  - **跟隨模式大螢幕 `/display`**：伺服器記錄目前崗位（`GET`／`PUT /api/v1/stage`），切換時推送 `stage.changed`，大螢幕同步切到該崗位畫面；重新整理或斷線重連後以伺服器狀態為準，未選崗位時顯示「冒險者世界」待機畫面。
+  - **新增大螢幕**：公會 `/display/guild-01`（委託告示板、冒險者名牌、接任務／完成委託／升級演出）與狀態查詢 `/display/status-01`（等級與技能卡牆，資料來自 `status.viewed`）。
+  - **權限**：會改變遊戲狀態的世界節點端點（戰鬥、商店、公會、任務、裝備）改為僅限 `STAFF` 或 `ADMIN`；`/guild`、`/actor/*` 需登入；`/status` 與所有 `/display/*` 維持公開。
 - **下一步候選**：
-  - Staff Console（一位工作人員以手機總控台 `/staff` 扮演公會、商店、Boss 與狀態查詢，跟隨模式大螢幕 `/display` 同步切換，新增 `STAFF` 角色與公會大螢幕，規格已定案：[docs/specs/staff-console.md](docs/specs/staff-console.md)）→ Rank Up（階級晉升考核）。
+  - Rank Up（階級晉升考核）。
 
 ---
 
@@ -78,6 +83,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 │                      Web Browser                       │
 │        (Mobile / Desktop / PWA Standalone Mode)        │
 │          /login  ──►  /user (USER) | /admin (ADMIN)    │
+│                       /staff (STAFF)                   │
 └───────────────────────────┬────────────────────────────┘
                             │ HTTPS (Port 443, TLS)
                             ▼
@@ -118,8 +124,9 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 
 ### 1. 角色定義與映射 (Role Mapping)
 - `Role.USER` = **冒險者 (Adventurer)**：登入後導向 `/user` 儀表板，檢視稱號、目前階級、公會功績與資格證狀態。
-- `Role.ADMIN` = **公會管理者 (Guild Administrator)**：登入後導向 `/admin` 控制台，檢視公會總覽、冒險者名冊、階級體系與憑證發行狀態。
-- 後端角色名稱嚴格保持 `USER` 與 `ADMIN`，遊戲主題故事標籤僅於前端 UI 層呈現。
+- `Role.STAFF` = **工作人員 (World Staff)**：登入後導向 `/staff` 總控台，以手機扮演公會櫃台、商店店員、Boss 看守者與狀態查詢；不能進入 `/admin` 與 `/user`。
+- `Role.ADMIN` = **公會管理者 (Guild Administrator)**：登入後導向 `/admin` 控制台，檢視公會總覽、冒險者名冊、階級體系與憑證發行狀態；也可使用 `/staff` 與工作人員頁面。
+- 後端角色名稱嚴格保持 `USER`、`STAFF` 與 `ADMIN`，遊戲主題故事標籤僅於前端 UI 層呈現。
 
 ### 2. 身分驗證流程 (Authentication Flow)
 1. 前端向 `POST /api/v1/auth/login` 提交帳號密碼。
@@ -130,11 +137,13 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 ### 3. 安全性與權限保護 (Authorization & Protection)
 - **後端防護**：管理員專用 API（如 `GET /api/v1/admin/summary`）受 `RolesGuard` 與 `@Roles(Role.ADMIN)` 保護；`USER` 請求將直接遭到拒絕並回傳 `403 Forbidden`。
 - **管理類寫入端點**：`POST /api/v1/users`、`POST /api/v1/adventurers`、`POST /api/v1/credentials` 同樣僅限 `ADMIN`（未帶 Token 回傳 `401`，`USER` 回傳 `403`）。`POST /api/v1/users` 不接受用戶端指定 `role`，新建帳號一律為 `USER`。
+- **世界節點寫入端點**：會改變遊戲狀態的端點僅限 `STAFF` 或 `ADMIN`（`@StaffOnly()`；未帶 Token 回傳 `401`，`USER` 回傳 `403`）：`POST /battles/scan`、`POST /battles`、`POST /battles/:id/attack`、`POST /battles/:id/cards`、`POST /shops/:shopId/scan`、`POST /shops/:shopId/purchases`、`POST /guild/scan`、`POST /player-quests`、`POST /player-quests/:id/claim`、`POST /players/:playerId/equipment`、`DELETE /players/:playerId/equipment/:slot`、`PUT /stage`。`POST /status/scan`、所有 `GET` 查詢端點與即時事件維持公開。
 - **請求驗證**：API 啟用全域 `ValidationPipe`（`whitelist` + `forbidNonWhitelisted` + `transform`），所有 Request Body DTO 以 `class-validator` 宣告規則；缺漏必填欄位或夾帶未宣告欄位一律回傳 `400 Bad Request`。
 - **前端路由守衛**：
-  - 未登入使用者訪問 `/user` 或 `/admin` 自動跳轉至 `/login`。
-  - 一般冒險者（`USER`）無法進入 `/admin`，會被自動重導向回 `/user`。
-  - 已登入使用者訪問 `/login` 或根路徑 `/` 自動轉向其對應的角色首頁。
+  - 未登入使用者訪問 `/user`、`/admin`、`/staff`、`/guild` 或 `/actor/*` 自動跳轉至 `/login`；工作人員頁面會帶上 `?next=`，登入後回到原頁。
+  - 各角色只能進入自己的頁面：`USER` 無法進入 `/admin` 與工作人員頁面，`STAFF` 無法進入 `/admin` 與 `/user`，違反時重導向回角色首頁。
+  - 已登入使用者訪問 `/login` 或根路徑 `/` 自動轉向其對應的角色首頁（`/user`、`/staff` 或 `/admin`）。
+  - `/status` 與所有 `/display/*` 不需登入。
 
 ---
 
@@ -149,11 +158,15 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
 | `/status` | 公開 / 現場 | **冒險者狀態終端 (Status Terminal)**：給小朋友自助刷 ID 卡的平板／大螢幕畫面，顯示等級徽章、升級進度、技能卡牆（已學會／未解鎖），升級後播放 LEVEL UP 演出；20 秒無操作回到待機 |
-| `/guild` | 公開 / 現場 | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算、裝備與卸下裝備 |
-| `/actor/boss` | 公開 / GM | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥；可切換按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） |
-| `/actor/shop/:shopId` | 公開 / 店主 | **商店店主終端 (World Actor)**：店主手機掃卡（預設 `shop-01`），顯示可購清單與鎖定原因、確認購買並可立即裝備 |
+| `/staff` | `STAFF`、`ADMIN` | **工作人員總控台 (Staff Console)**：一支手機扮演所有崗位，上方崗位切換列（公會、商店、Boss、狀態），切換時大螢幕 `/display` 同步切換；各崗位保留畫面狀態（進行中的 Boss 戰不中斷），內建測試卡，兼作統一測試入口 |
+| `/guild` | `STAFF`、`ADMIN` | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算、裝備與卸下裝備 |
+| `/actor/boss` | `STAFF`、`ADMIN` | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機掃卡辨識、發起戰鬥；可切換按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） |
+| `/actor/shop/:shopId` | `STAFF`、`ADMIN` | **商店店主終端 (World Actor)**：店主手機掃卡（預設 `shop-01`），顯示可購清單與鎖定原因、確認購買並可立即裝備 |
+| `/display` | 公開 / 現場 | **跟隨模式大螢幕 (Follow Display)**：依 `/staff` 目前崗位切換為公會、商店、Boss 或狀態查詢大畫面；未選崗位時顯示「冒險者世界」待機畫面 |
+| `/display/guild-*` | 公開 / 現場 | **公會呈現終端 (Display Node)**：如 `/display/guild-01`，閒置顯示委託告示板，掃卡顯示冒險者名牌，接任務、完成委託與升級演出 |
+| `/display/status-*` | 公開 / 現場 | **狀態查詢呈現終端 (Display Node)**：如 `/display/status-01`，顯示該節點刷卡結果的等級、技能卡牆與 LEVEL UP 演出 |
 | `/display/shop-*` | 公開 / 現場 | **商店呈現終端 (Display Node)**：如 `/display/shop-01`，閒置輪播商品、掃卡歡迎、購得裝備動效與裝備變更提示 |
-| `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件；`/display/shop-*` 以外的路徑皆渲染 Boss Display。大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
+| `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件；上列以外的路徑皆渲染 Boss Display。大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
 
 ### 前端 UI 架構基礎 (MUI Shared Design Foundation)
 
@@ -288,7 +301,8 @@ adventure-platform/
 │   │       ├── progression/      # 等級換算、技能解鎖與 /status 掃卡模組
 │   │       ├── ranks/            # 階級模組 (F..S)
 │   │       ├── shops/            # 商店目錄、掃卡可購清單與購買交易模組
-│   │       ├── users/            # 使用者與身分模組 (USER, ADMIN)
+│   │       ├── stage/            # 工作人員目前崗位 (記憶體) 與 stage.changed 推送模組
+│   │       ├── users/            # 使用者與身分模組 (USER, STAFF, ADMIN)
 │   │       ├── app.module.ts
 │   │       └── main.ts
 │   └── web/                      # React + TypeScript + Vite + PWA 前端
@@ -300,10 +314,11 @@ adventure-platform/
 │       │   │   ├── admin/               # 管理員元件 (Dashboard、名冊、階級、憑證)
 │       │   │   ├── adventurer/          # 冒險者元件 (RankBadge、MeritProgress、CredentialStatusCard、InventoryCard)
 │       │   │   ├── common/              # 共享版面原語 (PageContainer、PageHeader 等)
-│       │   │   ├── display/             # 世界呈現終端 (Boss / Shop Display)
+│       │   │   ├── display/             # 世界呈現終端 (跟隨模式 /display、Guild / Shop / Boss / Status Display)
 │       │   │   ├── feedback/            # 遊戲即時回饋覆蓋層 (GameFeedbackOverlay)
-│       │   │   ├── guild/               # 公會實體終端機 (/guild，含裝備面板)
-│       │   │   ├── status/              # 冒險者狀態終端 (/status)
+│       │   │   ├── guild/               # 公會櫃台 (GuildCounter) 與 /guild 終端機，含裝備面板
+│       │   │   ├── staff/               # 工作人員總控台 (/staff) 與狀態查詢崗位
+│       │   │   ├── status/              # 冒險者狀態終端 (/status) 與共用狀態畫面
 │       │   │   ├── AdminView.tsx        # 公會管理員控制台版面
 │       │   │   ├── Adventurer*View.tsx  # 冒險者儀表板、檔案、任務、獎勵頁
 │       │   │   └── LoginView.tsx        # 公會身分驗證登入介面
@@ -315,10 +330,12 @@ adventure-platform/
 │       │   │   └── useQrScanner.ts      # 相機 QR 掃描 (/actor/boss、/actor/shop；支援連續掃描)
 │       │   ├── layouts/                 # UserLayout / AdminLayout
 │       │   ├── router/
-│       │   │   └── Router.tsx           # 路由提供者與權限跳轉守衛
+│       │   │   ├── Router.tsx           # 路由提供者與權限跳轉守衛
+│       │   │   └── routeAccess.ts       # 各角色可進入的路徑與登入後落點
 │       │   ├── theme/                   # MUI 主題 (palette、typography)
-│       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、progression、quest、shop)
+│       │   ├── types/                   # 前端共用型別 (auth、battle、feedback、progression、quest、shop、stage)
 │       │   ├── utils/
+│       │   │   ├── apiFetch.ts          # 帶工作人員 Token 呼叫世界節點端點 (401 導回登入)
 │       │   │   ├── audioEffects.ts      # 戰鬥音效
 │       │   │   ├── itemIcons.ts         # 物品圖示與數值標籤
 │       │   │   ├── scanFeedback.ts      # 刷卡即時回饋 (震動、音效、閃光)
@@ -466,7 +483,7 @@ Host Network (Debian 13)
 | **Adventurers API** | [https://localhost/api/v1/adventurers](https://localhost/api/v1/adventurers) | 查詢冒險者檔案；建立 (`POST`) 僅限 ADMIN |
 | **Credentials API** | [https://localhost/api/v1/credentials](https://localhost/api/v1/credentials) | 查詢冒險者憑證；登記 (`POST`) 僅限 ADMIN |
 | **Quests API** | [https://localhost/api/v1/quests](https://localhost/api/v1/quests) | 查詢公會可用任務清單 |
-| **PlayerQuests API** | `POST https://localhost/api/v1/player-quests` | 接取任務（綁定冒險者憑證與任務） |
+| **PlayerQuests API** | `POST https://localhost/api/v1/player-quests` | 接取任務（綁定冒險者憑證與任務）。本列起至 Battles API 的寫入端點僅限 STAFF、ADMIN |
 | **Claim Reward API** | `POST https://localhost/api/v1/player-quests/:id/claim` | 領取任務達成報酬（原子寫入 Gold / Merit） |
 | **Guild Scan API** | `POST https://localhost/api/v1/guild/scan` | 公會終端掃描冒險者憑證，回傳角色狀態與任務 |
 | **Shops API** | `POST https://localhost/api/v1/shops/:shopId/scan`、`/purchases` | 商店掃卡（可購清單與鎖定原因）與購買交易；`GET /shops/:shopId` 取得商品目錄 |
@@ -474,8 +491,9 @@ Host Network (Debian 13)
 | **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
 | **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`)；行動卡刷入 `POST /battles/:id/cards` |
 | **Action Cards API** | [https://localhost/api/v1/action-cards](https://localhost/api/v1/action-cards) | 查詢啟用中的行動卡（手動模式與列印 QR 使用） |
-| **Status Scan API** | `POST https://localhost/api/v1/status/scan` | `/status` 終端刷卡：等級進度、已學會與未解鎖技能、NEW 標記 |
-| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`, `adventurer.level_up`） |
+| **Status Scan API** | `POST https://localhost/api/v1/status/scan` | `/status` 終端與狀態查詢崗位刷卡：等級進度、已學會與未解鎖技能、NEW 標記（公開；同時推送 `status.viewed`） |
+| **Stage API** | [https://localhost/api/v1/stage](https://localhost/api/v1/stage) | 查詢工作人員目前崗位（公開）；`PUT /stage` 切換崗位並推送 `stage.changed`（僅限 STAFF、ADMIN） |
+| **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`, `adventurer.level_up`, `stage.changed`, `status.viewed`） |
 | **PostgreSQL** | 內部 `postgres:5432` | 資料庫連接埠（Docker 整合環境僅限內部存取；本機原始碼模式可按需暴露） |
 
 > **瀏覽器自簽憑證警告說明**：本地自簽憑證未經公認 CA 簽署，首次進入瀏覽器會顯示安全警告（如「您的連線不是私人連線」），請點選 **進階** ──► **繼續前往 localhost（不安全）** 即可正常使用。
@@ -499,6 +517,7 @@ PWA 功能（Web App Manifest 安裝、Service Worker 快取）嚴格要求在�
 執行 `prisma db seed` 將建立以下預設資料：
 - **預設階級**：Rank F、E、D、C、B、A、S（具有升階門檻與排序）。
 - **測試管理員**：`username: admin`, 密碼: `admin123`（角色: `ADMIN`）── 登入後進入 `/admin`。
+- **測試工作人員**：`username: staff`, 密碼: `staff123`（角色: `STAFF`）── 登入後進入 `/staff`。
 - **測試冒險者**：`username: adventurer`, 密碼: `adventurer123`（角色: `USER`）── 登入後進入 `/user`。
 - **冒險者個人檔案**：名稱 `Rookie Adventurer`，預設階級為 `Rank F`。
 - **Demo 冒險者**：`aria`（Aria）與 `leon`（Leon），密碼同為 `adventurer123`（角色: `USER`）。

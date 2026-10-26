@@ -15,6 +15,7 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
 │                      Web Browser                       │
 │        (Mobile / Desktop / PWA Standalone Mode)        │
 │          /login  ──►  /user (USER) | /admin (ADMIN)    │
+│                       /staff (STAFF)                   │
 └───────────────────────────┬────────────────────────────┘
                             │ HTTPS (Port 443, TLS)
                             ▼
@@ -116,13 +117,15 @@ The platform is designed as a **Modular Monolith** prioritizing simplicity, deve
      - `RanksModule`: Database-driven rank tiers (F through S).
      - `CredentialsModule`: Token and tag identification abstraction (QRCODE, RFID, NFC) with in-memory fallback. `POST /credentials` is restricted to `ADMIN`.
      - `BossesModule`: Boss definition and query (`GET /bosses`, `GET /bosses/:id`).
+     - World node write endpoints (battles, shops, guild scan, quest accept / claim, equipment, stage) use `@StaffOnly()` (`JwtAuthGuard` + `RolesGuard`, `STAFF` or `ADMIN`); `POST /status/scan`, `GET` queries and the event stream stay public.
      - `BattlesModule`: Combat sessions (`POST /battles/scan`, `POST /battles`, `POST /battles/:id/attack`, `POST /battles/:id/cards`, `GET /battles/:id`); snapshots equipment stats from `InventoryModule` at battle start. Action card combos (`battles/skills.ts`), the 6s combo timer and the 2s per-card cooldown live in API memory; actions on one battle are serialized.
      - `ActionCardsModule`: Shared venue action cards (`GET /action-cards`) and card value resolution for battles. Requires the database.
      - `ProgressionModule`: Merit-based levels and skill unlocks (`apps/api/src/progression/levels.ts`), level sync after merit gains (used by battles and quests), and the `/status` kiosk scan (`POST /status/scan`). Requires the database.
      - `QuestsModule`: Quest management (`GET /quests`, `GET /quests/:id`, `POST /player-quests`, `GET /player-quests/player/:id`, `POST /player-quests/:id/claim`, `POST /guild/scan`).
      - `InventoryModule`: Adventurer inventory and equipment (`GET /players/:playerId/inventory`, `POST /players/:playerId/equipment`, `DELETE /players/:playerId/equipment/:slot`).
      - `ShopsModule`: Shop catalog, scan and purchase transactions (`GET /shops/:shopId`, `POST /shops/:shopId/scan`, `POST /shops/:shopId/purchases`). Requires the database (no in-memory fallback).
-     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455, `/ws`) & SSE streaming (`GET /events/stream`, status at `GET /events/status`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`, `shop.purchase_completed`, `equipment.changed`, `card.scanned`, `skill.cast`, `skill.fizzled`).
+     - `StageModule`: The station the single staff phone is operating (`GET /stage` public, `PUT /stage` `STAFF` / `ADMIN`), held in API memory (an API restart returns to no station). Switching broadcasts `stage.changed` to every display so the follow-mode `/display` switches with the phone. Station IDs are defined in `stage/stations.ts` and mirrored in `apps/web/src/types/stage.ts`.
+     - `EventsModule`: Real-time WebSocket Gateway (RFC 6455, `/ws`) & SSE streaming (`GET /events/stream`, status at `GET /events/status`) broadcasting game events (`player.scanned`, `battle.*`, `reward.*`, `quest.*`, `shop.purchase_completed`, `equipment.changed`, `card.scanned`, `skill.cast`, `skill.fizzled`, `adventurer.level_up`, `stage.changed`, `status.viewed`).
      - `PrismaModule`: Global Prisma database connection service.
    - **Request Validation**: Global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); request body DTOs declare `class-validator` rules and invalid or unknown fields return `400 Bad Request`.
    - **ORM**: Prisma embedded directly within the API service.
@@ -190,8 +193,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
      - *Modules Affected*: Only the edge input adapter (`QRScanner` replaced or supplemented by `NFCScanner` / Web NFC / serial reader adapter).
      - *Modules Guaranteed Unaffected*: NestJS API, Prisma schema, `User`/`AdventurerProfile` domains, QuestsModule, Battle logic, Shop logic, Rule Engine, WebSocket Gateway, and Display Node views.
 4. **Separation of Control and Presentation**:
-   - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands.
-   - **Display Node = Presentation**: Dedicated web application views (`/display/boss-01` and `/display/shop-01` today; `/display/guild-01` is planned) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception.
+   - **Actor Device = Control**: Staff/GM mobile web interface dedicated to scanning, selecting skills, and executing commands. In the first venue setup one staff phone plays every station from `/staff` (guild, shop, boss, status), reusing the per-node controls; stations already opened stay mounted so switching away keeps their state.
+   - **Display Node = Presentation**: Dedicated web application views (`/display/guild-01`, `/display/shop-01`, `/display/boss-01`, `/display/status-01`) optimized for spectators and adventurers, strictly rendering animations and UI upon event reception. The follow-mode `/display` asks `GET /stage` on load and after every reconnect, switches on `stage.changed`, and keeps station screens it has shown mounted so they stay current.
 5. **Command vs Event Transport Separation**:
    - **Commands (Mutations)**: Handled strictly via standard HTTP REST APIs (`POST /api/v1/battles`, `POST /api/v1/battles/:id/attack`, `POST /api/v1/battles/scan`, `POST /api/v1/credentials/validate`).
    - **Realtime Events (Presentations)**: Dispatched asynchronously via Pure Node.js RFC 6455 WebSocket Gateway (and SSE stream fallback `/api/v1/events/stream`) to subscribed Display Nodes. Display nodes remain stateless renderers.
@@ -209,6 +212,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
      - `card.scanned`: An action card was accepted for a battle (card type, cast slot, combo deadline); emitted before the turn resolves so the display can react immediately. Cooldown repeats emit nothing.
      - `skill.cast`, `skill.fizzled`: Combo outcome (skill, cards, damage / heal, whether the boss countered, `lockedSkill` when an unlearned combo fell back to element bolt); followed by the usual `battle.damage` and outcome events when HP changes.
      - `adventurer.level_up`: Merit gain raised the level (from / to, unlocked skills, source); published to the battle's display after `reward.received`, or to `guild-01` after a quest claim.
+     - `stage.changed`: The staff console switched station (`nodeId`, `previousNodeId`); broadcast with `displayId: 'all'`.
+     - `status.viewed`: A status scan result (same body as `POST /status/scan`), published to the scan's `displayId` (default `status-01`) for the status big screen.
 
 6. **Generalization to World Output Node (Long-Term)**:
    - Output channels will generalize from screens (`Display`) to sensory and physical actuations (`Audio`, `Light`, `Physical Effects`), triggered by unified domain events.
@@ -222,7 +227,8 @@ To support the physical RPG gameplay where real-world spaces represent the game 
 - **Completed**: Shop + Equipment Vertical Slice MVP (`/actor/shop/shop-01` + `/display/shop-01` + ShopsModule + InventoryModule; see [Shop + Equipment spec](../specs/shop-equipment.md))
 - **Completed**: Action Card Battle Vertical Slice MVP (instant scan feedback, `/actor/boss` card mode, ActionCardsModule, card slot and skill effects on `/display/boss-01`; see [Action Card Battle spec](../specs/action-card-battle.md))
 - **Completed**: Adventurer Progression Vertical Slice MVP (merit-based levels, skill unlocks and battle locks, `/status` kiosk, ProgressionModule; see [Adventurer Progression spec](../specs/adventurer-progression.md))
-- **Next Candidates**: Staff Console (`/staff` + follow-mode `/display` + `/display/guild-01`, `STAFF` role; see [Staff Console spec](../specs/staff-console.md)) → Rank Up
+- **Completed**: Staff Console Vertical Slice MVP (`STAFF` role, `/staff` console, follow-mode `/display`, `/display/guild-01` and `/display/status-01`, StageModule, staff-only world node endpoints; see [Staff Console spec](../specs/staff-console.md))
+- **Next Candidates**: Rank Up
 
 See [Game Design Document](../game-design.md) for full scenario descriptions and the Phase 1 Boss Battle POC specification.
 See [Domain Model](domain-model.md) for details on entity relationships, authentication, credential abstractions, and rank design.

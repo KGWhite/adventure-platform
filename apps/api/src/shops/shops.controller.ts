@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { StaffOnly } from '../auth/decorators/staff-only.decorator.js';
 import { ShopsService } from './shops.service.js';
 import { PurchaseDto, ShopScanDto } from './shops.types.js';
 
@@ -11,12 +12,14 @@ export class ShopsController {
     return this.shopsService.getShop(shopId);
   }
 
+  @StaffOnly()
   @Post(':shopId/scan')
   @HttpCode(200)
   async scan(@Param('shopId') shopId: string, @Body() dto: ShopScanDto) {
     return this.shopsService.scan(shopId, dto);
   }
 
+  @StaffOnly()
   @Post(':shopId/purchases')
   async purchase(@Param('shopId') shopId: string, @Body() dto: PurchaseDto) {
     return this.shopsService.purchase(shopId, dto);

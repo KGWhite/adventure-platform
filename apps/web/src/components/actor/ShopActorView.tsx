@@ -8,6 +8,7 @@ import type {
   ShopScanResponse,
 } from '../../types/shop.js';
 import { SLOT_LABELS, itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
+import { apiFetch } from '../../utils/apiFetch.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
 import { WRONG_CARD_FOR_IDENTITY, parseScanPayload } from '../../utils/scanPayload.js';
 import './BossActorView.css';
@@ -49,9 +50,15 @@ function relock(offers: ShopOffer[], gold: number, ownedItemId: string): ShopOff
   });
 }
 
-export function ShopActorView() {
+interface ShopActorViewProps {
+  // Shop to operate when embedded in the /staff console; defaults to the URL
+  nodeId?: string;
+  embedded?: boolean;
+}
+
+export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps = {}) {
   const shopIdMatch = window.location.pathname.match(/^\/actor\/shop\/([^/]+)/);
-  const shopId = shopIdMatch ? shopIdMatch[1] : 'shop-01';
+  const shopId = nodeId ?? (shopIdMatch ? shopIdMatch[1] : 'shop-01');
 
   const [shopName, setShopName] = useState<string>('Adventurer Shop');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
@@ -115,7 +122,7 @@ export function ShopActorView() {
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
-      const res = await fetch(`/api/v1/shops/${shopId}/scan`, {
+      const res = await apiFetch(`/api/v1/shops/${shopId}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credentialValue, displayId: shopId }),
@@ -162,7 +169,7 @@ export function ShopActorView() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/api/v1/shops/${shopId}/purchases`, {
+      const res = await apiFetch(`/api/v1/shops/${shopId}/purchases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,18 +201,20 @@ export function ShopActorView() {
 
   return (
     <div className="boss-actor-root">
-      <header className="actor-topbar">
-        <div className="topbar-branding">
-          <span className="branding-icon">🏪</span>
-          <div>
-            <h1 className="branding-title">SHOP KEEPER TERMINAL</h1>
-            <span className="branding-subtitle">{shopName}</span>
+      {!embedded && (
+        <header className="actor-topbar">
+          <div className="topbar-branding">
+            <span className="branding-icon">🏪</span>
+            <div>
+              <h1 className="branding-title">SHOP KEEPER TERMINAL</h1>
+              <span className="branding-subtitle">{shopName}</span>
+            </div>
           </div>
-        </div>
-        <a href={`/display/${shopId}`} target="_blank" rel="noreferrer" className="open-display-link">
-          📺 Open Display
-        </a>
-      </header>
+          <a href={`/display/${shopId}`} target="_blank" rel="noreferrer" className="open-display-link">
+            📺 Open Display
+          </a>
+        </header>
+      )}
 
       <main className="actor-main-content">
         {errorMsg && (

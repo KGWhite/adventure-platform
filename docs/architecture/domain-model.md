@@ -6,7 +6,8 @@ This document defines the core domain model established in Phase 2 and extended 
 
 The system models an **Adventurer Guild**:
 - **USER** (`Role.USER`): An adventurer who registers credentials, accepts quests, and progresses through guild ranks.
-- **ADMIN** (`Role.ADMIN`): A guild administrator who creates and manages quests, approves promotions, and configures guild ranks and rewards.
+- **STAFF** (`Role.STAFF`): On-site staff who operate world node stations (guild counter, shop, boss, status) from the `/staff` console. No adventurer profile.
+- **ADMIN** (`Role.ADMIN`): A guild administrator who creates and manages quests, approves promotions, and configures guild ranks and rewards. Can also use the staff console.
 
 ```text
 ┌──────────────┐          1:1          ┌───────────────────┐
@@ -57,7 +58,7 @@ Represents identity, credentials, and access control.
 - `id`: Unique identifier (CUID)
 - `username`: Unique login handle
 - `passwordHash`: Bcrypt-hashed password (never stored in plain text and never exposed through API responses)
-- `role`: Enum `USER` or `ADMIN`
+- `role`: Enum `USER`, `STAFF` or `ADMIN`
 - `createdAt`, `updatedAt`: Audit timestamps
 
 ### Rank (`ranks` table)
@@ -269,7 +270,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 2. Client requests protected endpoints with header:
    Authorization: Bearer <accessToken>
    └─► JwtAuthGuard verifies JWT signature and resolves current user
-   └─► RolesGuard enforces role permissions (USER vs ADMIN)
+   └─► RolesGuard enforces role permissions (USER / STAFF / ADMIN)
 
 3. Client GET /api/v1/auth/me
    └─► Returns current User with AdventurerProfile, Rank, and Credentials
@@ -279,6 +280,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 - Security is strictly enforced on the API layer via `RolesGuard` and `@Roles(...)`.
 - `USER` accounts cannot access protected `ADMIN` endpoints (e.g., `GET /api/v1/admin/summary` returns `403 Forbidden`).
 - Administrative write endpoints (`POST /api/v1/users`, `POST /api/v1/adventurers`, `POST /api/v1/credentials`) are also `ADMIN`-only. `POST /api/v1/users` never accepts a client-supplied `role`; new accounts are always `USER`.
+- World node write endpoints (battles, shops, guild scan, quest accept / claim, equipment, stage) accept `STAFF` or `ADMIN` only, via the `@StaffOnly()` decorator; `USER` gets `403`, a missing token `401`.
 - Frontend route hiding provides user experience separation, but is backed by server-side authorization.
 
 ---
@@ -306,30 +308,32 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/credentials/validate` | Public | Resolve a credential value to a player |
 | `GET` | `/api/v1/quests` | Public | List enabled quests |
 | `GET` | `/api/v1/quests/:id` | Public | Get quest details |
-| `POST` | `/api/v1/player-quests` | Public (terminal) | Accept a quest by `credentialValue` or `playerId` |
+| `POST` | `/api/v1/player-quests` | **STAFF / ADMIN** | Accept a quest by `credentialValue` or `playerId` |
 | `GET` | `/api/v1/player-quests/player/:playerId` | Public (terminal) | Get the player's active quest |
-| `POST` | `/api/v1/player-quests/:id/claim` | Public (terminal) | Claim a completed quest's reward |
-| `POST` | `/api/v1/guild/scan` | Public (terminal) | Guild terminal scan: player, active quest, available quests, inventory |
+| `POST` | `/api/v1/player-quests/:id/claim` | **STAFF / ADMIN** | Claim a completed quest's reward |
+| `POST` | `/api/v1/guild/scan` | **STAFF / ADMIN** | Guild terminal scan: player, active quest, available quests, inventory |
 | `GET` | `/api/v1/shops/:shopId` | Public | Shop catalog (items, price, required rank) |
-| `POST` | `/api/v1/shops/:shopId/scan` | Public (terminal) | Shop scan: player, equipment, offers with `lockedReason` |
-| `POST` | `/api/v1/shops/:shopId/purchases` | Public (terminal) | Buy an item by `credentialValue` + `requestId`, optionally equipping it |
+| `POST` | `/api/v1/shops/:shopId/scan` | **STAFF / ADMIN** | Shop scan: player, equipment, offers with `lockedReason` |
+| `POST` | `/api/v1/shops/:shopId/purchases` | **STAFF / ADMIN** | Buy an item by `credentialValue` + `requestId`, optionally equipping it |
 | `GET` | `/api/v1/players/:playerId/inventory` | Public | Inventory, equipment and total attack / defense |
-| `POST` | `/api/v1/players/:playerId/equipment` | Public (terminal) | Equip a `playerItemId`, replacing the same slot |
-| `DELETE` | `/api/v1/players/:playerId/equipment/:slot` | Public (terminal) | Unequip `WEAPON` or `ARMOR` |
+| `POST` | `/api/v1/players/:playerId/equipment` | **STAFF / ADMIN** | Equip a `playerItemId`, replacing the same slot |
+| `DELETE` | `/api/v1/players/:playerId/equipment/:slot` | **STAFF / ADMIN** | Unequip `WEAPON` or `ARMOR` |
 | `GET` | `/api/v1/bosses` | Public | List bosses |
 | `GET` | `/api/v1/bosses/:id` | Public | Get boss details |
-| `POST` | `/api/v1/battles/scan` | Public (terminal) | Resolve a player and announce the scan to a display |
-| `POST` | `/api/v1/battles` | Public (terminal) | Start a battle |
-| `POST` | `/api/v1/battles/:id/attack` | Public (terminal) | Resolve one attack turn |
-| `POST` | `/api/v1/battles/:id/cards` | Public (terminal) | Play an action card (`charged` / `cast` / `fizzled` / `cooldown`) |
+| `POST` | `/api/v1/battles/scan` | **STAFF / ADMIN** | Resolve a player and announce the scan to a display |
+| `POST` | `/api/v1/battles` | **STAFF / ADMIN** | Start a battle |
+| `POST` | `/api/v1/battles/:id/attack` | **STAFF / ADMIN** | Resolve one attack turn |
+| `POST` | `/api/v1/battles/:id/cards` | **STAFF / ADMIN** | Play an action card (`charged` / `cast` / `fizzled` / `cooldown`) |
 | `GET` | `/api/v1/action-cards` | Public | List enabled action cards |
-| `POST` | `/api/v1/status/scan` | Public (terminal) | `/status` kiosk scan: level progress, learned / locked skills, NEW flags; marks the level as seen |
+| `POST` | `/api/v1/status/scan` | Public (terminal) | `/status` kiosk and status station scan: level progress, learned / locked skills, NEW flags; marks the level as seen and publishes `status.viewed` |
+| `GET` | `/api/v1/stage` | Public | Station the staff console is operating (`nodeId` or `null`) |
+| `PUT` | `/api/v1/stage` | **STAFF / ADMIN** | Switch station (`guild-01`, `shop-01`, `boss-01`, `status-01` or `null`); broadcasts `stage.changed` |
 | `GET` | `/api/v1/battles/:id` | Public (terminal) | Get battle state |
 | `GET` | `/api/v1/events/stream` | Public | SSE event stream (WebSocket at `/ws`) |
 | `GET` | `/api/v1/events/status` | Public | Realtime gateway status |
 
 > [!WARNING]
-> Endpoints marked **Public (terminal)** are used by the on-site `/guild`, `/actor/boss` and `/actor/shop/:shopId` terminals and currently have no authentication.
+> Endpoints marked **Public (terminal)** are used by on-site terminals without authentication: the `/status` kiosk, and read-only queries from the staff terminals. Endpoints that change game state require a `STAFF` or `ADMIN` token.
 >
 > Shop, inventory and action card endpoints have no in-memory fallback: they return `503` (`DATABASE_UNAVAILABLE`) when the database is unreachable. Their error bodies include a machine-readable `code` (e.g., `INSUFFICIENT_GOLD`, `RANK_REQUIRED`, `ALREADY_OWNED`, `ITEM_NOT_AVAILABLE`, `REQUEST_ID_REUSED`, `CREDENTIAL_DISABLED`, `BATTLE_NOT_FOUND`, `BATTLE_NOT_ACTIVE`, `CARD_NOT_FOUND`, `CARD_DISABLED`).
 
@@ -344,13 +348,15 @@ The platform implements a lightweight token-based authentication mechanism desig
 - `/user`: Mobile-first Adventurer Dashboard. Displays display name, rank, guild merit, credential status, and read-only equipment / backpack.
 - `/user/profile`, `/user/quests`, `/user/rewards`: Adventurer sub-pages (rewards is Coming soon).
 - `/admin`: Guild Administration Console with sidebar navigation for Dashboard, Adventurers, Ranks, Credentials, Quests (Coming soon), Promotions (Coming soon), and Rewards (Coming soon).
-- `/guild`, `/status`, `/actor/boss`, `/actor/shop/:shopId`, `/display/:displayId`: Public on-site terminals (no login required).
+- `/staff`: Staff console (`STAFF` / `ADMIN`): one phone switches between the guild, shop, boss and status stations.
+- `/guild`, `/actor/boss`, `/actor/shop/:shopId`: On-site staff terminals (`STAFF` / `ADMIN`).
+- `/status`, `/display`, `/display/:displayId`: Public on-site screens (no login required). `/display` follows the staff console's station; `/display/guild-01` and `/display/status-01` are the guild and status big screens.
 
 ### Routing Guard Logic
-- Unauthenticated users accessing `/user` or `/admin` are automatically redirected to `/login`.
-- `/guild`, `/status`, `/actor/*`, and `/display/*` bypass the login guard.
-- Authenticated `USER` users accessing `/admin` are forbidden and redirected to `/user`.
-- Authenticated users accessing `/login` or `/` are routed to their respective role home (`/user` or `/admin`).
+- Unauthenticated users accessing `/user`, `/admin`, `/staff`, `/guild` or `/actor/*` are redirected to `/login`; staff pages add `?next=` so login returns there.
+- `/status` and `/display/*` bypass the login guard.
+- Each role only opens its own pages: `USER` cannot open `/admin` or staff pages, `STAFF` cannot open `/admin` or `/user`; violations redirect to the role home.
+- Authenticated users accessing `/login` or `/` are routed to their respective role home (`/user`, `/staff` or `/admin`).
 
 ---
 

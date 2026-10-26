@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useNavigation } from '../router/Router.js';
+import { landingPath } from '../router/routeAccess.js';
 
 export function LoginView() {
   const { login } = useAuth();
@@ -22,11 +23,7 @@ export function LoginView() {
 
     try {
       const user = await login(username.trim(), password);
-      if (user.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/user');
-      }
+      navigate(landingPath(user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : '登入失敗，請確認帳號密碼');
     } finally {
@@ -102,6 +99,13 @@ export function LoginView() {
             >
               公會管理員 (admin)
             </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => fillQuickAccount('staff', 'staff123')}
+            >
+              工作人員 (staff)
+            </button>
           </div>
 
           <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(148, 163, 184, 0.2)' }}>
@@ -111,17 +115,17 @@ export function LoginView() {
                 type="button"
                 className="btn btn-sm"
                 style={{ background: '#7c3aed', color: '#fff' }}
-                onClick={() => navigate('/actor/boss')}
+                onClick={() => navigate('/staff')}
               >
-                📱 Boss Actor Web (/actor/boss)
+                📱 工作人員總控台 (/staff)
               </button>
               <button
                 type="button"
                 className="btn btn-sm"
                 style={{ background: '#0284c7', color: '#fff' }}
-                onClick={() => navigate('/display/boss-01')}
+                onClick={() => navigate('/display')}
               >
-                📺 Boss Display (/display/boss-01)
+                📺 跟隨大螢幕 (/display)
               </button>
             </div>
           </div>

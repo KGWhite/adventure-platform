@@ -1,6 +1,6 @@
 # Staff Console Vertical Slice 需求規格
 
-> **狀態**：規格草案（2026-10-26），決策 D1–D8 已定案，待實作。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/development/getting-started.md](../development/getting-started.md)。
+> **狀態**：已實作（2026-10-26，D1–D8）。驗證方式與實作差異見 [§10 實作備註](#10-實作備註)。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/development/getting-started.md](../development/getting-started.md)。
 
 ## 0. 目標與範圍
 
@@ -51,7 +51,7 @@
 | ⚔ Boss 關 | `boss-01` | 沿用 `BossActorView`（按鈕攻擊與行動卡） | 沿用 `BossDisplayView` |
 | 🛡 狀態查詢 | `status-01` | 刷卡、顯示精簡的等級摘要 | **新增**：沿用 `/status` 的等級、技能卡牆與 LEVEL UP 演出 |
 
-- 崗位清單以前端與後端共用的常數定義，本切片不建資料表與後台。
+- 崗位清單以程式常數定義，前後端各一份（`apps/api/src/stage/stations.ts`、`apps/web/src/types/stage.ts`），本切片不建資料表與後台。
 - `nodeId` 同時是事件的 `displayId`，沿用現有的事件路由。
 
 ## 3. 使用者流程
@@ -67,7 +67,7 @@
 1. 總控台上方是崗位切換列（公會｜商店｜Boss｜狀態），目前崗位高亮；第一次進入時未選崗位，顯示「請選擇崗位」。
 2. 點選崗位 → 呼叫 `PUT /stage` → 手機下方換成該崗位的操作畫面。
 3. 伺服器推送 `stage.changed` → 大螢幕切到該崗位的待機畫面。
-4. 切換崗位時，手機上前一個崗位的冒險者畫面清空；進行中的 Boss 戰不會被中止，切回 Boss 關時沿用伺服器上的戰鬥狀態。
+4. 切換崗位時，已開過的崗位畫面保留在背景（不清空），切回時接續原本的冒險者與操作；進行中的 Boss 戰不會被中止。
 5. 總控台右上角提供「開啟大螢幕」連結（`/display`）與登出。
 
 ### 3.3 冒險者進入崗位
@@ -79,7 +79,7 @@
 ### 3.4 大螢幕
 
 1. 開啟 `/display`（不需登入）→ 呼叫 `GET /stage` 取得目前崗位 → 訂閱該 `nodeId` 的事件並顯示對應大畫面；`nodeId` 為 `null` 時顯示待機畫面（D5）。
-2. 收到 `stage.changed` → 改訂閱新的 `nodeId` 並切換畫面。
+2. 收到 `stage.changed` → 切換畫面。已顯示過的崗位大畫面保留在背景並持續接收該 `nodeId` 的事件，切回時顯示最新狀態（例如進行中的 Boss 戰）。
 3. 斷線重連後重新呼叫 `GET /stage`，以伺服器狀態為準。
 
 ## 4. 資料模型
@@ -129,7 +129,7 @@ enum Role {
 - `POST /battles/scan`、`POST /battles`、`POST /battles/:id/attack`、`POST /battles/:id/cards`
 - `POST /shops/:shopId/scan`、`POST /shops/:shopId/purchases`
 - `POST /guild/scan`、`POST /player-quests`、`POST /player-quests/:id/claim`
-- `POST /players/:playerId/equipment`
+- `POST /players/:playerId/equipment`、`DELETE /players/:playerId/equipment/:slot`
 
 維持公開：
 
@@ -185,29 +185,29 @@ interface StageChangedData {
 
 ### 登入與權限
 
-- [ ] AC1：`staff` 登入後導向 `/staff`；`staff` 開啟 `/admin` 被導回 `/staff`。
-- [ ] AC2：未登入開啟 `/staff`、`/guild`、`/actor/boss` 導向 `/login`；`/status`、`/display`、`/display/boss-01` 不需登入。
-- [ ] AC3：未帶 token 呼叫 §5.3 列出的端點回 401；`USER` 角色呼叫回 403；`STAFF` 與 `ADMIN` 成功。
-- [ ] AC4：Migration 與 seed 可在乾淨資料庫執行，產生 `staff` 帳號。
+- [x] AC1：`staff` 登入後導向 `/staff`；`staff` 開啟 `/admin` 被導回 `/staff`。
+- [x] AC2：未登入開啟 `/staff`、`/guild`、`/actor/boss` 導向 `/login`；`/status`、`/display`、`/display/boss-01` 不需登入。
+- [x] AC3：未帶 token 呼叫 §5.3 列出的端點回 401；`USER` 角色呼叫回 403；`STAFF` 與 `ADMIN` 成功。
+- [x] AC4：Migration 與 seed 可在乾淨資料庫執行，產生 `staff` 帳號。
 
 ### 崗位同步
 
-- [ ] AC5：`PUT /stage` 切到 `shop-01` 後，`GET /stage` 回傳 `shop-01`，並推送一次 `stage.changed`（`previousNodeId` 為前一個崗位）；重複切到 `shop-01` 不再推送。
-- [ ] AC6：`PUT /stage` 傳入不存在的 `nodeId` 回 400，崗位不變。
-- [ ] AC7：手機切換崗位後 1 秒內，`/display` 切到對應的大畫面。
-- [ ] AC8：`/display` 重新整理後顯示目前崗位；API 重啟後顯示待機畫面。
+- [x] AC5：`PUT /stage` 切到 `shop-01` 後，`GET /stage` 回傳 `shop-01`，並推送一次 `stage.changed`（`previousNodeId` 為前一個崗位）；重複切到 `shop-01` 不再推送。
+- [x] AC6：`PUT /stage` 傳入不存在的 `nodeId` 回 400，崗位不變。
+- [x] AC7：手機切換崗位後 1 秒內，`/display` 切到對應的大畫面。
+- [x] AC8：`/display` 重新整理後顯示目前崗位；API 重啟後顯示待機畫面。
 
 ### 崗位互動
 
-- [ ] AC9：公會崗位刷 Aria 的測試卡，手機顯示冒險者狀態與任務，大螢幕同時顯示 Aria 名牌；接任務後大螢幕播放接任務演出。
-- [ ] AC10：商店崗位刷卡購買木劍，大螢幕播放購得動效（沿用 Shop 切片行為）。
-- [ ] AC11：Boss 崗位刷卡開戰並以行動卡攻擊，大螢幕顯示戰鬥（沿用 Boss 與 Action Card 切片行為）；戰鬥中切到公會再切回 Boss，戰鬥狀態仍在。
-- [ ] AC12：狀態查詢崗位刷 Leon 的卡，大螢幕顯示 Lv3 與技能卡牆；升級後第一次刷卡播放 LEVEL UP 演出。
-- [ ] AC13：一位工作人員只用 `/staff` 與 `/display`，完成「公會接任務 → 打王 → 回公會領獎 → 商店購買 → 狀態查詢」完整循環。
+- [x] AC9：公會崗位刷 Aria 的測試卡，手機顯示冒險者狀態與任務，大螢幕同時顯示 Aria 名牌；接任務後大螢幕播放接任務演出。
+- [x] AC10：商店崗位刷卡購買木劍，大螢幕播放購得動效（沿用 Shop 切片行為）。
+- [x] AC11：Boss 崗位刷卡開戰並以行動卡攻擊，大螢幕顯示戰鬥（沿用 Boss 與 Action Card 切片行為）；戰鬥中切到公會再切回 Boss，戰鬥狀態仍在。
+- [x] AC12：狀態查詢崗位刷 Leon 的卡，大螢幕顯示 Lv3 與技能卡牆；升級後第一次刷卡播放 LEVEL UP 演出。
+- [x] AC13：一位工作人員只用 `/staff` 與 `/display`，完成「公會接任務 → 打王 → 回公會領獎 → 商店購買 → 狀態查詢」完整循環。
 
 ### 文件與品質
 
-- [ ] AC14：README、`docs/game-design.md`、domain model、system architecture 與 getting started 已同步更新（`STAFF` 角色、崗位、新路由、權限變更、demo 帳號）。
+- [x] AC14：README、`docs/game-design.md`、domain model、system architecture 與 getting started 已同步更新（`STAFF` 角色、崗位、新路由、權限變更、demo 帳號）。
 
 ## 9. 風險與後續
 
@@ -216,3 +216,19 @@ interface StageChangedData {
 - **單一舞台**：只有一組「手機 + 大螢幕」。之後要支援多組時，可將崗位狀態改為以舞台或工作人員為鍵，`/display` 改為 `/display/stage/<stageId>`。
 - **既有問題**：`GuildTerminalView` 的 SSE 備援網址為 `/api/v1/events/sse`，但 API 實際路徑是 `/api/v1/events/stream`；拆分公會畫面時改用共用的 `useGameEvents` 一併修正。
 - **後續延伸**：多位工作人員分工、「下一位」與閒置逾時統一規則、工作人員操作稽核、GM 監看所有崗位的控制台。
+
+## 10. 實作備註
+
+- **驗證方式**：
+  - AC3～AC6 由 `apps/api/test/staff-console.e2e-spec.ts` 對測試資料庫驗證：11 個寫入端點未帶 token 回 401、`USER` 回 403、`STAFF` 與 `ADMIN` 通過；`PUT /stage` 的切換、重複切換不推送、未知崗位與缺少 `nodeId` 回 400；`status.viewed` 內容等於掃卡回應。`StageService` 另有單元測試（`apps/api/src/stage/stage.service.spec.ts`）。
+  - 既有的 Shop、Action Card、Progression e2e 改以 `test/helpers/staff-auth.ts` 取得 `staff` token 後呼叫受保護端點。
+  - AC1、AC2、AC7～AC13 以 Playwright 對本機 Docker Compose 環境實測（手機 390×844 開 `/staff`、16:9 開 `/display`）：登入導向與 `?next=` 回原頁、公開頁面、切換崗位後大螢幕在 110ms 內切換、公會接任務 → Boss 戰（中途切到公會再切回）→ 勝利 → 公會領獎 → LEVEL UP → 商店購買 → 狀態查詢技能卡牆、大螢幕重新整理與 API 重啟後的狀態。登入後的 `/guild`、`/actor/boss`、`/actor/shop/shop-01` 舊頁面也照常運作。
+- **尚未驗證**：實體手機的相機與 NFC 掃描（只用測試卡按鈕）、區網內多台裝置同時連線、大螢幕音效。
+- **與規格不同之處**：
+  - **崗位畫面保留在背景**（§3.2 第 4 點、§3.4 第 2 點）：原規格是切換崗位時清空手機畫面、大螢幕改訂閱新崗位。實測發現 Boss 大螢幕重新掛載後只能從 `battle.started` 建立戰鬥畫面，戰鬥中切走再切回會停在「等待挑戰者」。改為手機與大螢幕都把開過的崗位保留在背景（`hidden`），各自持續接收事件。代價是背景中的大螢幕仍會對該崗位的事件播放音效，例如 `/status` 自助終端刷卡、或切走後 6 秒內的元素彈逾時。
+  - **崗位清單前後端各一份**（§2）：`packages/shared` 尚未被任何應用程式引用，為四個字串建立共用套件屬於預先建置基礎設施，因此兩邊各自定義並互相註明。
+  - **卸下裝備也需要權限**（§5.3）：`DELETE /players/:playerId/equipment/:slot` 同樣會改變遊戲狀態，一併改為僅限 `STAFF`、`ADMIN`。
+- **權限實作**：受保護端點使用 `@StaffOnly()`（`auth/decorators/staff-only.decorator.ts`，組合 `JwtAuthGuard`、`RolesGuard` 與 `@Roles(STAFF, ADMIN)`）。前端以 `utils/apiFetch.ts` 帶上 token，收到 401 時清除 token 並導回 `/login?next=`；路由權限集中在 `router/routeAccess.ts`。
+- **大螢幕訂閱**：`/display` 以固定頻道 `stage` 接收 `stage.changed`（以 `displayId: 'all'` 廣播），每次 WebSocket 連上後重新呼叫 `GET /stage`；各崗位大畫面各自訂閱自己的 `nodeId`。
+- **公會畫面拆分**：`GuildCounter` 承接原 `GuildTerminalView` 的掃卡、狀態、任務與裝備邏輯，`/guild` 只保留頁首與 `GuildCounter`。即時更新改用共用的 `useGameEvents('guild-01')`，修正原本 SSE 備援網址（`/api/v1/events/sse`）錯誤；原本 WebSocket 未帶 `displayId` 時實際訂閱到 `boss-01` 並依 `battle.victory` 重新整理，現在改依 `guild-01` 的 `quest.progress_updated` 與 `quest.completed`。
+- **已知小問題**：`STAFF` 開啟 `/admin` 時，管理頁面會在導回 `/staff` 前短暫渲染並呼叫 `GET /admin/summary`（API 正確回 403）。`USER` 開啟 `/admin` 原本就有相同行為。

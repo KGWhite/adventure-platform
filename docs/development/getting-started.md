@@ -145,6 +145,7 @@ pnpm --filter @adventure-platform/api db:seed
 
 #### Development Seed Accounts & Skeleton Data (strictly for dev testing):
 - **Admin**: `username: admin`, `password: admin123` (Role: `ADMIN`)
+- **Staff**: `username: staff`, `password: staff123` (Role: `STAFF`) — opens the `/staff` console; also needed for `/guild` and `/actor/*`
 - **Adventurer User**: `username: adventurer`, `password: adventurer123` (Role: `USER`)
 - **Adventurer Profile**: `displayName: Rookie Adventurer`, `rank: Rank F`
 - **Demo Adventurers**: `username: aria` and `username: leon`, both with `password: adventurer123` (Role: `USER`)
@@ -177,12 +178,12 @@ You can run services individually using pnpm workspace filtering:
   # or
   pnpm --filter @adventure-platform/api test
   ```
-- **API Integration Tests** (Shop + Equipment, Action Card Battle, Adventurer Progression; requires a migrated and seeded database):
+- **API Integration Tests** (Shop + Equipment, Action Card Battle, Adventurer Progression, Staff Console; requires a migrated and seeded database, including the `staff` account the suites log in with):
   ```bash
   DATABASE_URL=postgresql://adventure_user:adventure_password@localhost:5432/adventure_platform_test \
     pnpm --filter @adventure-platform/api test:e2e
   ```
-  > The suites reset the demo adventurer Aria (`cred-demo-001`): gold, rank, merit, level, quests, inventory and purchases. They run one file at a time because they share the database. Point `DATABASE_URL` at a dedicated test database, never at data you want to keep.
+  > The suites reset the demo adventurer Aria (`cred-demo-001`): gold, rank, merit, level, quests, inventory and purchases. They run one file at a time because they share the database. The Staff Console suite also scans Leon (`cred-demo-002`) on `/status`, which marks his level as seen. Point `DATABASE_URL` at a dedicated test database, never at data you want to keep.
 
 ### 6. Building Packages
 - **Build all packages**:

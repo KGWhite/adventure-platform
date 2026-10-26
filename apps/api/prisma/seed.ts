@@ -35,6 +35,7 @@ async function main() {
   // Note: These credentials and profiles are strictly for development only.
   const adminPasswordHash = bcryptjs.hashSync('admin123', 10);
   const userPasswordHash = bcryptjs.hashSync('adventurer123', 10);
+  const staffPasswordHash = bcryptjs.hashSync('staff123', 10);
 
   // 1. Test ADMIN
   await prisma.user.upsert({
@@ -47,6 +48,20 @@ async function main() {
       username: 'admin',
       passwordHash: adminPasswordHash,
       role: Role.ADMIN,
+    },
+  });
+
+  // 1b. Test STAFF (operates world nodes from /staff; no adventurer profile)
+  await prisma.user.upsert({
+    where: { username: 'staff' },
+    update: {
+      passwordHash: staffPasswordHash,
+      role: Role.STAFF,
+    },
+    create: {
+      username: 'staff',
+      passwordHash: staffPasswordHash,
+      role: Role.STAFF,
     },
   });
 

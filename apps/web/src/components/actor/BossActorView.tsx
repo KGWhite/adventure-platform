@@ -10,6 +10,7 @@ import type {
   PlayCardResponse,
   PlayerInfo,
 } from '../../types/battle.js';
+import { apiFetch } from '../../utils/apiFetch.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
 import {
   WRONG_CARD_FOR_ACTION,
@@ -44,9 +45,15 @@ const CARD_ICONS: Record<ActionCardKind, string> = {
   WIND: '🌪️',
 };
 
-export function BossActorView() {
+interface BossActorViewProps {
+  // Fixed boss post when embedded in the /staff console
+  nodeId?: string;
+  embedded?: boolean;
+}
+
+export function BossActorView({ nodeId, embedded = false }: BossActorViewProps = {}) {
   const [bosses, setBosses] = useState<BossOption[]>(DEFAULT_BOSSES);
-  const [selectedBossId, setSelectedBossId] = useState<string>('boss-01');
+  const [selectedBossId, setSelectedBossId] = useState<string>(nodeId ?? 'boss-01');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
   const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
 
@@ -117,7 +124,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/v1/battles/scan', {
+      const res = await apiFetch('/api/v1/battles/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,7 +179,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/v1/battles/${activeBattle.id}/cards`, {
+      const res = await apiFetch(`/api/v1/battles/${activeBattle.id}/cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cardValue }),
@@ -263,7 +270,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/v1/battles', {
+      const res = await apiFetch('/api/v1/battles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,7 +304,7 @@ export function BossActorView() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/v1/battles/${activeBattle.id}/attack`, {
+      const res = await apiFetch(`/api/v1/battles/${activeBattle.id}/attack`, {
         method: 'POST',
       });
 
@@ -346,19 +353,21 @@ export function BossActorView() {
   return (
     <div className="boss-actor-root">
       {/* Top App Bar */}
-      <header className="actor-topbar">
-        <div className="topbar-branding">
-          <span className="branding-icon">⚔️</span>
-          <div>
-            <h1 className="branding-title">BOSS ACTOR TERMINAL</h1>
-            <span className="branding-subtitle">World Node Field Controller</span>
+      {!embedded && (
+        <header className="actor-topbar">
+          <div className="topbar-branding">
+            <span className="branding-icon">⚔️</span>
+            <div>
+              <h1 className="branding-title">BOSS ACTOR TERMINAL</h1>
+              <span className="branding-subtitle">World Node Field Controller</span>
+            </div>
           </div>
-        </div>
 
-        <a href={`/display/${selectedBossId}`} target="_blank" rel="noreferrer" className="open-display-link">
-          📺 Open Display
-        </a>
-      </header>
+          <a href={`/display/${selectedBossId}`} target="_blank" rel="noreferrer" className="open-display-link">
+            📺 Open Display
+          </a>
+        </header>
+      )}
 
       <main className="actor-main-content">
         {/* Error Alert */}
@@ -382,7 +391,7 @@ export function BossActorView() {
               className="actor-select"
               value={selectedBossId}
               onChange={(e) => setSelectedBossId(e.target.value)}
-              disabled={!!activeBattle && activeBattle.status === 'active'}
+              disabled={embedded || (!!activeBattle && activeBattle.status === 'active')}
             >
               {bosses.map((b) => (
                 <option key={b.id} value={b.id}>
