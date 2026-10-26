@@ -316,7 +316,7 @@ interface EquipmentChangedData {
 
 | 狀態 | 觸發 | 畫面 |
 |---|---|---|
-| Idle | 預設，或結束後 60 秒 | 商品陳列輪播 |
+| Idle | 預設，或結束後 60 秒 | 商品陳列輪播（Staff Console 切片起改為完整商品一覽，見 [staff-console.md](staff-console.md) D12） |
 | Welcome | `player.scanned` | 「歡迎，Aria」與金幣 |
 | Purchased | `shop.purchase_completed` | 物品放大展示、數值飄字、金幣扣減動畫，8 秒後回到 Welcome |
 | Equipped | `equipment.changed` | 疊加「已裝備」與 ATK / DEF 變化 |

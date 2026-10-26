@@ -12,6 +12,11 @@ export class StatusScanDto {
   displayId?: string;
 }
 
+export interface LevelGuide {
+  levels: { level: number; merit: number }[];
+  skills: SkillSummary[];
+}
+
 export interface StatusSkillView extends SkillSummary {
   unlocked: boolean;
   isNew: boolean;

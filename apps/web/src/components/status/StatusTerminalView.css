@@ -54,6 +54,90 @@
   animation: status-blink 2s ease-in-out infinite;
 }
 
+/* Idle level ladder: what each level unlocks */
+.status-idle.has-guide {
+  gap: 1rem;
+}
+
+.status-idle.has-guide .status-idle-crest {
+  font-size: clamp(3.5rem, 8vw, 5rem);
+}
+
+.status-idle.has-guide .status-idle-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+.status-ladder {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: min(100%, 1200px);
+  margin-top: 0.5rem;
+}
+
+.status-ladder-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 0.5rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.status-ladder-level {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fde68a;
+}
+
+.status-ladder-merit {
+  font-size: 1rem;
+  color: #bae6fd;
+}
+
+.status-ladder-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.status-ladder-skill {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-ladder-skill.theme-strike {
+  border-color: #e2e8f0;
+}
+
+.status-ladder-skill.theme-element {
+  border-color: #a78bfa;
+}
+
+.status-ladder-skill.theme-fire {
+  border-color: #f97316;
+}
+
+.status-ladder-skill.theme-water {
+  border-color: #38bdf8;
+}
+
+.status-ladder-skill.theme-steam {
+  border-color: #cbd5e1;
+}
+
+@media (max-width: 700px) {
+  .status-ladder {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Level up celebration */
 .status-levelup {
   flex: 1;

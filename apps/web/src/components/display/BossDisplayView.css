@@ -210,6 +210,102 @@
   letter-spacing: 0.05em;
 }
 
+/* Idle: boss stats and the action card skill guide */
+.stage-idle-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  width: 100%;
+}
+
+.stage-idle-layout .boss-crest-container {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1rem;
+}
+
+.stage-idle-layout .boss-avatar-emblem {
+  font-size: 3.5rem;
+}
+
+.stage-idle-layout .boss-title-hero {
+  font-size: 3rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.stage-idle-layout .boss-subtitle-hero {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.idle-boss-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fecaca;
+}
+
+.idle-skill-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 22rem;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.idle-skill-guide-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ddd6fe;
+  margin-bottom: 0.25rem;
+}
+
+.idle-skill-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+}
+
+.idle-skill-cards {
+  font-size: 1.4rem;
+}
+
+.idle-skill-name {
+  font-weight: 800;
+}
+
+.idle-skill-level {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.idle-skill-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 900px) {
+  .stage-idle-layout {
+    flex-direction: column;
+    gap: 2rem;
+  }
+}
+
 /* 2. SCANNED STAGE */
 .stage-scanned-wrapper {
   display: flex;

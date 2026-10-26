@@ -326,6 +326,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/battles/:id/attack` | **STAFF / ADMIN** | Resolve one attack turn |
 | `POST` | `/api/v1/battles/:id/cards` | **STAFF / ADMIN** | Play an action card (`charged` / `cast` / `fizzled` / `cooldown`) |
 | `GET` | `/api/v1/action-cards` | Public | List enabled action cards |
+| `GET` | `/api/v1/status/levels` | Public | Level merit thresholds and skills with their unlock level (idle status and boss screens) |
 | `POST` | `/api/v1/status/scan` | Public (terminal) | `/status` kiosk and status station scan: level progress, learned / locked skills, NEW flags; marks the level as seen and publishes `status.viewed` |
 | `GET` | `/api/v1/stage` | Public | Station the staff console is operating (`nodeId` or `null`) |
 | `PUT` | `/api/v1/stage` | **STAFF / ADMIN** | Switch station (`guild-01`, `shop-01`, `boss-01`, `status-01` or `null`); broadcasts `stage.changed` |

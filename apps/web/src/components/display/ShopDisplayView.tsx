@@ -4,7 +4,9 @@ import type { GameEvent } from '../../types/battle.js';
 import type {
   EquipmentChangedData,
   ShopCatalog,
+  ShopItem,
   ShopItemPreviewedData,
+  ShopLockedReason,
   ShopOffer,
   ShopPurchaseCompletedData,
   ShopScanResponse,
@@ -19,7 +21,31 @@ type DisplayState = 'IDLE' | 'WELCOME' | 'BROWSING' | 'PURCHASED';
 const IDLE_AFTER_MS = 60_000;
 const PURCHASE_SHOWCASE_MS = 8_000;
 const EQUIP_TOAST_MS = 4_000;
-const SHOWCASE_ROTATE_MS = 3_500;
+
+interface OfferCardProps {
+  item: ShopItem;
+  lockedReason: ShopLockedReason | null;
+  dimmed?: boolean;
+  selected?: boolean;
+}
+
+function OfferCard({ item, lockedReason, dimmed = false, selected = false }: OfferCardProps) {
+  return (
+    <div className={`shop-browse-offer ${dimmed ? 'locked' : ''} ${selected ? 'selected' : ''}`}>
+      <span className="shop-browse-icon">{itemIcon(item.iconKey, item.type)}</span>
+      <span className="shop-browse-offer-name">{item.name}</span>
+      <span className="shop-browse-stats">{itemStatLabel(item)}</span>
+      <span className="shop-browse-price">🪙 {item.price}</span>
+      {lockedReason && (
+        <span className={`shop-browse-lock lock-${lockedReason.toLowerCase()}`}>
+          {lockedReason === 'RANK_REQUIRED' && item.requiredRank
+            ? `需要 ${item.requiredRank.name}`
+            : SHOP_LOCK_LABELS[lockedReason]}
+        </span>
+      )}
+    </div>
+  );
+}
 
 interface Customer {
   id: string;
@@ -34,7 +60,6 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'shop-01');
 
   const [catalog, setCatalog] = useState<ShopCatalog | null>(null);
-  const [showcaseIndex, setShowcaseIndex] = useState(0);
   const [displayState, setDisplayState] = useState<DisplayState>('IDLE');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [purchase, setPurchase] = useState<ShopPurchaseCompletedData | null>(null);
@@ -56,14 +81,6 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
       .then((data: ShopCatalog | null) => data && setCatalog(data))
       .catch(() => {});
   }, [displayId]);
-
-  useEffect(() => {
-    if (displayState !== 'IDLE' || !catalog?.items.length) return;
-    const timer = setInterval(() => {
-      setShowcaseIndex((i) => (i + 1) % catalog.items.length);
-    }, SHOWCASE_ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [displayState, catalog]);
 
   useEffect(() => {
     sfx.enabled = audioEnabled;
@@ -165,7 +182,6 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
 
   const { connected, transport } = useGameEvents(displayId, handleGameEvent);
   const preview = offers.find((offer) => offer.itemId === previewId) ?? null;
-  const showcaseItem = catalog?.items[showcaseIndex % (catalog?.items.length || 1)];
 
   return (
     <div className="shop-display-root">
@@ -185,24 +201,22 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
       </header>
 
       <main className="shop-stage">
+        {/* The whole catalog, so adventurers can pick before showing their card */}
         {displayState === 'IDLE' && (
-          <div className="shop-idle">
-            {showcaseItem ? (
-              <div key={showcaseItem.itemId} className="shop-showcase-card">
-                <div className="shop-showcase-icon">{itemIcon(showcaseItem.iconKey, showcaseItem.type)}</div>
-                <div className="shop-showcase-name">{showcaseItem.name}</div>
-                <div className="shop-showcase-stats">{itemStatLabel(showcaseItem)}</div>
-                <div className="shop-showcase-price">🪙 {showcaseItem.price} Gold</div>
-                {showcaseItem.requiredRank && (
-                  <div className="shop-showcase-rank">需要 {showcaseItem.requiredRank.name}</div>
-                )}
-              </div>
-            ) : (
-              <div className="shop-showcase-card">
-                <div className="shop-showcase-icon">🏪</div>
-              </div>
-            )}
-            <p className="shop-idle-hint">請向店主出示你的冒險者卡</p>
+          <div className="shop-browse">
+            <div className="shop-browse-head">
+              <span className="shop-browse-name">🏪 商品一覽</span>
+            </div>
+            <div className="shop-browse-grid">
+              {catalog?.items.map((item) => (
+                <OfferCard
+                  key={item.itemId}
+                  item={item}
+                  lockedReason={item.requiredRank ? 'RANK_REQUIRED' : null}
+                />
+              ))}
+            </div>
+            <p className="shop-idle-hint">看中想要的商品，請告訴店員並出示你的冒險者卡</p>
           </div>
         )}
 
@@ -223,24 +237,13 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
             <div className={`shop-browse-body ${preview ? 'has-preview' : ''}`}>
               <div className="shop-browse-grid">
                 {offers.map((offer) => (
-                  <div
+                  <OfferCard
                     key={offer.itemId}
-                    className={`shop-browse-offer ${offer.purchasable ? '' : 'locked'} ${
-                      offer.itemId === previewId ? 'selected' : ''
-                    }`}
-                  >
-                    <span className="shop-browse-icon">{itemIcon(offer.iconKey, offer.type)}</span>
-                    <span className="shop-browse-offer-name">{offer.name}</span>
-                    <span className="shop-browse-stats">{itemStatLabel(offer)}</span>
-                    <span className="shop-browse-price">🪙 {offer.price}</span>
-                    {offer.lockedReason && (
-                      <span className={`shop-browse-lock lock-${offer.lockedReason.toLowerCase()}`}>
-                        {offer.lockedReason === 'RANK_REQUIRED' && offer.requiredRank
-                          ? `需要 ${offer.requiredRank.name}`
-                          : SHOP_LOCK_LABELS[offer.lockedReason]}
-                      </span>
-                    )}
-                  </div>
+                    item={offer}
+                    lockedReason={offer.lockedReason}
+                    dimmed={!offer.purchasable}
+                    selected={offer.itemId === previewId}
+                  />
                 ))}
               </div>
               {preview && (
