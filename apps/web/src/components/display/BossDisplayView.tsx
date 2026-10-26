@@ -60,11 +60,12 @@ interface BattleDisplayData {
   turnCount: number;
 }
 
-export function BossDisplayView() {
+// nodeId is set when the follow-mode /display shows this screen
+export function BossDisplayView({ nodeId }: { nodeId?: string } = {}) {
   // Extract displayId from URL, e.g. /display/boss-01 -> boss-01
   const path = window.location.pathname;
   const displayIdMatch = path.match(/^\/display\/([^/]+)/);
-  const displayId = displayIdMatch ? displayIdMatch[1] : 'boss-01';
+  const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'boss-01');
 
   const [displayState, setDisplayState] = useState<DisplayState>('IDLE');
   const [challenger, setChallenger] = useState<ChallengerData | null>(null);

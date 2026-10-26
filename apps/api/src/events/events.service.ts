@@ -20,6 +20,7 @@ import type {
   ShopPurchaseCompletedData,
   SkillCastData,
   SkillFizzledData,
+  StageChangedData,
 } from './events.types.js';
 import { PureWebSocketServer } from './websocket.server.js';
 
@@ -148,5 +149,13 @@ export class EventsService {
 
   emitAdventurerLevelUp(displayId: string, data: AdventurerLevelUpData) {
     return this.emit('adventurer.level_up', displayId, data);
+  }
+
+  emitStageChanged(data: StageChangedData) {
+    return this.emit('stage.changed', 'all', data);
+  }
+
+  emitStatusViewed<T>(displayId: string, data: T) {
+    return this.emit('status.viewed', displayId, data);
   }
 }

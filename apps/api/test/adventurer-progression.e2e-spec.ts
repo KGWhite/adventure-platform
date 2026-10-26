@@ -6,11 +6,13 @@ import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { EventsService } from './../src/events/events.service.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import { staffAuthHeader } from './helpers/staff-auth.js';
 
 // Requires a migrated and seeded database at DATABASE_URL. The suite resets
 // Aria's merit, level and quests, so never point it at real data.
 describe('Adventurer Progression (e2e)', () => {
   let app: INestApplication<App>;
+  let staff: Record<string, string>;
   let prisma: PrismaService;
   let events: EventsService;
   let ariaId: string;
@@ -35,6 +37,7 @@ describe('Adventurer Progression (e2e)', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     await app.init();
+    staff = await staffAuthHeader(app);
     prisma = app.get(PrismaService);
     events = app.get(EventsService);
 
@@ -82,22 +85,28 @@ describe('Adventurer Progression (e2e)', () => {
 
     await request(server)
       .post('/api/v1/player-quests')
+      .set(staff)
       .send({ credentialValue: ARIA, questId: 'quest-defeat-black-knight' })
       .expect(201);
 
     const battle = await request(server)
       .post('/api/v1/battles')
+      .set(staff)
       .send({ credentialValue: ARIA, bossId: 'boss-01', displayId: 'boss-e2e' })
       .expect(201);
     let state = battle.body;
     while (state.status === 'active') {
-      state = (await request(server).post(`/api/v1/battles/${state.id}/attack`).expect(201)).body;
+      const attack = request(server).post(`/api/v1/battles/${state.id}/attack`).set(staff);
+      state = (await attack.expect(201)).body;
     }
     expect(state.status).toBe('victory');
     expect(state.reward.levelUp).toBeNull(); // merit 20 -> 30, still Lv2
 
     const quest = await request(server).get(`/api/v1/player-quests/player/${ariaId}`).expect(200);
-    const claim = await request(server).post(`/api/v1/player-quests/${quest.body.id}/claim`).expect(201);
+    const claim = await request(server)
+      .post(`/api/v1/player-quests/${quest.body.id}/claim`)
+      .set(staff)
+      .expect(201);
     expect(claim.body.levelUp).toMatchObject({
       from: 2,
       to: 3,

@@ -531,11 +531,15 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
   - **獎勵循環**：發給小朋友冒險者 ID 卡 → 解任務、打王累積功績 → 等級自動提升（Lv2 20、Lv3 50、Lv4 100、Lv5 160）→ 學會新技能並領取實體技能卡 → 打王時只能施放已學會的組合（未學會改放元素彈並提示）。
   - **`/status` 自助終端**：小朋友刷 ID 卡看等級、升級進度與技能卡牆；升級後第一次刷卡播放 LEVEL UP 演出並標示 NEW。
   - 詳細規格：[docs/specs/adventurer-progression.md](specs/adventurer-progression.md)。
+- [x] **Staff Console Vertical Slice MVP (一人一機扮演所有崗位)**：
+  - **現場配置**：一位工作人員、一支手機、一個大螢幕。工作人員以 `STAFF` 帳號登入總控台 `/staff`，切換扮演公會櫃台、商店店員、Boss 看守者與狀態查詢；小朋友只帶冒險者 ID 卡，在工作人員手機上刷卡就代表進入該崗位。
+  - **跟隨模式大螢幕 `/display`**：手機切換崗位時，伺服器推送 `stage.changed`，大螢幕同步切到公會（`/display/guild-01` 委託告示板、冒險者名牌、接任務／完成委託／升級演出）、商店、Boss 或狀態查詢（`/display/status-01` 等級與技能卡牆）畫面。
+  - **權限**：會改變遊戲狀態的世界節點操作僅限工作人員與管理員；大螢幕與 `/status` 自助終端維持公開。
+  - 詳細規格：[docs/specs/staff-console.md](specs/staff-console.md)。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 
 ### 12.3 下一步候選流程 (Next Candidates)
-1. **Staff Console 垂直切片**：一位工作人員以一支手機登入總控台 `/staff`，切換扮演公會、商店、Boss 與狀態查詢崗位；跟隨模式大螢幕 `/display` 依目前崗位同步切換，並新增公會大螢幕 `/display/guild-01` 與 `STAFF` 角色。需求規格已定案：[docs/specs/staff-console.md](specs/staff-console.md)。
-2. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
+1. **Rank Up 晉升儀式**：累積足夠功績後，於公會終端發起階級晉升考核並切換稱號與資格證。
 
 ### 12.4 待確認與待討論項目 (Pending Discussion)
 - [ ] **未來 NFC Reader 最終硬體方案**：評估 Web NFC、手持工業 POS、外接 USB 讀卡機或藍牙讀卡器在未來活動現場的穩定性。

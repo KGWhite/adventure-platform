@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { StaffOnly } from '../auth/decorators/staff-only.decorator.js';
 import { BattlesService } from './battles.service.js';
 import type { CreateBattleInput, ScanPlayerInput } from './battles.types.js';
 
@@ -37,21 +38,25 @@ class PlayCardDto {
 export class BattlesController {
   constructor(private readonly battlesService: BattlesService) {}
 
+  @StaffOnly()
   @Post('scan')
   async scanPlayer(@Body() dto: ScanPlayerDto) {
     return this.battlesService.scanPlayer(dto);
   }
 
+  @StaffOnly()
   @Post()
   async createBattle(@Body() dto: CreateBattleDto) {
     return this.battlesService.createBattle(dto);
   }
 
+  @StaffOnly()
   @Post(':id/attack')
   async attack(@Param('id') id: string) {
     return this.battlesService.attack(id);
   }
 
+  @StaffOnly()
   @Post(':id/cards')
   @HttpCode(200)
   async playCard(@Param('id') id: string, @Body() dto: PlayCardDto) {

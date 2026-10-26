@@ -7,11 +7,13 @@ import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { EventsService } from './../src/events/events.service.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import { staffAuthHeader } from './helpers/staff-auth.js';
 
 // Requires a migrated and seeded database at DATABASE_URL. The suite resets
 // Aria (cred-demo-001) before each test, so never point it at real data.
 describe('Shop + Equipment (e2e)', () => {
   let app: INestApplication<App>;
+  let staff: Record<string, string>;
   let prisma: PrismaService;
   let events: EventsService;
   let ariaId: string;
@@ -20,11 +22,15 @@ describe('Shop + Equipment (e2e)', () => {
   const DISABLED = 'cred-e2e-disabled';
 
   const scan = () =>
-    request(app.getHttpServer()).post('/api/v1/shops/shop-01/scan').send({ credentialValue: ARIA });
+    request(app.getHttpServer())
+      .post('/api/v1/shops/shop-01/scan')
+      .set(staff)
+      .send({ credentialValue: ARIA });
 
   const buy = (itemId: string, extra: Record<string, unknown> = {}) =>
     request(app.getHttpServer())
       .post('/api/v1/shops/shop-01/purchases')
+      .set(staff)
       .send({ credentialValue: ARIA, itemId, requestId: randomUUID(), ...extra });
 
   beforeAll(async () => {
@@ -35,6 +41,7 @@ describe('Shop + Equipment (e2e)', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     await app.init();
+    staff = await staffAuthHeader(app);
     prisma = app.get(PrismaService);
     events = app.get(EventsService);
 
@@ -146,10 +153,12 @@ describe('Shop + Equipment (e2e)', () => {
   it('AC7: rejects disabled credentials', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/shops/shop-01/scan')
+      .set(staff)
       .send({ credentialValue: DISABLED })
       .expect(400);
     await request(app.getHttpServer())
       .post('/api/v1/shops/shop-01/purchases')
+      .set(staff)
       .send({ credentialValue: DISABLED, itemId: 'item-wooden-sword', requestId: randomUUID() })
       .expect(400);
   });
@@ -167,6 +176,7 @@ describe('Shop + Equipment (e2e)', () => {
 
     const equipped = await request(app.getHttpServer())
       .post(`/api/v1/players/${ariaId}/equipment`)
+      .set(staff)
       .send({ playerItemId: armorEntry.playerItemId })
       .expect(200);
     expect(equipped.body).toMatchObject({ attack: 3, defense: 3 });
@@ -185,14 +195,17 @@ describe('Shop + Equipment (e2e)', () => {
 
     const unequipped = await request(app.getHttpServer())
       .delete(`/api/v1/players/${ariaId}/equipment/WEAPON`)
+      .set(staff)
       .expect(200);
     expect(unequipped.body).toMatchObject({ attack: 0, defense: 3, equipment: { WEAPON: null } });
 
     await request(app.getHttpServer())
       .delete(`/api/v1/players/${ariaId}/equipment/WEAPON`)
+      .set(staff)
       .expect(200);
     await request(app.getHttpServer())
       .delete(`/api/v1/players/${ariaId}/equipment/HELMET`)
+      .set(staff)
       .expect(400);
   });
 
@@ -200,6 +213,7 @@ describe('Shop + Equipment (e2e)', () => {
     await buy('item-wooden-sword', { equip: true }).expect(201);
     const res = await request(app.getHttpServer())
       .post('/api/v1/guild/scan')
+      .set(staff)
       .send({ credentialValue: ARIA })
       .expect(201);
     expect(res.body.inventory).toMatchObject({ attack: 3, equipment: { WEAPON: { item: { id: 'item-wooden-sword' } } } });

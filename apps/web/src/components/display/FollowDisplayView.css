@@ -1,0 +1,80 @@
+/* Follow-mode Display Node (/display): idle screen before a station is chosen */
+
+.follow-idle-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, #233554 0%, #0e1628 60%, #060a12 100%);
+  color: #f8fafc;
+  font-family: 'Cinzel', 'Noto Serif TC', system-ui, -apple-system, sans-serif;
+}
+
+.follow-idle-crest {
+  font-size: 8rem;
+  animation: follow-float 4s ease-in-out infinite;
+}
+
+.follow-idle-title {
+  margin: 0;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #f5d77a;
+  text-shadow: 0 0 40px rgba(212, 175, 55, 0.55);
+}
+
+.follow-idle-sub {
+  margin: 0;
+  font-size: 2rem;
+  color: #cbd5e1;
+}
+
+.follow-idle-stations {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2.5rem;
+  margin-top: 2rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.follow-idle-pill {
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+}
+
+.follow-idle-pill.online {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.follow-idle-pill.offline {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+@keyframes follow-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-idle-root * {
+    animation: none !important;
+  }
+}

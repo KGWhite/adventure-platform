@@ -23,9 +23,11 @@ interface Customer {
   gold: number;
 }
 
-export function ShopDisplayView() {
+// nodeId is set when the follow-mode /display shows this screen; otherwise
+// the node comes from the URL (/display/shop-01)
+export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const displayIdMatch = window.location.pathname.match(/^\/display\/([^/]+)/);
-  const displayId = displayIdMatch ? displayIdMatch[1] : 'shop-01';
+  const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'shop-01');
 
   const [catalog, setCatalog] = useState<ShopCatalog | null>(null);
   const [showcaseIndex, setShowcaseIndex] = useState(0);

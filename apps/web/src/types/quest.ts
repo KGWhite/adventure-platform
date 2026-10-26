@@ -62,3 +62,20 @@ export interface ClaimRewardResponse {
     merit: number;
   };
 }
+
+export interface QuestAcceptedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  playerName?: string;
+  questTitle?: string;
+  targetCount: number;
+}
+
+export interface QuestRewardClaimedData {
+  playerQuestId: string;
+  questId: string;
+  playerId: string;
+  rewardGold: number;
+  rewardMerit: number;
+}

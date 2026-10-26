@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { EquipmentSlot, Inventory, PlayerItem } from '../../types/shop.js';
+import { apiFetch } from '../../utils/apiFetch.js';
 import { SLOT_LABELS, itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
 
 interface GuildEquipmentPanelProps {
@@ -20,7 +21,7 @@ export function GuildEquipmentPanel({ inventory, onChange, onError }: GuildEquip
   const request = async (url: string, init: RequestInit) => {
     setBusy(true);
     try {
-      const res = await fetch(url, init);
+      const res = await apiFetch(url, init);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || `裝備操作失敗 (${res.status})`);
       onChange(data as Inventory);

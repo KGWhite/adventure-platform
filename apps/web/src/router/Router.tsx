@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { LoadingState } from '../components/common/index.js';
+import { canAccess, homePath, isPublicPath, isStaffPath, landingPath } from './routeAccess.js';
 
 interface NavigationContextType {
   path: string;
@@ -22,9 +23,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const navigate = (to: string) => {
-    if (window.location.pathname !== to) {
+    if (window.location.pathname + window.location.search !== to) {
       window.history.pushState(null, '', to);
-      setPath(to);
+      // path tracks the pathname only; the query (e.g. ?next=) stays in the URL
+      setPath(window.location.pathname);
     }
   };
 
@@ -50,33 +52,20 @@ export function RouteGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    // Public display, actor, guild and status nodes bypass login requirements
-    if (
-      path.startsWith('/display') ||
-      path.startsWith('/actor') ||
-      path.startsWith('/guild') ||
-      path.startsWith('/status')
-    ) {
+    if (isPublicPath(path)) {
       return;
     }
 
     if (!user) {
-      // Unauthenticated users can only view /login
+      // Unauthenticated users can only view /login; staff pages come back after login
       if (path !== '/login') {
-        navigate('/login');
+        navigate(isStaffPath(path) ? `/login?next=${encodeURIComponent(path)}` : '/login');
       }
-    } else {
-      // Authenticated users
-      if (path === '/login' || path === '/') {
-        if (user.role === 'ADMIN') {
-          navigate('/admin');
-        } else {
-          navigate('/user');
-        }
-      } else if (path.startsWith('/admin') && user.role !== 'ADMIN') {
-        // Enforce role separation: USER cannot access /admin
-        navigate('/user');
-      }
+    } else if (path === '/login' || path === '/') {
+      navigate(landingPath(user.role));
+    } else if (!canAccess(user.role, path)) {
+      // Enforce role separation: e.g. USER cannot open /admin or /staff
+      navigate(homePath(user.role));
     }
   }, [user, isLoading, path, navigate]);
 
