@@ -1,6 +1,6 @@
 # Staff Console Vertical Slice 需求規格
 
-> **狀態**：已實作（2026-10-26，D1–D11；D9～D11 為首版試用後追加）。驗證方式與實作差異見 [§10 實作備註](#10-實作備註)。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/development/getting-started.md](../development/getting-started.md)。
+> **狀態**：已實作（2026-10-26，D1–D12；D9～D12 為首版試用後追加）。驗證方式與實作差異見 [§10 實作備註](#10-實作備註)。實作完成後需同步更新 [README.md](../../README.md)、[docs/game-design.md](../game-design.md)、[docs/architecture/domain-model.md](../architecture/domain-model.md)、[docs/architecture/system-architecture.md](../architecture/system-architecture.md) 與 [docs/development/getting-started.md](../development/getting-started.md)。
 
 ## 0. 目標與範圍
 
@@ -44,6 +44,7 @@
 | D9 | 大螢幕顯示內容 | **已定案（追加）**：冒險者可能只看大螢幕，所以大螢幕要顯示與手機接近的資訊。商店：刷卡後顯示金幣與完整商品陳列（含鎖定原因），店員點選商品時同步放大該商品與價格，購買後播放 GET! 並回到陳列；公會：刷卡後顯示冒險者狀態、裝備與委託（可接取、進行中進度、可領獎）。工作人員按「下一位」或「換卡」時大螢幕回到待機 |
 | D10 | 刷卡手機 | **已定案（追加）**：Android 與 iPhone 都可能使用。相機辨識優先用瀏覽器內建 `BarcodeDetector`，不支援時（iPhone Safari、桌機）改用 jsQR 解碼 |
 | D11 | NFC 冒險者卡 | **已定案（追加）**：公會、商店、Boss 的身分辨識都加上 NFC（Android Chrome 的 Web NFC），與狀態崗位一致。卡片沿用寫入內容的做法（NDEF 文字或網址記錄 `adventure://player/<憑證>`），不讀卡片序號；讀到一張冒險者卡後停止感應。iPhone 瀏覽器不支援，只能刷 QR |
+| D12 | 大螢幕待機畫面 | **已定案（追加）**：員工拿手機面對冒險者，冒險者只看大螢幕，先在螢幕上看好要什麼，再由員工刷卡與操作。所以各崗位大螢幕待機時就顯示完整資訊：商店顯示完整商品一覽（價格、數值、階級需求）；公會顯示委託告示板；Boss 關顯示 Boss 數值與行動卡技能組合表；狀態查詢顯示各等級功績門檻與解鎖技能 |
 
 ## 2. 崗位
 
@@ -173,6 +174,18 @@ enum Role {
 - `POST /guild/scan` 另外推送 `guild.scanned`，內容為本次回應（冒險者、進行中委託、可接取委託、背包與裝備）。
 - 接任務、任務進度、領獎、升級與換裝沿用既有事件，大螢幕依事件內容更新畫面。
 
+### 5.8 `GET /api/v1/status/levels`（D12）
+
+公開，供狀態查詢與 Boss 大螢幕待機畫面使用，不需資料庫。
+
+```json
+// 200
+{
+  "levels": [{ "level": 1, "merit": 0 }, { "level": 2, "merit": 20 }],
+  "skills": [{ "id": "element-slash", "name": "元素斬", "cards": ["ELEMENT", "STRIKE"], "requiredLevel": 2 }]
+}
+```
+
 ## 6. 即時事件
 
 ```ts
@@ -223,7 +236,7 @@ interface StationClearedData {
 - 各操作與大螢幕元件目前從網址解析 `shopId`、`displayId`，改為接受 `nodeId` prop（未傳入時沿用網址解析），讓總控台與跟隨大螢幕可以嵌入。
 - 公會：從 `GuildTerminalView` 拆出手機用的操作元件供總控台使用；`/guild` 平板版保留，改用拆出的元件組合。
 - 公會大螢幕：待機時顯示任務告示板（`GET /quests`）；收到 `guild.scanned` 顯示冒險者狀態、裝備與委託（D9），並依 `quest.*`、`equipment.changed`、`adventurer.level_up` 更新；接任務、領獎與升級播放演出；收到 `station.cleared` 回到告示板。
-- 商店大螢幕：收到 `shop.scanned` 顯示金幣與商品陳列，`shop.item_previewed` 放大店員選中的商品，`shop.purchase_completed` 播放 GET! 後回到陳列（已購商品標示已擁有），`station.cleared` 回到待機輪播。
+- 商店大螢幕：收到 `shop.scanned` 顯示金幣與商品陳列，`shop.item_previewed` 放大店員選中的商品，`shop.purchase_completed` 播放 GET! 後回到陳列（已購商品標示已擁有），`station.cleared` 回到待機的完整商品一覽（D12）。
 - 相機掃描統一使用 `useQrScanner`（公會改用共用 hook），內建 `BarcodeDetector` 不可用時以 jsQR 解碼（D10）。
 - 狀態查詢大螢幕：重用 `/status` 的結果畫面與 LEVEL UP 演出，資料來自 `status.viewed`。
 - 手機畫面以單手直式操作為準（寬 360–430px）；大螢幕以 16:9 橫式為準。
@@ -252,10 +265,11 @@ interface StationClearedData {
 - [x] AC11：Boss 崗位刷卡開戰並以行動卡攻擊，大螢幕顯示戰鬥（沿用 Boss 與 Action Card 切片行為）；戰鬥中切到公會再切回 Boss，戰鬥狀態仍在。
 - [x] AC12：狀態查詢崗位刷 Leon 的卡，大螢幕顯示 Lv3 與技能卡牆；升級後第一次刷卡播放 LEVEL UP 演出。
 - [x] AC13：一位工作人員只用 `/staff` 與 `/display`，完成「公會接任務 → 打王 → 回公會領獎 → 商店購買 → 狀態查詢」完整循環。
-- [x] AC15：商店崗位刷卡後，大螢幕顯示冒險者金幣，以及與手機相同的商品清單及鎖定原因；店員點選商品時大螢幕放大該商品，取消時恢復；購買後播放 GET! 並回到陳列，已購商品標示已擁有；按「下一位」大螢幕回到待機輪播。
+- [x] AC15：商店崗位刷卡後，大螢幕顯示冒險者金幣，以及與手機相同的商品清單及鎖定原因；店員點選商品時大螢幕放大該商品，取消時恢復；購買後播放 GET! 並回到陳列，已購商品標示已擁有；按「下一位」大螢幕回到完整商品一覽。
 - [x] AC16：公會崗位刷卡後，大螢幕顯示冒險者狀態、裝備與委託；接任務後顯示進行中委託與進度；按「換卡」大螢幕回到告示板。
 - [x] AC17：各崗位用相機掃描冒險者 QR 卡皆可辨識；不支援 `BarcodeDetector` 的瀏覽器以 jsQR 解碼；切換崗位會釋放前一個崗位的相機與 NFC，背景崗位不處理刷卡。
 - [x] AC18：支援 Web NFC 的裝置在公會、商店、Boss 身分辨識出現 NFC 選項；感應冒險者卡後辨識該冒險者並停止感應，感應行動卡時提示請刷冒險者卡；Boss 戰鬥中仍可用 NFC 刷行動卡。
+- [x] AC19：各崗位大螢幕待機時：商店顯示全部商品（價格、數值、階級需求），公會顯示委託告示板，Boss 關顯示 Boss 數值與 6 個行動卡技能的組合與解鎖等級，狀態查詢顯示 Lv1～Lv5 的功績門檻與解鎖技能；在 1280×720 畫面內不需捲動。
 
 ### 文件與品質
 
@@ -278,6 +292,7 @@ interface StationClearedData {
 - **刷卡驗證（AC17）**：以 Chromium 假鏡頭實測。一組以假的 `BarcodeDetector` 回傳指定內容，驗證公會、商店、Boss（身分卡與行動卡連續掃描）、狀態四個崗位的相機掃描、API 與大螢幕同步，以及切換崗位後相機軌道確實關閉、背景崗位不送出刷卡（17 項）；另一組不提供 `BarcodeDetector`，以含 QR 圖案的影片作為鏡頭，由 jsQR 實際解碼 Aria 的卡（約 0.9 秒）。
 - **大螢幕同步驗證（AC15、AC16）**：Playwright 實測 11 項（商品陳列與鎖定原因、選中放大與取消、GET! 後標示已擁有、下一位回待機、公會狀態／裝備／委託、接任務後進度、換卡回告示板）；API 事件內容由 e2e 驗證。
 - **NFC 驗證（AC18）**：以模擬的 `NDEFReader` 實測 18 項：公會、商店、Boss 的 NFC 選項啟動讀卡器、感應後辨識冒險者並同步大螢幕、讀到一張卡後停止感應、換卡後可重新開始、商店拒絕行動卡、Boss 以 NFC 憑證 `ADV-DEV-001-NFC` 辨識 Rookie 後用 NFC 行動卡攻擊、切換崗位後所有讀卡器都已關閉。
+- **待機畫面驗證（AC19）**：`GET /status/levels` 由 e2e 驗證；Playwright 以 1280×720 截圖商店、Boss、狀態查詢、公會大螢幕與 `/status` 自助終端的待機畫面，內容正確且頁面高度未超出畫面。
 - **尚未驗證**：實體手機（Android Chrome 內建辨識、iPhone Safari jsQR）的相機與 NFC 掃描、區網內多台裝置同時連線、大螢幕音效。
 - **與規格不同之處**：
   - **崗位畫面保留在背景**（§3.2 第 4 點、§3.4 第 2 點）：原規格是切換崗位時清空手機畫面、大螢幕改訂閱新崗位。實測發現 Boss 大螢幕重新掛載後只能從 `battle.started` 建立戰鬥畫面，戰鬥中切走再切回會停在「等待挑戰者」。改為手機與大螢幕都把開過的崗位保留在背景（`hidden`），各自持續接收事件。代價是背景中的大螢幕仍會對該崗位的事件播放音效，例如 `/status` 自助終端刷卡、或切走後 6 秒內的元素彈逾時。

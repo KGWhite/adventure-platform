@@ -1,14 +1,7 @@
-import type { SkillCardHint, StatusScanResponse, StatusSkill } from '../../types/progression.js';
+import type { LevelGuide, StatusScanResponse, StatusSkill } from '../../types/progression.js';
 import { itemIcon } from '../../utils/itemIcons.js';
+import { SKILL_CARD_ICONS } from '../../utils/skillCards.js';
 import type { StatusPhase } from './statusPresenter.js';
-
-const CARD_ICONS: Record<SkillCardHint, string> = {
-  STRIKE: '⚔️',
-  FIRE: '🔥',
-  WATER: '💧',
-  WIND: '🌪️',
-  ELEMENT: '✨',
-};
 
 const SKILL_THEME: Record<string, string> = {
   strike: 'theme-strike',
@@ -34,7 +27,7 @@ function SkillCard({ skill }: { skill: StatusSkill }) {
       {skill.isNew && <div className="status-skill-new">NEW</div>}
       <div className="status-skill-cards">
         {skill.cards.map((card, i) => (
-          <span key={i}>{CARD_ICONS[card]}</span>
+          <span key={i}>{SKILL_CARD_ICONS[card]}</span>
         ))}
       </div>
       <div className="status-skill-name">{skill.name}</div>
@@ -42,7 +35,14 @@ function SkillCard({ skill }: { skill: StatusSkill }) {
   );
 }
 
-export function StatusScreen({ phase, status }: { phase: StatusPhase; status: StatusScanResponse | null }) {
+interface StatusScreenProps {
+  phase: StatusPhase;
+  status: StatusScanResponse | null;
+  // Level ladder shown while idle, so adventurers see what each level unlocks
+  guide?: LevelGuide | null;
+}
+
+export function StatusScreen({ phase, status, guide = null }: StatusScreenProps) {
   const level = status?.level;
   const progressPercent =
     level && level.nextLevelMerit !== null
@@ -56,10 +56,29 @@ export function StatusScreen({ phase, status }: { phase: StatusPhase; status: St
   return (
     <>
       {phase === 'idle' && (
-        <main className="status-idle">
+        <main className={`status-idle ${guide ? 'has-guide' : ''}`}>
           <div className="status-idle-crest">🛡️</div>
           <h1 className="status-idle-title">刷你的冒險者卡！</h1>
           <p className="status-idle-sub">看看你現在幾級、學會了哪些技能</p>
+          {guide && (
+            <div className="status-ladder">
+              {guide.levels.map((step) => (
+                <div key={step.level} className="status-ladder-step">
+                  <div className="status-ladder-level">Lv{step.level}</div>
+                  <div className="status-ladder-merit">🎖️ {step.merit}</div>
+                  <div className="status-ladder-skills">
+                    {guide.skills
+                      .filter((skill) => skill.requiredLevel === step.level)
+                      .map((skill) => (
+                        <span key={skill.id} className={`status-ladder-skill ${SKILL_THEME[skill.id] ?? ''}`}>
+                          {skill.cards.map((card) => SKILL_CARD_ICONS[card]).join('')} {skill.name}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </main>
       )}
 

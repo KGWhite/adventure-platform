@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameEvents } from '../../hooks/useGameEvents.js';
+import { useLevelGuide } from '../../hooks/useLevelGuide.js';
 import type {
   ActionCardKind,
   BattleReward,
@@ -10,6 +11,7 @@ import type {
 } from '../../types/battle.js';
 import type { AdventurerLevelUpData } from '../../types/progression.js';
 import { sfx } from '../../utils/audioEffects.js';
+import { SKILL_CARD_ICONS } from '../../utils/skillCards.js';
 import './BossDisplayView.css';
 
 type DisplayState = 'IDLE' | 'SCANNED' | 'BATTLE' | 'VICTORY' | 'DEFEAT';
@@ -68,6 +70,9 @@ export function BossDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'boss-01');
 
   const [displayState, setDisplayState] = useState<DisplayState>('IDLE');
+  // Shown while idle so challengers know the boss and the card combos
+  const [bossStats, setBossStats] = useState<{ maxHp: number; attackPower: number } | null>(null);
+  const guide = useLevelGuide();
   const [challenger, setChallenger] = useState<ChallengerData | null>(null);
   const [battleData, setBattleData] = useState<BattleDisplayData | null>(null);
   const [rewards, setRewards] = useState<BattleReward | null>(null);
@@ -282,6 +287,13 @@ export function BossDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const { connected, transport } = useGameEvents(displayId, handleGameEvent);
 
   useEffect(() => {
+    fetch(`/api/v1/bosses/${encodeURIComponent(displayId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((boss: { maxHp: number; attackPower: number } | null) => boss && setBossStats(boss))
+      .catch(() => {});
+  }, [displayId]);
+
+  useEffect(() => {
     sfx.enabled = audioEnabled;
   }, [audioEnabled]);
 
@@ -316,20 +328,44 @@ export function BossDisplayView({ nodeId }: { nodeId?: string } = {}) {
       <main className="display-content-viewport">
         {/* 1. IDLE STATE */}
         {displayState === 'IDLE' && (
-          <div className="stage-idle-wrapper">
-            <div className="boss-crest-container">
-              <div className="runic-ring-pulse" />
-              <div className="boss-avatar-emblem">⚔️</div>
+          <div className="stage-idle-layout">
+            <div className="stage-idle-wrapper">
+              <div className="boss-crest-container">
+                <div className="runic-ring-pulse" />
+                <div className="boss-avatar-emblem">⚔️</div>
+              </div>
+
+              <h1 className="boss-title-hero">THE BLACK KNIGHT</h1>
+              <p className="boss-subtitle-hero">GUARDIAN OF THE ADVENTURER GATEWAY</p>
+              {bossStats && (
+                <div className="idle-boss-stats">
+                  <span>❤️ HP {bossStats.maxHp}</span>
+                  <span>⚔️ 攻擊 {bossStats.attackPower}</span>
+                </div>
+              )}
+
+              <div className="waiting-pulse-container">
+                <div className="pulse-beacon" />
+                <div className="waiting-text">WAITING FOR CHALLENGER...</div>
+                <div className="card-hint-text">準備好了嗎？請向守門人出示你的冒險者卡</div>
+              </div>
             </div>
 
-            <h1 className="boss-title-hero">THE BLACK KNIGHT</h1>
-            <p className="boss-subtitle-hero">GUARDIAN OF THE ADVENTURER GATEWAY</p>
-
-            <div className="waiting-pulse-container">
-              <div className="pulse-beacon" />
-              <div className="waiting-text">WAITING FOR CHALLENGER...</div>
-              <div className="card-hint-text">請至 Boss Actor 終端掃描 Adventure Card</div>
-            </div>
+            {guide && (
+              <aside className="idle-skill-guide">
+                <div className="idle-skill-guide-title">🃏 行動卡技能</div>
+                {guide.skills.map((skill) => (
+                  <div key={skill.id} className="idle-skill-row">
+                    <span className="idle-skill-cards">
+                      {skill.cards.map((card) => SKILL_CARD_ICONS[card]).join(' + ')}
+                    </span>
+                    <span className="idle-skill-name">{skill.name}</span>
+                    <span className="idle-skill-level">Lv{skill.requiredLevel}</span>
+                  </div>
+                ))}
+                <p className="idle-skill-note">✨ = 任一元素卡；元素卡 6 秒內刷第二張可組合技能</p>
+              </aside>
+            )}
           </div>
         )}
 

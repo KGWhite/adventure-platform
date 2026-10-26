@@ -1,4 +1,5 @@
 import { useGameEvents } from '../../hooks/useGameEvents.js';
+import { useLevelGuide } from '../../hooks/useLevelGuide.js';
 import type { GameEvent } from '../../types/battle.js';
 import type { StatusScanResponse } from '../../types/progression.js';
 import { StatusScreen } from '../status/StatusScreen.js';
@@ -11,6 +12,7 @@ export function StatusDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const displayIdMatch = window.location.pathname.match(/^\/display\/([^/]+)/);
   const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'status-01');
   const { phase, status, present } = useStatusPresenter();
+  const guide = useLevelGuide();
 
   useGameEvents(displayId, (event: GameEvent<StatusScanResponse>) => {
     if (event.type === 'status.viewed') present(event.data);
@@ -18,7 +20,7 @@ export function StatusDisplayView({ nodeId }: { nodeId?: string } = {}) {
 
   return (
     <div className="status-root">
-      <StatusScreen phase={phase} status={status} />
+      <StatusScreen phase={phase} status={status} guide={guide} />
     </div>
   );
 }

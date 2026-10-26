@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNfcScanner } from '../../hooks/useNfcScanner.js';
+import { useLevelGuide } from '../../hooks/useLevelGuide.js';
 import { useQrScanner } from '../../hooks/useQrScanner.js';
 import type { StatusScanResponse } from '../../types/progression.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
@@ -13,6 +14,7 @@ export function StatusTerminalView() {
   const displayId = displayIdMatch ? displayIdMatch[1] : 'status-01';
 
   const { phase, status, present } = useStatusPresenter();
+  const guide = useLevelGuide();
   const [notice, setNotice] = useState<string | null>(null);
   const [showDevCards, setShowDevCards] = useState(false);
 
@@ -67,7 +69,7 @@ export function StatusTerminalView() {
     <div className="status-root">
       {notice && <div className="status-notice">{notice}</div>}
 
-      <StatusScreen phase={phase} status={status} />
+      <StatusScreen phase={phase} status={status} guide={guide} />
 
       <footer className="status-footer">
         {!cameraActive && (

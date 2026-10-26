@@ -10,13 +10,14 @@ import { InventoryService } from '../inventory/inventory.service.js';
 import { requireDatabase } from '../prisma/database-errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  LEVEL_MERIT_THRESHOLDS,
   type LevelUp,
   allSkills,
   levelForMerit,
   levelProgress,
   skillsUnlockedBetween,
 } from './levels.js';
-import type { StatusScanDto, StatusScanResult } from './progression.types.js';
+import type { LevelGuide, StatusScanDto, StatusScanResult } from './progression.types.js';
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
@@ -70,6 +71,14 @@ export class ProgressionService {
       source,
     });
     this.logger.log(`${player.name} leveled up ${levelUp.from} -> ${levelUp.to}`);
+  }
+
+  // Level thresholds and skill unlocks for the idle status and boss screens
+  levelGuide(): LevelGuide {
+    return {
+      levels: LEVEL_MERIT_THRESHOLDS.map((merit, index) => ({ level: index + 1, merit })),
+      skills: allSkills(),
+    };
   }
 
   async scanStatus(dto: StatusScanDto): Promise<StatusScanResult> {

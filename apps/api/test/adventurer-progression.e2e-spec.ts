@@ -61,6 +61,19 @@ describe('Adventurer Progression (e2e)', () => {
     await app.close();
   });
 
+  it('publishes the level and skill guide for idle screens', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/status/levels').expect(200);
+    expect(res.body.levels).toEqual([
+      { level: 1, merit: 0 },
+      { level: 2, merit: 20 },
+      { level: 3, merit: 50 },
+      { level: 4, merit: 100 },
+      { level: 5, merit: 160 },
+    ]);
+    const unlockLevels = res.body.skills.map((skill: { requiredLevel: number }) => skill.requiredLevel);
+    expect(unlockLevels).toEqual([1, 1, 2, 3, 4, 5]);
+  });
+
   it('AC5: shows level, progress and learned / locked skills', async () => {
     const res = await scanStatus('cred-demo-002').expect(200); // Leon, merit 50
     expect(res.body.level).toMatchObject({ current: 3, nextLevelMerit: 100, meritToNext: 50 });

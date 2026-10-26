@@ -9,6 +9,11 @@ export interface SkillSummary {
   requiredLevel: number;
 }
 
+export interface LevelGuide {
+  levels: { level: number; merit: number }[];
+  skills: SkillSummary[];
+}
+
 export interface StatusSkill extends SkillSummary {
   unlocked: boolean;
   isNew: boolean;

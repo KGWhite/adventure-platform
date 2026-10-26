@@ -55,6 +55,7 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
   - **工作人員總控台 `/staff`**：`STAFF` 帳號登入後，以手機切換扮演公會、商店、Boss 與狀態查詢四個崗位，各崗位沿用既有操作畫面並內建測試卡，同時作為統一測試入口。
   - **跟隨模式大螢幕 `/display`**：伺服器記錄目前崗位（`GET`／`PUT /api/v1/stage`），切換時推送 `stage.changed`，大螢幕同步切到該崗位畫面；重新整理或斷線重連後以伺服器狀態為準，未選崗位時顯示「冒險者世界」待機畫面。
   - **新增大螢幕**：公會 `/display/guild-01`（委託告示板；刷卡後顯示冒險者狀態、裝備與委託進度；接任務／完成委託／升級演出）與狀態查詢 `/display/status-01`（等級與技能卡牆，資料來自 `status.viewed`）。
+  - **大螢幕待機時也顯示完整資訊**：冒險者先看大螢幕再決定，所以待機畫面不再只是等待：商店顯示完整商品一覽（價格、數值、階級需求），公會顯示委託告示板，Boss 關顯示 Boss 數值與行動卡技能組合表，狀態查詢顯示各等級的功績門檻與解鎖技能（`GET /api/v1/status/levels`）。
   - **大螢幕與手機同步**：冒險者可能只看大螢幕，商店大螢幕刷卡後顯示金幣與完整商品陳列（含鎖定原因），店員點選商品時同步放大；公會大螢幕顯示與櫃台手機相同的狀態、裝備與委託；按「下一位」或「換卡」時大螢幕回到待機（`shop.scanned`、`shop.item_previewed`、`guild.scanned`、`station.cleared`）。
   - **相機刷卡**：各崗位統一使用 `useQrScanner`，優先用瀏覽器內建 `BarcodeDetector`（Android Chrome），不支援時（iPhone Safari、桌機）改用 jsQR 解碼；切換崗位會釋放前一個崗位的相機與 NFC。
   - **NFC 刷卡（Android Chrome）**：公會、商店、Boss 身分辨識與狀態崗位都可用 Web NFC 讀冒險者卡（卡片需寫入 `adventure://player/<憑證>` 的 NDEF 文字或網址記錄），讀到一張卡後自動停止感應；Boss 戰鬥中的行動卡也可用 NFC。iPhone 瀏覽器不支援 Web NFC，只能刷 QR。
@@ -160,16 +161,16 @@ Adventure Platform (`adventure-platform`) 是一個**實體 RPG 遊戲平台／�
 | `/user/quests` | `USER` | 公會委託告示欄（唯讀）：讀取 `GET /api/v1/quests` 顯示任務與金幣／功績報酬，並提示前往 `/guild` 掃卡接取與領獎 |
 | `/user/rewards` | `USER` | 公會獎勵兌換所：功績兌換獎勵（Coming soon 整備中） |
 | `/admin` | `ADMIN` | 公會管理控制台：總覽數據卡片、冒險者名冊、階級門檻清單、憑證管理，未開放功能清楚標註 Coming soon |
-| `/status` | 公開 / 現場 | **冒險者狀態終端 (Status Terminal)**：給小朋友自助刷 ID 卡的平板／大螢幕畫面，顯示等級徽章、升級進度、技能卡牆（已學會／未解鎖），升級後播放 LEVEL UP 演出；20 秒無操作回到待機 |
+| `/status` | 公開 / 現場 | **冒險者狀態終端 (Status Terminal)**：給小朋友自助刷 ID 卡的平板／大螢幕畫面，待機時顯示各等級解鎖的技能，顯示等級徽章、升級進度、技能卡牆（已學會／未解鎖），升級後播放 LEVEL UP 演出；20 秒無操作回到待機 |
 | `/staff` | `STAFF`、`ADMIN` | **工作人員總控台 (Staff Console)**：一支手機扮演所有崗位，上方崗位切換列（公會、商店、Boss、狀態），切換時大螢幕 `/display` 同步切換；各崗位保留畫面狀態（進行中的 Boss 戰不中斷），內建測試卡，兼作統一測試入口 |
 | `/guild` | `STAFF`、`ADMIN` | **公會實體終端機 (Guild Terminal)**：平板/Kiosk 終端，QR 或 NFC 掃卡、檢視冒險者狀態、接取委託、任務完成領獎結算、裝備與卸下裝備 |
 | `/actor/boss` | `STAFF`、`ADMIN` | **世界角色終端 (World Actor)**：Boss 操偶師專用，手機單手操作，相機或 NFC 掃卡辨識、發起戰鬥；可切換按鈕攻擊或行動卡攻擊（相機連續掃描、Web NFC、手動卡片） |
 | `/actor/shop/:shopId` | `STAFF`、`ADMIN` | **商店店主終端 (World Actor)**：店主手機以 QR 或 NFC 掃卡（預設 `shop-01`），顯示可購清單與鎖定原因、確認購買並可立即裝備 |
 | `/display` | 公開 / 現場 | **跟隨模式大螢幕 (Follow Display)**：依 `/staff` 目前崗位切換為公會、商店、Boss 或狀態查詢大畫面；未選崗位時顯示「冒險者世界」待機畫面 |
 | `/display/guild-*` | 公開 / 現場 | **公會呈現終端 (Display Node)**：如 `/display/guild-01`，閒置顯示委託告示板；刷卡後同步櫃台手機的冒險者狀態、裝備與委託（可接取、進行中進度、可領獎）；接任務、完成委託與升級演出；換卡時回到告示板 |
-| `/display/status-*` | 公開 / 現場 | **狀態查詢呈現終端 (Display Node)**：如 `/display/status-01`，顯示該節點刷卡結果的等級、技能卡牆與 LEVEL UP 演出 |
-| `/display/shop-*` | 公開 / 現場 | **商店呈現終端 (Display Node)**：如 `/display/shop-01`，閒置輪播商品；刷卡後顯示金幣與完整商品陳列（含鎖定原因），店員點選商品時同步放大；購得裝備動效與裝備變更提示；下一位時回到輪播 |
-| `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件；上列以外的路徑皆渲染 Boss Display。大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
+| `/display/status-*` | 公開 / 現場 | **狀態查詢呈現終端 (Display Node)**：如 `/display/status-01`，閒置時顯示各等級功績門檻與解鎖技能，刷卡後顯示該節點刷卡結果的等級、技能卡牆與 LEVEL UP 演出 |
+| `/display/shop-*` | 公開 / 現場 | **商店呈現終端 (Display Node)**：如 `/display/shop-01`，閒置時顯示完整商品一覽（價格、數值、階級需求），讓冒險者先挑選；刷卡後顯示金幣與該冒險者的商品陳列（含鎖定原因），店員點選商品時同步放大；購得裝備動效與裝備變更提示；下一位時回到商品一覽 |
+| `/display/:displayId` | 公開 / 現場 | **世界呈現終端 (Display Node)**：以路徑中的 `displayId`（預設情境為 `boss-01`）訂閱即時事件；上列以外的路徑皆渲染 Boss Display。閒置時顯示 Boss 數值與行動卡技能組合表；大螢幕沉浸式 RPG HUD，WebSocket 即時血條動畫、受擊飄字、勝利演出 |
 
 ### 前端 UI 架構基礎 (MUI Shared Design Foundation)
 
@@ -329,6 +330,7 @@ adventure-platform/
 │       │   │   └── AuthContext.tsx      # 全域身分狀態與 Token 管理
 │       │   ├── hooks/
 │       │   │   ├── useGameEvents.ts     # WebSocket / SSE 即時事件訂閱
+│       │   │   ├── useLevelGuide.ts     # 等級門檻與技能解鎖表 (狀態查詢與 Boss 待機畫面)
 │       │   │   ├── useNfcScanner.ts     # Web NFC 冒險者卡與行動卡讀取 (Android Chrome)
 │       │   │   └── useQrScanner.ts      # 相機 QR 掃描 (所有刷卡終端；BarcodeDetector 優先、jsQR 備援；支援連續掃描)
 │       │   ├── layouts/                 # UserLayout / AdminLayout
@@ -343,6 +345,7 @@ adventure-platform/
 │       │   │   ├── itemIcons.ts         # 物品圖示與數值標籤
 │       │   │   ├── scanFeedback.ts      # 刷卡即時回饋 (震動、音效、閃光)
 │       │   │   ├── shopOffers.ts        # 商品鎖定標籤與購買後重新判定 (店主手機與商店大螢幕共用)
+│       │   │   ├── skillCards.ts        # 技能卡組合圖示 (狀態畫面與 Boss 待機畫面共用)
 │       │   │   └── scanPayload.ts       # 身分卡／行動卡 payload 解析
 │       │   ├── App.tsx                  # 應用程式進入點與路由分發
 │       │   ├── App.css
@@ -495,6 +498,7 @@ Host Network (Debian 13)
 | **Bosses API** | [https://localhost/api/v1/bosses](https://localhost/api/v1/bosses) | 查詢世界 Boss 列表與數值 |
 | **Battles API** | `POST https://localhost/api/v1/battles` | 發起 Boss 戰鬥與攻擊結算 (`/attack`)；行動卡刷入 `POST /battles/:id/cards` |
 | **Action Cards API** | [https://localhost/api/v1/action-cards](https://localhost/api/v1/action-cards) | 查詢啟用中的行動卡（手動模式與列印 QR 使用） |
+| **Level Guide API** | [https://localhost/api/v1/status/levels](https://localhost/api/v1/status/levels) | 各等級功績門檻與技能解鎖等級（公開；供狀態查詢與 Boss 待機畫面） |
 | **Status Scan API** | `POST https://localhost/api/v1/status/scan` | `/status` 終端與狀態查詢崗位刷卡：等級進度、已學會與未解鎖技能、NEW 標記（公開；同時推送 `status.viewed`） |
 | **Stage API** | [https://localhost/api/v1/stage](https://localhost/api/v1/stage) | 查詢工作人員目前崗位（公開）；`PUT /stage` 切換崗位並推送 `stage.changed`、`POST /stage/clear` 讓崗位大螢幕回到待機（僅限 STAFF、ADMIN） |
 | **Events WebSocket**| `wss://localhost/ws` | 即時通訊雙向閘道（`player.*`, `battle.*`, `quest.*`, `shop.*`, `equipment.*`, `card.*`, `skill.*`, `adventurer.level_up`, `stage.changed`, `status.viewed`, `guild.scanned`, `station.cleared`） |
