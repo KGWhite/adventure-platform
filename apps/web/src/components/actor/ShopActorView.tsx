@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNfcScanner } from '../../hooks/useNfcScanner.js';
 import { useQrScanner } from '../../hooks/useQrScanner.js';
 import type {
   Equipment,
@@ -9,6 +10,7 @@ import type {
 } from '../../types/shop.js';
 import { SLOT_LABELS, itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
 import { apiFetch } from '../../utils/apiFetch.js';
+import { SHOP_LOCK_LABELS, relockOffers } from '../../utils/shopOffers.js';
 import { playScanFeedback } from '../../utils/scanFeedback.js';
 import { WRONG_CARD_FOR_IDENTITY, parseScanPayload } from '../../utils/scanPayload.js';
 import './BossActorView.css';
@@ -22,12 +24,6 @@ const DEMO_CARDS = [
   { name: 'Rookie', cred: 'ADV-DEV-001-QR' },
 ];
 
-const LOCK_LABELS: Record<NonNullable<ShopOffer['lockedReason']>, string> = {
-  ALREADY_OWNED: '已擁有',
-  RANK_REQUIRED: '階級不足',
-  INSUFFICIENT_GOLD: '金幣不足',
-};
-
 function newRequestId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -35,34 +31,21 @@ function newRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function relock(offers: ShopOffer[], gold: number, ownedItemId: string): ShopOffer[] {
-  return offers.map((offer) => {
-    if (offer.itemId === ownedItemId || offer.lockedReason === 'ALREADY_OWNED') {
-      return { ...offer, purchasable: false, lockedReason: 'ALREADY_OWNED' };
-    }
-    if (offer.lockedReason === 'RANK_REQUIRED') return offer;
-    const affordable = gold >= offer.price;
-    return {
-      ...offer,
-      purchasable: affordable,
-      lockedReason: affordable ? null : 'INSUFFICIENT_GOLD',
-    };
-  });
-}
-
 interface ShopActorViewProps {
   // Shop to operate when embedded in the /staff console; defaults to the URL
   nodeId?: string;
   embedded?: boolean;
+  // False while another /staff station is shown: the camera is released
+  active?: boolean;
 }
 
-export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps = {}) {
+export function ShopActorView({ nodeId, embedded = false, active = true }: ShopActorViewProps = {}) {
   const shopIdMatch = window.location.pathname.match(/^\/actor\/shop\/([^/]+)/);
   const shopId = nodeId ?? (shopIdMatch ? shopIdMatch[1] : 'shop-01');
 
   const [shopName, setShopName] = useState<string>('Adventurer Shop');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
-  const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
+  const [scannerMode, setScannerMode] = useState<'manual' | 'camera' | 'nfc'>('manual');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -85,8 +68,23 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
       .catch(() => {});
   }, [shopId]);
 
+  // Mirror the shopkeeper's confirmation step on the shop display
+  const previewOnDisplay = (itemId: string | null) => {
+    apiFetch(`/api/v1/shops/${shopId}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, displayId: shopId }),
+    }).catch(() => {});
+  };
+
   const resetForNext = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    // Send the shop display back to its idle showcase
+    apiFetch('/api/v1/stage/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeId: shopId }),
+    }).catch(() => {});
     setCredential(null);
     setPlayer(null);
     setEquipment(null);
@@ -144,7 +142,7 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
     }
   };
 
-  const { videoRef, cameraActive, cameraError, startCamera, stopCamera } = useQrScanner((raw) => {
+  const handleIdentityPayload = (raw: string) => {
     const payload = parseScanPayload(raw);
     if (payload.kind === 'card') {
       setErrorMsg(WRONG_CARD_FOR_IDENTITY);
@@ -152,12 +150,28 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
     }
     setCredentialInput(payload.value);
     scanCard(payload.value);
-  });
+  };
+
+  const { videoRef, cameraActive, cameraError, startCamera, stopCamera } = useQrScanner(handleIdentityPayload);
+  const { nfcSupported, nfcActive, nfcError, startNfc, stopNfc } = useNfcScanner(handleIdentityPayload, 3000);
+
+  useEffect(() => {
+    if (!active) {
+      stopCamera();
+      stopNfc();
+    }
+  }, [active, stopCamera, stopNfc]);
+
+  // One identity card per customer: stop NFC once an adventurer is served
+  useEffect(() => {
+    if (player) stopNfc();
+  }, [player, stopNfc]);
 
   const openConfirm = (offer: ShopOffer) => {
     if (!offer.purchasable) return;
     requestIdRef.current = newRequestId();
     setSelected(offer);
+    previewOnDisplay(offer.itemId);
     setEquipNow(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -186,7 +200,7 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
       const result = data as PurchaseResponse;
       setPlayer(result.player);
       setEquipment(result.equipment);
-      setOffers((prev) => relock(prev, result.player.gold, result.item.id));
+      setOffers((prev) => relockOffers(prev, result.player.gold, result.item.id));
       setSuccessMsg(
         `✅ ${result.item.name} 購買成功${result.equipped ? '並已裝備' : ''}！剩餘 ${result.player.gold} Gold`,
       );
@@ -238,6 +252,7 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
                   onClick={() => {
                     setScannerMode('manual');
                     stopCamera();
+                    stopNfc();
                   }}
                 >
                   ⌨️ Manual
@@ -247,13 +262,40 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
                   className={`tab-pill ${scannerMode === 'camera' ? 'active' : ''}`}
                   onClick={() => {
                     setScannerMode('camera');
+                    stopNfc();
                     startCamera();
                   }}
                 >
                   📷 Camera
                 </button>
+                {nfcSupported && (
+                  <button
+                    type="button"
+                    className={`tab-pill ${scannerMode === 'nfc' ? 'active' : ''}`}
+                    onClick={() => {
+                      setScannerMode('nfc');
+                      stopCamera();
+                      startNfc();
+                    }}
+                  >
+                    📶 NFC
+                  </button>
+                )}
               </div>
             </div>
+
+            {scannerMode === 'nfc' && (
+              <div className="nfc-identity-box">
+                {nfcActive ? (
+                  <p className="nfc-identity-hint">📶 請將冒險者卡靠近手機背面⋯</p>
+                ) : (
+                  <button type="button" onClick={startNfc} className="actor-btn actor-btn-sm">
+                    開始 NFC 感應
+                  </button>
+                )}
+                {nfcError && <p className="card-reader-error">{nfcError}</p>}
+              </div>
+            )}
 
             {scannerMode === 'camera' && (
               <div className="camera-viewfinder-box">
@@ -382,7 +424,7 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
                         <span className={`shop-lock-badge lock-${offer.lockedReason.toLowerCase()}`}>
                           {offer.lockedReason === 'RANK_REQUIRED' && offer.requiredRank
                             ? `需要 ${offer.requiredRank.name}`
-                            : LOCK_LABELS[offer.lockedReason]}
+                            : SHOP_LOCK_LABELS[offer.lockedReason]}
                         </span>
                       )}
                     </span>
@@ -416,7 +458,10 @@ export function ShopActorView({ nodeId, embedded = false }: ShopActorViewProps =
                   <button
                     type="button"
                     className="actor-btn actor-btn-sm"
-                    onClick={() => setSelected(null)}
+                    onClick={() => {
+                      setSelected(null);
+                      previewOnDisplay(null);
+                    }}
                     disabled={isLoading}
                   >
                     取消

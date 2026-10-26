@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNfcScanner } from '../../hooks/useNfcScanner.js';
 import { useQrScanner } from '../../hooks/useQrScanner.js';
 import type { StatusScanResponse } from '../../types/progression.js';
@@ -8,7 +8,7 @@ import { STATUS_DEMO_CARDS } from '../status/statusPresenter.js';
 
 // Status station on the staff phone: scan a card and show a compact summary;
 // the big screen shows the full status page through `status.viewed`.
-export function StatusStationControl({ nodeId }: { nodeId: string }) {
+export function StatusStationControl({ nodeId, active }: { nodeId: string; active: boolean }) {
   const [status, setStatus] = useState<StatusScanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +45,15 @@ export function StatusStationControl({ nodeId }: { nodeId: string }) {
     continuous: true,
     dedupeMs: 3000,
   });
-  const { nfcSupported, nfcActive, startNfc } = useNfcScanner(handlePayload, 3000);
+  const { nfcSupported, nfcActive, startNfc, stopNfc } = useNfcScanner(handlePayload, 3000);
+
+  // Release the camera and NFC reader while another station is shown
+  useEffect(() => {
+    if (!active) {
+      stopCamera();
+      stopNfc();
+    }
+  }, [active, stopCamera, stopNfc]);
 
   const newSkills = status?.skills.filter((skill) => skill.isNew) ?? [];
 

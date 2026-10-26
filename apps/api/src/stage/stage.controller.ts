@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Put } from '@nestjs/common';
 import { StaffOnly } from '../auth/decorators/staff-only.decorator.js';
 import { StageService } from './stage.service.js';
-import { SetStageDto } from './stage.types.js';
+import { ClearStationDto, SetStageDto } from './stage.types.js';
 
 @Controller('stage')
 export class StageController {
@@ -16,5 +16,12 @@ export class StageController {
   @StaffOnly()
   setStage(@Body() dto: SetStageDto) {
     return this.stageService.setStage(dto.nodeId);
+  }
+
+  @Post('clear')
+  @StaffOnly()
+  @HttpCode(204)
+  clearStation(@Body() dto: ClearStationDto) {
+    this.stageService.clearStation(dto.nodeId);
   }
 }

@@ -4,10 +4,12 @@ import { StageService } from './stage.service.js';
 describe('StageService', () => {
   let service: StageService;
   let emitStageChanged: ReturnType<typeof vi.fn>;
+  let emitStationCleared: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     emitStageChanged = vi.fn();
-    service = new StageService({ emitStageChanged } as unknown as EventsService);
+    emitStationCleared = vi.fn();
+    service = new StageService({ emitStageChanged, emitStationCleared } as unknown as EventsService);
   });
 
   it('starts with no station selected', () => {
@@ -41,5 +43,14 @@ describe('StageService', () => {
 
     expect(service.getStage().nodeId).toBeNull();
     expect(emitStageChanged).toHaveBeenLastCalledWith({ nodeId: null, previousNodeId: 'status-01' });
+  });
+
+  it('clears a station without changing the current one', () => {
+    service.setStage('shop-01');
+    service.clearStation('shop-01');
+
+    expect(emitStationCleared).toHaveBeenCalledWith({ nodeId: 'shop-01' });
+    expect(service.getStage().nodeId).toBe('shop-01');
+    expect(emitStageChanged).toHaveBeenCalledTimes(1);
   });
 });

@@ -280,7 +280,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 - Security is strictly enforced on the API layer via `RolesGuard` and `@Roles(...)`.
 - `USER` accounts cannot access protected `ADMIN` endpoints (e.g., `GET /api/v1/admin/summary` returns `403 Forbidden`).
 - Administrative write endpoints (`POST /api/v1/users`, `POST /api/v1/adventurers`, `POST /api/v1/credentials`) are also `ADMIN`-only. `POST /api/v1/users` never accepts a client-supplied `role`; new accounts are always `USER`.
-- World node write endpoints (battles, shops, guild scan, quest accept / claim, equipment, stage) accept `STAFF` or `ADMIN` only, via the `@StaffOnly()` decorator; `USER` gets `403`, a missing token `401`.
+- World node write endpoints (battles, shops, guild scan, quest accept / claim, equipment, stage, shop preview, station clear) accept `STAFF` or `ADMIN` only, via the `@StaffOnly()` decorator; `USER` gets `403`, a missing token `401`.
 - Frontend route hiding provides user experience separation, but is backed by server-side authorization.
 
 ---
@@ -311,9 +311,10 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/player-quests` | **STAFF / ADMIN** | Accept a quest by `credentialValue` or `playerId` |
 | `GET` | `/api/v1/player-quests/player/:playerId` | Public (terminal) | Get the player's active quest |
 | `POST` | `/api/v1/player-quests/:id/claim` | **STAFF / ADMIN** | Claim a completed quest's reward |
-| `POST` | `/api/v1/guild/scan` | **STAFF / ADMIN** | Guild terminal scan: player, active quest, available quests, inventory |
+| `POST` | `/api/v1/guild/scan` | **STAFF / ADMIN** | Guild terminal scan: player, active quest, available quests, inventory; publishes `guild.scanned` |
 | `GET` | `/api/v1/shops/:shopId` | Public | Shop catalog (items, price, required rank) |
-| `POST` | `/api/v1/shops/:shopId/scan` | **STAFF / ADMIN** | Shop scan: player, equipment, offers with `lockedReason` |
+| `POST` | `/api/v1/shops/:shopId/scan` | **STAFF / ADMIN** | Shop scan: player, equipment, offers with `lockedReason`; publishes `shop.scanned` |
+| `POST` | `/api/v1/shops/:shopId/preview` | **STAFF / ADMIN** | Highlight the item being confirmed on the shop display (`itemId` or `null`); publishes `shop.item_previewed` |
 | `POST` | `/api/v1/shops/:shopId/purchases` | **STAFF / ADMIN** | Buy an item by `credentialValue` + `requestId`, optionally equipping it |
 | `GET` | `/api/v1/players/:playerId/inventory` | Public | Inventory, equipment and total attack / defense |
 | `POST` | `/api/v1/players/:playerId/equipment` | **STAFF / ADMIN** | Equip a `playerItemId`, replacing the same slot |
@@ -328,6 +329,7 @@ The platform implements a lightweight token-based authentication mechanism desig
 | `POST` | `/api/v1/status/scan` | Public (terminal) | `/status` kiosk and status station scan: level progress, learned / locked skills, NEW flags; marks the level as seen and publishes `status.viewed` |
 | `GET` | `/api/v1/stage` | Public | Station the staff console is operating (`nodeId` or `null`) |
 | `PUT` | `/api/v1/stage` | **STAFF / ADMIN** | Switch station (`guild-01`, `shop-01`, `boss-01`, `status-01` or `null`); broadcasts `stage.changed` |
+| `POST` | `/api/v1/stage/clear` | **STAFF / ADMIN** | Return one station's big screen to idle (`station.cleared`); does not change the current station |
 | `GET` | `/api/v1/battles/:id` | Public (terminal) | Get battle state |
 | `GET` | `/api/v1/events/stream` | Public | SSE event stream (WebSocket at `/ws`) |
 | `GET` | `/api/v1/events/status` | Public | Realtime gateway status |

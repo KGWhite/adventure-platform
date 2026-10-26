@@ -19,8 +19,10 @@ import type {
   RewardReceivedData,
   ShopPurchaseCompletedData,
   SkillCastData,
+  ShopItemPreviewedData,
   SkillFizzledData,
   StageChangedData,
+  StationClearedData,
 } from './events.types.js';
 import { PureWebSocketServer } from './websocket.server.js';
 
@@ -157,5 +159,23 @@ export class EventsService {
 
   emitStatusViewed<T>(displayId: string, data: T) {
     return this.emit('status.viewed', displayId, data);
+  }
+
+  // Scan results mirrored to big screens, so adventurers see what the
+  // staff phone shows (shop offers, guild quests and equipment)
+  emitShopScanned<T>(displayId: string, data: T) {
+    return this.emit('shop.scanned', displayId, data);
+  }
+
+  emitShopItemPreviewed(displayId: string, data: ShopItemPreviewedData) {
+    return this.emit('shop.item_previewed', displayId, data);
+  }
+
+  emitGuildScanned<T>(displayId: string, data: T) {
+    return this.emit('guild.scanned', displayId, data);
+  }
+
+  emitStationCleared(data: StationClearedData) {
+    return this.emit('station.cleared', data.nodeId, data);
   }
 }

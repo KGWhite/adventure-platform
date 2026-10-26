@@ -132,7 +132,11 @@ export type GameEventType =
   | 'skill.fizzled'
   | 'adventurer.level_up'
   | 'stage.changed'
-  | 'status.viewed';
+  | 'status.viewed'
+  | 'shop.scanned'
+  | 'shop.item_previewed'
+  | 'guild.scanned'
+  | 'station.cleared';
 
 export interface GameEvent<T = any> {
   type: GameEventType;

@@ -8,20 +8,20 @@ import { GuildCounter } from '../guild/GuildCounter.js';
 import { StatusStationControl } from './StatusStationControl.js';
 import './StaffConsoleView.css';
 
-function StationControl({ nodeId }: { nodeId: StationNodeId }) {
+function StationControl({ nodeId, active }: { nodeId: StationNodeId; active: boolean }) {
   switch (nodeId) {
     case 'guild-01':
       return (
         <div className="guild-terminal-container staff-embedded-guild">
-          <GuildCounter />
+          <GuildCounter active={active} />
         </div>
       );
     case 'shop-01':
-      return <ShopActorView nodeId={nodeId} embedded />;
+      return <ShopActorView nodeId={nodeId} embedded active={active} />;
     case 'boss-01':
-      return <BossActorView nodeId={nodeId} embedded />;
+      return <BossActorView nodeId={nodeId} embedded active={active} />;
     case 'status-01':
-      return <StatusStationControl nodeId={nodeId} />;
+      return <StatusStationControl nodeId={nodeId} active={active} />;
   }
 }
 
@@ -107,7 +107,7 @@ export function StaffConsoleView() {
 
       {visited.map((nodeId) => (
         <div key={nodeId} className="staff-station-view" hidden={nodeId !== current}>
-          <StationControl nodeId={nodeId} />
+          <StationControl nodeId={nodeId} active={nodeId === current} />
         </div>
       ))}
     </div>

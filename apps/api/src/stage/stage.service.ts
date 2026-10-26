@@ -26,4 +26,10 @@ export class StageService {
     this.eventsService.emitStageChanged({ nodeId, previousNodeId });
     return this.state;
   }
+
+  // The staff member finished with an adventurer ("下一位" / "換卡"); the
+  // station's big screen goes back to its idle view
+  clearStation(nodeId: StationNodeId): void {
+    this.eventsService.emitStationCleared({ nodeId });
+  }
 }

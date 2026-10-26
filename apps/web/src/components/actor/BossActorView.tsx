@@ -49,13 +49,15 @@ interface BossActorViewProps {
   // Fixed boss post when embedded in the /staff console
   nodeId?: string;
   embedded?: boolean;
+  // False while another /staff station is shown: cameras and NFC are released
+  active?: boolean;
 }
 
-export function BossActorView({ nodeId, embedded = false }: BossActorViewProps = {}) {
+export function BossActorView({ nodeId, embedded = false, active = true }: BossActorViewProps = {}) {
   const [bosses, setBosses] = useState<BossOption[]>(DEFAULT_BOSSES);
   const [selectedBossId, setSelectedBossId] = useState<string>(nodeId ?? 'boss-01');
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
-  const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
+  const [scannerMode, setScannerMode] = useState<'manual' | 'camera' | 'nfc'>('manual');
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -148,13 +150,7 @@ export function BossActorView({ nodeId, embedded = false }: BossActorViewProps =
     }
   };
 
-  const {
-    videoRef: identityVideoRef,
-    cameraActive: identityCameraActive,
-    cameraError: identityCameraError,
-    startCamera: startIdentityCamera,
-    stopCamera: stopIdentityCamera,
-  } = useQrScanner((raw) => {
+  const handleIdentityPayload = (raw: string) => {
     const payload = parseScanPayload(raw);
     if (payload.kind === 'card') {
       setErrorMsg(WRONG_CARD_FOR_IDENTITY);
@@ -162,7 +158,28 @@ export function BossActorView({ nodeId, embedded = false }: BossActorViewProps =
     }
     setCredentialInput(payload.value);
     validateAndScan(payload.value);
-  });
+  };
+
+  const {
+    videoRef: identityVideoRef,
+    cameraActive: identityCameraActive,
+    cameraError: identityCameraError,
+    startCamera: startIdentityCamera,
+    stopCamera: stopIdentityCamera,
+  } = useQrScanner(handleIdentityPayload);
+  // Identity cards by NFC before the battle; action cards use their own reader
+  const {
+    nfcSupported: identityNfcSupported,
+    nfcActive: identityNfcActive,
+    nfcError: identityNfcError,
+    startNfc: startIdentityNfc,
+    stopNfc: stopIdentityNfc,
+  } = useNfcScanner(handleIdentityPayload, 3000);
+
+  // One challenger per battle: stop identity NFC once a player is recognized
+  useEffect(() => {
+    if (scannedPlayer) stopIdentityNfc();
+  }, [scannedPlayer, stopIdentityNfc]);
 
   const applyBattle = (battle: BattleState) => {
     setActiveBattle(battle);
@@ -238,6 +255,16 @@ export function BossActorView({ nodeId, embedded = false }: BossActorViewProps =
     stopCardCamera();
     stopNfc();
   }
+
+  // Release cameras and NFC while another /staff station is shown
+  useEffect(() => {
+    if (!active) {
+      stopIdentityCamera();
+      stopIdentityNfc();
+      stopCardCamera();
+      stopNfc();
+    }
+  }, [active, stopIdentityCamera, stopIdentityNfc, stopCardCamera, stopNfc]);
 
   // Tick the combo countdown while an element card is charged
   useEffect(() => {
@@ -414,6 +441,7 @@ export function BossActorView({ nodeId, embedded = false }: BossActorViewProps =
                   onClick={() => {
                     setScannerMode('manual');
                     stopIdentityCamera();
+                    stopIdentityNfc();
                   }}
                 >
                   ⌨️ Manual Input
@@ -423,13 +451,40 @@ export function BossActorView({ nodeId, embedded = false }: BossActorViewProps =
                   className={`tab-pill ${scannerMode === 'camera' ? 'active' : ''}`}
                   onClick={() => {
                     setScannerMode('camera');
+                    stopIdentityNfc();
                     startIdentityCamera();
                   }}
                 >
                   📷 Camera Scan
                 </button>
+                {identityNfcSupported && (
+                  <button
+                    type="button"
+                    className={`tab-pill ${scannerMode === 'nfc' ? 'active' : ''}`}
+                    onClick={() => {
+                      setScannerMode('nfc');
+                      stopIdentityCamera();
+                      startIdentityNfc();
+                    }}
+                  >
+                    📶 NFC
+                  </button>
+                )}
               </div>
             </div>
+
+            {scannerMode === 'nfc' && (
+              <div className="nfc-identity-box">
+                {identityNfcActive ? (
+                  <p className="nfc-identity-hint">📶 請將冒險者卡靠近手機背面⋯</p>
+                ) : (
+                  <button type="button" onClick={startIdentityNfc} className="actor-btn actor-btn-sm">
+                    開始 NFC 感應
+                  </button>
+                )}
+                {identityNfcError && <p className="card-reader-error">{identityNfcError}</p>}
+              </div>
+            )}
 
             {/* Camera Viewfinder */}
             {scannerMode === 'camera' && (

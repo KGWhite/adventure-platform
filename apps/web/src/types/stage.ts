@@ -18,3 +18,7 @@ export interface StageChangedData {
   nodeId: StationNodeId | null;
   previousNodeId: StationNodeId | null;
 }
+
+export interface StationClearedData {
+  nodeId: string;
+}

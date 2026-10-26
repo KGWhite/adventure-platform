@@ -4,13 +4,17 @@ import type { GameEvent } from '../../types/battle.js';
 import type {
   EquipmentChangedData,
   ShopCatalog,
+  ShopItemPreviewedData,
+  ShopOffer,
   ShopPurchaseCompletedData,
+  ShopScanResponse,
 } from '../../types/shop.js';
 import { sfx } from '../../utils/audioEffects.js';
 import { itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
+import { SHOP_LOCK_LABELS, relockOffers } from '../../utils/shopOffers.js';
 import './ShopDisplayView.css';
 
-type DisplayState = 'IDLE' | 'WELCOME' | 'PURCHASED';
+type DisplayState = 'IDLE' | 'WELCOME' | 'BROWSING' | 'PURCHASED';
 
 const IDLE_AFTER_MS = 60_000;
 const PURCHASE_SHOWCASE_MS = 8_000;
@@ -36,6 +40,10 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const [purchase, setPurchase] = useState<ShopPurchaseCompletedData | null>(null);
   const [goldFrom, setGoldFrom] = useState<number | null>(null);
   const [equipToast, setEquipToast] = useState<EquipmentChangedData | null>(null);
+  // The adventurer's offers as the shopkeeper's phone shows them
+  const [offers, setOffers] = useState<ShopOffer[]>([]);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const offersRef = useRef<ShopOffer[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
 
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,14 +78,25 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
     [],
   );
 
+  const showOffers = (next: ShopOffer[]) => {
+    offersRef.current = next;
+    setOffers(next);
+  };
+
+  const backToIdle = () => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (showcaseTimerRef.current) clearTimeout(showcaseTimerRef.current);
+    setDisplayState('IDLE');
+    setCustomer(null);
+    setPurchase(null);
+    setEquipToast(null);
+    setPreviewId(null);
+    showOffers([]);
+  };
+
   const scheduleIdle = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => {
-      setDisplayState('IDLE');
-      setCustomer(null);
-      setPurchase(null);
-      setEquipToast(null);
-    }, IDLE_AFTER_MS);
+    idleTimerRef.current = setTimeout(backToIdle, IDLE_AFTER_MS);
   };
 
   const handleGameEvent = (event: GameEvent) => {
@@ -93,16 +112,44 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
         break;
       }
 
+      case 'shop.scanned': {
+        const data = event.data as ShopScanResponse;
+        if (showcaseTimerRef.current) clearTimeout(showcaseTimerRef.current);
+        setCustomer({ id: data.player.id, name: data.player.name, gold: data.player.gold });
+        showOffers(data.items);
+        setPreviewId(null);
+        setPurchase(null);
+        setDisplayState('BROWSING');
+        scheduleIdle();
+        break;
+      }
+
+      case 'shop.item_previewed': {
+        setPreviewId((event.data as ShopItemPreviewedData).itemId);
+        scheduleIdle();
+        break;
+      }
+
       case 'shop.purchase_completed': {
         const data = event.data as ShopPurchaseCompletedData;
         setGoldFrom(data.goldAfter + data.price);
         setCustomer({ id: data.playerId, name: data.playerName, gold: data.goldAfter });
+        showOffers(relockOffers(offersRef.current, data.goldAfter, data.item.id));
+        setPreviewId(null);
         setPurchase(data);
         setDisplayState('PURCHASED');
         sfx.playVictory();
         if (showcaseTimerRef.current) clearTimeout(showcaseTimerRef.current);
-        showcaseTimerRef.current = setTimeout(() => setDisplayState('WELCOME'), PURCHASE_SHOWCASE_MS);
+        showcaseTimerRef.current = setTimeout(
+          () => setDisplayState(offersRef.current.length > 0 ? 'BROWSING' : 'WELCOME'),
+          PURCHASE_SHOWCASE_MS,
+        );
         scheduleIdle();
+        break;
+      }
+
+      case 'station.cleared': {
+        backToIdle();
         break;
       }
 
@@ -117,6 +164,7 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
   };
 
   const { connected, transport } = useGameEvents(displayId, handleGameEvent);
+  const preview = offers.find((offer) => offer.itemId === previewId) ?? null;
   const showcaseItem = catalog?.items[showcaseIndex % (catalog?.items.length || 1)];
 
   return (
@@ -163,6 +211,50 @@ export function ShopDisplayView({ nodeId }: { nodeId?: string } = {}) {
             <div className="shop-welcome-title">歡迎光臨，{customer.name}！</div>
             <div className="shop-welcome-gold">🪙 {customer.gold} Gold</div>
             <p className="shop-idle-hint">挑選你喜歡的裝備吧</p>
+          </div>
+        )}
+
+        {displayState === 'BROWSING' && customer && (
+          <div className="shop-browse">
+            <div className="shop-browse-head">
+              <span className="shop-browse-name">歡迎光臨，{customer.name}！</span>
+              <span className="shop-browse-gold">🪙 {customer.gold} Gold</span>
+            </div>
+            <div className={`shop-browse-body ${preview ? 'has-preview' : ''}`}>
+              <div className="shop-browse-grid">
+                {offers.map((offer) => (
+                  <div
+                    key={offer.itemId}
+                    className={`shop-browse-offer ${offer.purchasable ? '' : 'locked'} ${
+                      offer.itemId === previewId ? 'selected' : ''
+                    }`}
+                  >
+                    <span className="shop-browse-icon">{itemIcon(offer.iconKey, offer.type)}</span>
+                    <span className="shop-browse-offer-name">{offer.name}</span>
+                    <span className="shop-browse-stats">{itemStatLabel(offer)}</span>
+                    <span className="shop-browse-price">🪙 {offer.price}</span>
+                    {offer.lockedReason && (
+                      <span className={`shop-browse-lock lock-${offer.lockedReason.toLowerCase()}`}>
+                        {offer.lockedReason === 'RANK_REQUIRED' && offer.requiredRank
+                          ? `需要 ${offer.requiredRank.name}`
+                          : SHOP_LOCK_LABELS[offer.lockedReason]}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {preview && (
+                <aside key={preview.itemId} className="shop-browse-preview">
+                  <div className="shop-browse-preview-title">確認購買中⋯</div>
+                  <div className="shop-browse-preview-icon">{itemIcon(preview.iconKey, preview.type)}</div>
+                  <div className="shop-browse-preview-name">{preview.name}</div>
+                  <div className="shop-browse-stats">{itemStatLabel(preview)}</div>
+                  <div className="shop-browse-preview-math">
+                    🪙 {customer.gold} − {preview.price} = <strong>{customer.gold - preview.price}</strong>
+                  </div>
+                </aside>
+              )}
+            </div>
           </div>
         )}
 

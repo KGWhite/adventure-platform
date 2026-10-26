@@ -171,6 +171,14 @@
   padding: 2.5rem;
 }
 
+.nfc-waiting {
+  margin: 0;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ecc94b;
+}
+
 .camera-error-banner {
   background: rgba(229, 62, 62, 0.2);
   color: #feb2b2;

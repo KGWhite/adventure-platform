@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameEvents } from '../../hooks/useGameEvents.js';
+import { useNfcScanner } from '../../hooks/useNfcScanner.js';
+import { useQrScanner } from '../../hooks/useQrScanner.js';
 import type { GameEvent } from '../../types/battle.js';
 import type { ClaimRewardResponse, GuildScanResponse, PlayerQuest, Quest } from '../../types/quest.js';
 import type { Inventory } from '../../types/shop.js';
@@ -17,12 +19,10 @@ const DEMO_PRESETS = [
 
 // Guild counter: scan an adventurer card, show their status and equipment,
 // accept quests and claim rewards. Used by the /guild kiosk and the /staff
-// console's guild station.
-export function GuildCounter() {
+// console's guild station (inactive while another station is shown).
+export function GuildCounter({ active = true }: { active?: boolean } = {}) {
   const [credentialInput, setCredentialInput] = useState<string>('cred-demo-001');
-  const [scannerMode, setScannerMode] = useState<'manual' | 'camera'>('manual');
-  const [cameraActive, setCameraActive] = useState<boolean>(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannerMode, setScannerMode] = useState<'manual' | 'camera' | 'nfc'>('manual');
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -33,109 +33,6 @@ export function GuildCounter() {
   const [availableQuests, setAvailableQuests] = useState<Quest[]>([]);
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [claimCelebration, setClaimCelebration] = useState<boolean>(false);
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Camera QR Scanner logic
-  const startCamera = async () => {
-    setCameraError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-      });
-      streamRef.current = stream;
-      // The <video> element only mounts once cameraActive is true; the effect
-      // below attaches the stream after it renders.
-      setCameraActive(true);
-      startQrFrameDetection();
-    } catch (err: any) {
-      setCameraError(
-        err.message || '無法開啟相機，請確認瀏覽器相機權限或使用手動測試模式。',
-      );
-      setCameraActive(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-  };
-
-  const startQrFrameDetection = () => {
-    const hasBarcodeDetector = 'BarcodeDetector' in window;
-    let detector: any = null;
-
-    if (hasBarcodeDetector) {
-      try {
-        detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-      } catch {
-        detector = null;
-      }
-    }
-
-    scanIntervalRef.current = setInterval(async () => {
-      if (!videoRef.current || videoRef.current.readyState < 2) return;
-
-      if (detector) {
-        try {
-          const barcodes = await detector.detect(videoRef.current);
-          if (barcodes.length > 0) {
-            handleDetectedCode(barcodes[0].rawValue);
-            return;
-          }
-        } catch {
-          // ignore detector error
-        }
-      }
-
-      if (canvasRef.current && videoRef.current) {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        }
-      }
-    }, 400);
-  };
-
-  const handleDetectedCode = (code: string) => {
-    stopCamera();
-    playScanFeedback();
-    const payload = parseScanPayload(code);
-    if (payload.kind === 'card') {
-      setErrorMsg(WRONG_CARD_FOR_IDENTITY);
-      return;
-    }
-    setCredentialInput(payload.value);
-    scanGuildTerminal(payload.value);
-  };
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!cameraActive || !video || !streamRef.current) return;
-    video.srcObject = streamRef.current;
-    video.play().catch(() => {
-      // autoPlay + muted normally starts playback; ignore interrupted play()
-    });
-  }, [cameraActive]);
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
 
   // Fetch / Scan Guild Terminal
   const scanGuildTerminal = async (credVal?: string) => {
@@ -173,6 +70,32 @@ export function GuildCounter() {
       setIsLoading(false);
     }
   };
+
+  const handleIdentityPayload = (raw: string) => {
+    const payload = parseScanPayload(raw);
+    if (payload.kind === 'card') {
+      setErrorMsg(WRONG_CARD_FOR_IDENTITY);
+      return;
+    }
+    setCredentialInput(payload.value);
+    scanGuildTerminal(payload.value);
+  };
+
+  const { videoRef, cameraActive, cameraError, startCamera, stopCamera } = useQrScanner(handleIdentityPayload);
+  const { nfcSupported, nfcActive, nfcError, startNfc, stopNfc } = useNfcScanner(handleIdentityPayload, 3000);
+
+  // A hidden station in the /staff console must not keep the camera or NFC open
+  useEffect(() => {
+    if (!active) {
+      stopCamera();
+      stopNfc();
+    }
+  }, [active, stopCamera, stopNfc]);
+
+  // One identity card per visit: stop NFC once an adventurer is shown
+  useEffect(() => {
+    if (playerData) stopNfc();
+  }, [playerData, stopNfc]);
 
   // Refresh when this adventurer's quest progresses (e.g. after a boss victory)
   useGameEvents('guild-01', (event: GameEvent) => {
@@ -263,6 +186,12 @@ export function GuildCounter() {
 
   // Reset / Clear
   const handleReset = () => {
+    // Send the guild display back to its quest board
+    apiFetch('/api/v1/stage/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeId: 'guild-01' }),
+    }).catch(() => {});
     setPlayerData(null);
     setActiveQuest(null);
     setInventory(null);
@@ -291,6 +220,7 @@ export function GuildCounter() {
                 className={`tab-btn ${scannerMode === 'camera' ? 'active' : ''}`}
                 onClick={() => {
                   setScannerMode('camera');
+                  stopNfc();
                   startCamera();
                 }}
               >
@@ -302,11 +232,41 @@ export function GuildCounter() {
                 onClick={() => {
                   setScannerMode('manual');
                   stopCamera();
+                  stopNfc();
                 }}
               >
                 ⌨️ 手動／測試卡片輸入
               </button>
+              {nfcSupported && (
+                <button
+                  type="button"
+                  className={`tab-btn ${scannerMode === 'nfc' ? 'active' : ''}`}
+                  onClick={() => {
+                    setScannerMode('nfc');
+                    stopCamera();
+                    startNfc();
+                  }}
+                >
+                  📶 NFC 感應
+                </button>
+              )}
             </div>
+
+            {/* NFC (Android Chrome) */}
+            {scannerMode === 'nfc' && (
+              <div className="camera-box">
+                <div className="camera-prompt">
+                  {nfcActive ? (
+                    <p className="nfc-waiting">📶 請將冒險者卡靠近手機背面⋯</p>
+                  ) : (
+                    <button type="button" className="action-btn gold-btn" onClick={startNfc}>
+                      開始 NFC 感應
+                    </button>
+                  )}
+                </div>
+                {nfcError && <div className="camera-error-banner">{nfcError}</div>}
+              </div>
+            )}
 
             {/* Camera View */}
             {scannerMode === 'camera' && (
@@ -314,7 +274,6 @@ export function GuildCounter() {
                 {cameraActive ? (
                   <div className="video-wrapper">
                     <video ref={videoRef} playsInline muted autoPlay className="camera-video" />
-                    <canvas ref={canvasRef} style={{ display: 'none' }} />
                     <div className="qr-guide-box" />
                   </div>
                 ) : (

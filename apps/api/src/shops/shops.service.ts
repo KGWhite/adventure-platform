@@ -13,6 +13,7 @@ import type { InventoryView } from '../inventory/inventory.types.js';
 import { isUniqueViolation, requireDatabase } from '../prisma/database-errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
+  PreviewItemDto,
   PurchaseDto,
   PurchaseResult,
   RankView,
@@ -109,12 +110,41 @@ export class ShopsService {
         },
       });
 
-      return {
+      const result: ShopScanResult = {
         shop: { id: shop.id, name: shop.name },
         player: toPlayerView(player, inventory),
         equipment: inventory.equipment,
         items,
       };
+      this.eventsService.emitShopScanned(displayId, result);
+      return result;
+    });
+  }
+
+  // Highlights the item the shopkeeper is confirming on the shop display
+  async previewItem(shopId: string, dto: PreviewItemDto): Promise<{ shopId: string; itemId: string | null }> {
+    const displayId = dto.displayId || shopId;
+
+    return requireDatabase(async () => {
+      await this.findShopOrThrow(shopId);
+      if (dto.itemId !== null) {
+        const shopItem = await this.prisma.shopItem.findUnique({
+          where: { shopId_itemId: { shopId, itemId: dto.itemId } },
+          include: { item: true },
+        });
+        if (!shopItem || !shopItem.enabled || !shopItem.item.enabled) {
+          throw shopError(
+            BadRequestException,
+            400,
+            'ITEM_NOT_AVAILABLE',
+            `Item "${dto.itemId}" is not available in this shop`,
+          );
+        }
+      }
+
+      const preview = { shopId, itemId: dto.itemId };
+      this.eventsService.emitShopItemPreviewed(displayId, preview);
+      return preview;
     });
   }
 

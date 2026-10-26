@@ -1,18 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameEvents } from '../../hooks/useGameEvents.js';
-import type { GameEvent, PlayerInfo } from '../../types/battle.js';
+import type { GameEvent } from '../../types/battle.js';
 import type { AdventurerLevelUpData } from '../../types/progression.js';
-import type { Quest, QuestAcceptedData, QuestRewardClaimedData } from '../../types/quest.js';
+import type {
+  GuildScanResponse,
+  PlayerQuest,
+  Quest,
+  QuestAcceptedData,
+  QuestRewardClaimedData,
+} from '../../types/quest.js';
+import type { EquipmentChangedData, EquipmentSlot } from '../../types/shop.js';
 import { sfx } from '../../utils/audioEffects.js';
+import { SLOT_LABELS, itemIcon, itemStatLabel } from '../../utils/itemIcons.js';
 import './GuildDisplayView.css';
 
-type DisplayState = 'IDLE' | 'WELCOME' | 'ACCEPTED' | 'REWARD' | 'LEVEL_UP';
+type DisplayState = 'IDLE' | 'COUNTER' | 'ACCEPTED' | 'REWARD' | 'LEVEL_UP';
 
 const IDLE_AFTER_MS = 60_000;
 const SHOWCASE_MS = 6_000;
+const SLOTS: EquipmentSlot[] = ['WEAPON', 'ARMOR'];
 
-// Guild hall big screen: the quest board while idle, then the adventurer at
-// the counter with quest acceptance, reward and level-up moments.
+interface QuestProgressData {
+  playerQuestId: string;
+  playerId: string;
+  progress: number;
+  targetCount: number;
+}
+
+function questTarget(quest: Quest) {
+  return `擊敗 ${quest.targetId === 'boss-01' ? '黑騎士' : quest.targetId} × ${quest.targetCount}`;
+}
+
+// Guild hall big screen: the quest board while idle; once the counter scans
+// a card it mirrors the counter view (status, equipment, quests) and plays
+// quest acceptance, reward and level-up moments.
 export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
   const displayIdMatch = window.location.pathname.match(/^\/display\/([^/]+)/);
   const displayId = nodeId ?? (displayIdMatch ? displayIdMatch[1] : 'guild-01');
@@ -25,7 +46,13 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
     displayStateRef.current = state;
     setDisplayStateValue(state);
   };
-  const [adventurer, setAdventurer] = useState<PlayerInfo | null>(null);
+  // The counter view as the guild phone shows it
+  const [view, setViewValue] = useState<GuildScanResponse | null>(null);
+  const viewRef = useRef<GuildScanResponse | null>(null);
+  const setView = (next: GuildScanResponse | null) => {
+    viewRef.current = next;
+    setViewValue(next);
+  };
   const [accepted, setAccepted] = useState<QuestAcceptedData | null>(null);
   const [reward, setReward] = useState<QuestRewardClaimedData | null>(null);
   const [levelUp, setLevelUp] = useState<AdventurerLevelUpData | null>(null);
@@ -56,13 +83,18 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
     [],
   );
 
+  const backToIdle = () => {
+    [idleTimerRef, showcaseTimerRef].forEach((ref) => {
+      if (ref.current) clearTimeout(ref.current);
+    });
+    pendingLevelUpRef.current = null;
+    setDisplayState('IDLE');
+    setView(null);
+  };
+
   const scheduleIdle = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => {
-      setDisplayState('IDLE');
-      setAdventurer(null);
-      pendingLevelUpRef.current = null;
-    }, IDLE_AFTER_MS);
+    idleTimerRef.current = setTimeout(backToIdle, IDLE_AFTER_MS);
   };
 
   const showcase = (state: DisplayState) => {
@@ -76,43 +108,86 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
         sfx.playVictory();
         showcase('LEVEL_UP');
       } else {
-        setDisplayState('WELCOME');
+        setDisplayState(viewRef.current ? 'COUNTER' : 'IDLE');
       }
     }, SHOWCASE_MS);
     scheduleIdle();
   };
 
+  // Applies a change to the mirrored counter view of the given adventurer
+  const updateView = (playerId: string, change: (current: GuildScanResponse) => GuildScanResponse) => {
+    const current = viewRef.current;
+    if (current && current.player.id === playerId) setView(change(current));
+  };
+
+  const updateActiveQuest = (data: QuestProgressData, status: PlayerQuest['status']) =>
+    updateView(data.playerId, (current) =>
+      current.activeQuest && current.activeQuest.id === data.playerQuestId
+        ? { ...current, activeQuest: { ...current.activeQuest, progress: data.progress, status } }
+        : current,
+    );
+
   const handleGameEvent = (event: GameEvent) => {
     switch (event.type) {
-      case 'player.scanned': {
-        const player = event.data.player as PlayerInfo;
-        // The guild counter rescans to refresh; only greet a new adventurer
-        if (player.id !== adventurer?.id || displayStateRef.current === 'IDLE') {
+      case 'guild.scanned': {
+        const data = event.data as GuildScanResponse;
+        // The counter rescans to refresh; only greet a new adventurer
+        if (data.player.id !== viewRef.current?.player.id || displayStateRef.current === 'IDLE') {
           if (showcaseTimerRef.current) clearTimeout(showcaseTimerRef.current);
           pendingLevelUpRef.current = null;
-          setDisplayState('WELCOME');
+          setDisplayState('COUNTER');
           sfx.playScan();
         }
-        setAdventurer(player);
+        setView(data);
         scheduleIdle();
         break;
       }
 
       case 'quest.accepted': {
-        setAccepted(event.data as QuestAcceptedData);
+        const data = event.data as QuestAcceptedData;
+        updateView(data.playerId, (current) => ({
+          ...current,
+          activeQuest: {
+            id: data.playerQuestId,
+            playerId: data.playerId,
+            questId: data.questId,
+            quest: current.availableQuests.find((quest) => quest.id === data.questId),
+            progress: 0,
+            targetCount: data.targetCount,
+            status: 'accepted',
+            acceptedAt: event.timestamp,
+            completedAt: null,
+            claimedAt: null,
+          },
+        }));
+        setAccepted(data);
         sfx.playScan();
         showcase('ACCEPTED');
         break;
       }
 
+      case 'quest.progress_updated': {
+        updateActiveQuest(event.data as QuestProgressData, 'accepted');
+        break;
+      }
+
+      case 'quest.completed': {
+        updateActiveQuest(event.data as QuestProgressData, 'completed');
+        break;
+      }
+
       case 'quest.reward_claimed': {
         const data = event.data as QuestRewardClaimedData;
+        updateView(data.playerId, (current) => ({
+          ...current,
+          player: {
+            ...current.player,
+            gold: current.player.gold + data.rewardGold,
+            merit: current.player.merit + data.rewardMerit,
+          },
+          activeQuest: current.activeQuest ? { ...current.activeQuest, status: 'claimed' } : null,
+        }));
         setReward(data);
-        setAdventurer((prev) =>
-          prev && prev.id === data.playerId
-            ? { ...prev, gold: prev.gold + data.rewardGold, merit: prev.merit + data.rewardMerit }
-            : prev,
-        );
         sfx.playVictory();
         showcase('REWARD');
         break;
@@ -120,7 +195,10 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
 
       case 'adventurer.level_up': {
         const data = event.data as AdventurerLevelUpData;
-        setAdventurer((prev) => (prev && prev.id === data.playerId ? { ...prev, level: data.toLevel } : prev));
+        updateView(data.playerId, (current) => ({
+          ...current,
+          player: { ...current.player, level: data.toLevel },
+        }));
         if (displayStateRef.current === 'REWARD') {
           pendingLevelUpRef.current = data;
         } else {
@@ -130,10 +208,39 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
         }
         break;
       }
+
+      case 'equipment.changed': {
+        const data = event.data as EquipmentChangedData;
+        updateView(data.playerId, (current) => {
+          if (!current.inventory) return current;
+          const entry = data.equippedItem
+            ? (current.inventory.items.find((owned) => owned.item.id === data.equippedItem?.id) ?? null)
+            : null;
+          return {
+            ...current,
+            inventory: {
+              ...current.inventory,
+              equipment: { ...current.inventory.equipment, [data.slot]: entry },
+              attack: data.attack,
+              defense: data.defense,
+            },
+          };
+        });
+        scheduleIdle();
+        break;
+      }
+
+      case 'station.cleared': {
+        backToIdle();
+        break;
+      }
     }
   };
 
   const { connected, transport } = useGameEvents(displayId, handleGameEvent);
+
+  const adventurer = view?.player;
+  const activeQuest = view?.activeQuest ?? null;
 
   return (
     <div className="guild-display-root">
@@ -173,16 +280,131 @@ export function GuildDisplayView({ nodeId }: { nodeId?: string } = {}) {
           </div>
         )}
 
-        {displayState === 'WELCOME' && adventurer && (
-          <div className="guild-welcome">
-            <div className="guild-welcome-title">歡迎回到公會，{adventurer.name}！</div>
-            <div className="guild-welcome-level">Lv {adventurer.level}</div>
-            <div className="guild-welcome-stats">
-              <span>❤️ {adventurer.hp} / {adventurer.maxHp}</span>
-              <span>🪙 {adventurer.gold}</span>
-              <span>🎖️ {adventurer.merit}</span>
-            </div>
-            <p className="guild-hint">和櫃台人員一起挑選委託吧</p>
+        {displayState === 'COUNTER' && view && adventurer && (
+          <div className="guild-counter">
+            <section className="guild-panel guild-status">
+              <div className="guild-status-head">
+                <div className="guild-status-level">
+                  <span>Lv</span>
+                  {adventurer.level}
+                </div>
+                <div>
+                  <div className="guild-status-name">{adventurer.name}</div>
+                  <div className="guild-status-rank">{adventurer.rank}</div>
+                </div>
+              </div>
+              <div className="guild-status-hp">
+                <span>❤️ HP</span>
+                <span>
+                  {adventurer.hp} / {adventurer.maxHp}
+                </span>
+              </div>
+              <div className="guild-meter">
+                <div
+                  className="guild-meter-fill hp"
+                  style={{ width: `${Math.min(100, Math.max(0, (adventurer.hp / adventurer.maxHp) * 100))}%` }}
+                />
+              </div>
+              <div className="guild-status-resources">
+                <span>🪙 {adventurer.gold}</span>
+                <span>🎖️ {adventurer.merit}</span>
+              </div>
+
+              {view.inventory && (
+                <div className="guild-equipment">
+                  <div className="guild-panel-title">
+                    🎒 裝備
+                    <span className="guild-equipment-stats">
+                      ATK {view.inventory.attack} · DEF {view.inventory.defense}
+                    </span>
+                  </div>
+                  <div className="guild-equipment-slots">
+                    {SLOTS.map((slot) => {
+                      const entry = view.inventory?.equipment[slot] ?? null;
+                      return (
+                        <div key={slot} className={`guild-equipment-slot ${entry ? 'filled' : ''}`}>
+                          <span className="guild-equipment-label">{SLOT_LABELS[slot]}</span>
+                          <span className="guild-equipment-icon">
+                            {entry ? itemIcon(entry.item.iconKey, slot) : '—'}
+                          </span>
+                          <span className="guild-equipment-name">{entry ? entry.item.name : '空'}</span>
+                          {entry && <span className="guild-equipment-item-stats">{itemStatLabel(entry.item)}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="guild-panel guild-quests">
+              {activeQuest && activeQuest.status === 'completed' && (
+                <div className="guild-quest-active completed">
+                  <div className="guild-quest-badge">✨ QUEST COMPLETE ✨</div>
+                  <div className="guild-quest-title">{activeQuest.quest?.title ?? '公會委託'}</div>
+                  <div className="guild-meter">
+                    <div className="guild-meter-fill complete" style={{ width: '100%' }} />
+                  </div>
+                  <div className="guild-quest-rewards">
+                    <span>🪙 +{activeQuest.quest?.rewardGold ?? 0}</span>
+                    <span>🎖️ +{activeQuest.quest?.rewardMerit ?? 0}</span>
+                  </div>
+                  <p className="guild-hint">報酬領取中，請稍候</p>
+                </div>
+              )}
+
+              {activeQuest && activeQuest.status === 'accepted' && (
+                <div className="guild-quest-active">
+                  <div className="guild-quest-badge">⚔️ 進行中委託</div>
+                  <div className="guild-quest-title">{activeQuest.quest?.title ?? '公會委託'}</div>
+                  {activeQuest.quest && <div className="guild-quest-target">目標：{questTarget(activeQuest.quest)}</div>}
+                  <div className="guild-quest-progress">
+                    <span>討伐進度</span>
+                    <span>
+                      {activeQuest.progress} / {activeQuest.targetCount}
+                    </span>
+                  </div>
+                  <div className="guild-meter">
+                    <div
+                      className="guild-meter-fill"
+                      style={{ width: `${Math.min(100, (activeQuest.progress / activeQuest.targetCount) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="guild-quest-rewards">
+                    <span>🪙 {activeQuest.quest?.rewardGold ?? 0}</span>
+                    <span>🎖️ {activeQuest.quest?.rewardMerit ?? 0}</span>
+                  </div>
+                </div>
+              )}
+
+              {activeQuest && activeQuest.status === 'claimed' && (
+                <div className="guild-quest-active claimed">
+                  <div className="guild-quest-badge">✅ 委託已完成並領獎</div>
+                  <div className="guild-quest-title">{activeQuest.quest?.title ?? '公會委託'}</div>
+                </div>
+              )}
+
+              {!activeQuest && (
+                <>
+                  <div className="guild-panel-title">📜 可接取委託</div>
+                  <div className="guild-quest-list">
+                    {view.availableQuests.length === 0 && (
+                      <div className="guild-board-empty">目前沒有招募中的委託</div>
+                    )}
+                    {view.availableQuests.map((quest) => (
+                      <div key={quest.id} className="guild-quest-entry">
+                        <div className="guild-quest-entry-title">{quest.title}</div>
+                        <div className="guild-quest-target">目標：{questTarget(quest)}</div>
+                        <div className="guild-quest-rewards">
+                          <span>🪙 {quest.rewardGold}</span>
+                          <span>🎖️ {quest.rewardMerit}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
           </div>
         )}
 

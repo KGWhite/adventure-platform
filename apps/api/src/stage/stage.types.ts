@@ -8,6 +8,11 @@ export class SetStageDto {
   nodeId!: StationNodeId | null;
 }
 
+export class ClearStationDto {
+  @IsIn(STATION_NODE_IDS)
+  nodeId!: StationNodeId;
+}
+
 export interface StageState {
   nodeId: StationNodeId | null;
   updatedAt: string;

@@ -97,3 +97,9 @@ export interface EquipmentChangedData {
   attack: number;
   defense: number;
 }
+
+export interface ShopItemPreviewedData {
+  shopId: string;
+  // null when the shopkeeper closes the confirmation
+  itemId: string | null;
+}

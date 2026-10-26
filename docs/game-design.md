@@ -496,7 +496,7 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
 
 ### 12.1 已確認方向 (Confirmed Directions)
 - [x] **實體互動核心**：Adventure ID（實體識別）、Actor Device（真人控制）、Display Node（現實世界呈現）、Game Server（規則裁決）。
-- [x] **第一階段憑證技術**：QR Code 實體卡片（暫不使用 NFC，避免硬體與相容性阻塞）。
+- [x] **第一階段憑證技術**：QR Code 實體卡片為主；Android Chrome 可選用 NFC 卡（卡片寫入與 QR 相同的 `adventure://player/…` 內容），iPhone 瀏覽器不支援 Web NFC，仍以 QR 為準。
 - [x] **憑證與身分解耦**：QR Code 僅是 Credential Carrier，遊戲核心只識別 Player Identity。
 - [x] **控制與呈現分離**：Actor Device = Control，Display Node = Presentation。
 - [x] **通訊協定架構**：Command 採 REST API，即時狀態與動畫推播採 WebSocket。
@@ -534,7 +534,9 @@ $$\text{Adventure ID (QR)} + \text{Actor Device} + \text{Game Server} + \text{Wo
 - [x] **Staff Console Vertical Slice MVP (一人一機扮演所有崗位)**：
   - **現場配置**：一位工作人員、一支手機、一個大螢幕。工作人員以 `STAFF` 帳號登入總控台 `/staff`，切換扮演公會櫃台、商店店員、Boss 看守者與狀態查詢；小朋友只帶冒險者 ID 卡，在工作人員手機上刷卡就代表進入該崗位。
   - **跟隨模式大螢幕 `/display`**：手機切換崗位時，伺服器推送 `stage.changed`，大螢幕同步切到公會（`/display/guild-01` 委託告示板、冒險者名牌、接任務／完成委託／升級演出）、商店、Boss 或狀態查詢（`/display/status-01` 等級與技能卡牆）畫面。
+  - **大螢幕與手機同步**：冒險者可能只看大螢幕，所以商店大螢幕顯示與店員手機相同的商品陳列與鎖定原因，並放大店員正在確認的商品；公會大螢幕顯示冒險者狀態、裝備與委託進度。
   - **權限**：會改變遊戲狀態的世界節點操作僅限工作人員與管理員；大螢幕與 `/status` 自助終端維持公開。
+  - **刷卡裝置**：Android 與 iPhone 都可用相機刷卡（內建辨識優先，iPhone 以 jsQR 解碼）；Android Chrome 另可在公會、商店、Boss、狀態崗位用 NFC 刷冒險者卡。
   - 詳細規格：[docs/specs/staff-console.md](specs/staff-console.md)。
 - [x] **Demo 測試資料**：Aria (`cred-demo-001`)、Leon (`cred-demo-002`)、Black Knight (`boss-01`)、Defeat the Black Knight Quest (`quest-defeat-black-knight`)。
 

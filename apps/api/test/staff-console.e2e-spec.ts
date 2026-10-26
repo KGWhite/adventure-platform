@@ -62,6 +62,8 @@ describe('Staff Console (e2e)', () => {
       ['post', '/api/v1/player-quests/any/claim'],
       ['post', '/api/v1/players/any/equipment'],
       ['delete', '/api/v1/players/any/equipment/WEAPON'],
+      ['post', '/api/v1/shops/shop-01/preview'],
+      ['post', '/api/v1/stage/clear'],
     ];
 
     it.each(writeEndpoints)('%s %s rejects missing token and USER role', async (method, path) => {
@@ -135,5 +137,71 @@ describe('Staff Console (e2e)', () => {
     const viewed = emit.mock.calls.find(([type]) => type === 'status.viewed');
     expect(viewed?.[1]).toBe('status-01');
     expect(viewed?.[2]).toEqual(res.body);
+  });
+
+  describe('big screen mirroring', () => {
+    const typed = (spy: ReturnType<typeof vi.spyOn>, type: string) =>
+      spy.mock.calls.filter(([eventType]) => eventType === type);
+
+    it('mirrors a shop scan with offers to the shop display', async () => {
+      const emit = vi.spyOn(events, 'emit');
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/shops/shop-01/scan')
+        .set(staff)
+        .send({ credentialValue: 'cred-demo-002' })
+        .expect(200);
+
+      expect(typed(emit, 'shop.scanned')).toEqual([['shop.scanned', 'shop-01', res.body]]);
+      expect(res.body.items.length).toBeGreaterThan(0);
+    });
+
+    it('previews a shop item and closes the preview', async () => {
+      const catalog = await request(app.getHttpServer()).get('/api/v1/shops/shop-01').expect(200);
+      const itemId = catalog.body.items[0].itemId;
+      const emit = vi.spyOn(events, 'emit');
+
+      const preview = (body: Record<string, unknown>) =>
+        request(app.getHttpServer()).post('/api/v1/shops/shop-01/preview').set(staff).send(body);
+      await preview({ itemId }).expect(200);
+      await preview({ itemId: null }).expect(200);
+      await preview({ itemId: 'no-such-item' }).expect(400);
+      await preview({}).expect(400);
+
+      expect(typed(emit, 'shop.item_previewed')).toEqual([
+        ['shop.item_previewed', 'shop-01', { shopId: 'shop-01', itemId }],
+        ['shop.item_previewed', 'shop-01', { shopId: 'shop-01', itemId: null }],
+      ]);
+    });
+
+    it('mirrors a guild scan with quests and equipment to the guild display', async () => {
+      const emit = vi.spyOn(events, 'emit');
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/guild/scan')
+        .set(staff)
+        .send({ credentialValue: 'cred-demo-002' })
+        .expect(201);
+
+      expect(typed(emit, 'guild.scanned')).toEqual([['guild.scanned', 'guild-01', res.body]]);
+      expect(res.body).toHaveProperty('availableQuests');
+      expect(res.body).toHaveProperty('inventory');
+    });
+
+    it('clears a station back to its idle screen', async () => {
+      const emit = vi.spyOn(events, 'emit');
+      await request(app.getHttpServer())
+        .post('/api/v1/stage/clear')
+        .set(staff)
+        .send({ nodeId: 'shop-01' })
+        .expect(204);
+      await request(app.getHttpServer())
+        .post('/api/v1/stage/clear')
+        .set(staff)
+        .send({ nodeId: 'castle-99' })
+        .expect(400);
+
+      expect(typed(emit, 'station.cleared')).toEqual([
+        ['station.cleared', 'shop-01', { nodeId: 'shop-01' }],
+      ]);
+    });
   });
 });

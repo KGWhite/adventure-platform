@@ -17,7 +17,11 @@ export type GameEventType =
   | 'skill.fizzled'
   | 'adventurer.level_up'
   | 'stage.changed'
-  | 'status.viewed';
+  | 'status.viewed'
+  | 'shop.scanned'
+  | 'shop.item_previewed'
+  | 'guild.scanned'
+  | 'station.cleared';
 
 export interface GameEvent<T = any> {
   type: GameEventType;
@@ -200,4 +204,14 @@ export interface AdventurerLevelUpData {
 export interface StageChangedData {
   nodeId: string | null;
   previousNodeId: string | null;
+}
+
+export interface ShopItemPreviewedData {
+  shopId: string;
+  // null when the shopkeeper closes the confirmation
+  itemId: string | null;
+}
+
+export interface StationClearedData {
+  nodeId: string;
 }
